@@ -18,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 用户认证服务
+ * 提供用户登录、密码管理、微信绑定等核心业务逻辑
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,14 @@ public class AuthService {
     private final WeChatService weChatService;
     private final PasswordUtil passwordUtil;
 
+    /**
+     * 用户登录
+     * 支持首次登录检测、密码验证、微信绑定等功能
+     *
+     * @param request 登录请求参数
+     * @return 登录响应信息
+     * @throws BusinessException 用户不存在或密码错误时抛出
+     */
     public LoginResponse login(LoginRequest request) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", request.getUsername());
@@ -88,6 +100,14 @@ public class AuthService {
         return response;
     }
 
+    /**
+     * 绑定微信OpenID
+     * 将用户账号与微信账号关联，支持获取微信用户信息
+     *
+     * @param user 用户对象
+     * @param wxCode 微信授权code
+     * @throws BusinessException 微信已绑定其他账号或绑定失败时抛出
+     */
     private void bindWeChatOpenId(User user, String wxCode) {
         try {
             WeChatAccessTokenDto accessTokenDto = weChatService.getAccessToken(wxCode);
@@ -139,6 +159,14 @@ public class AuthService {
         }
     }
 
+    /**
+     * 用户设置密码
+     * 密码必须为6位数字，两次输入必须一致
+     * 使用BCrypt加密存储
+     *
+     * @param request 密码设置请求
+     * @throws BusinessException 密码格式错误或用户不存在时抛出
+     */
     public void setPassword(SetPasswordRequest request) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -173,19 +201,35 @@ public class AuthService {
 
         log.info("用户 {} 密码设置成功", user.getUsername());
     }
-
+    /**
+     * 根据用户名查询用户信息
+     *
+     * @param username 用户名（学号/工号）
+     * @return 用户对象，不存在时返回null
+     */
     public User getUserByUsername(String username) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", username);
         return userMapper.selectOne(queryWrapper);
     }
-
+    /**
+     * 检查用户是否存在
+     *
+     * @param username 用户名（学号/工号）
+     * @return 用户是否存在
+     */
     public boolean checkUserExists(String username) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", username);
         return userMapper.selectCount(queryWrapper) > 0;
     }
-
+    /**
+     * 检查用户状态
+     * 返回用户是否存在、是否已设置密码、用户角色等信息
+     *
+     * @param username 用户名（学号/工号）
+     * @return 用户状态信息
+     */
     public UserStatusDto checkUserStatus(String username) {
         User user = getUserByUsername(username);
 
@@ -202,7 +246,13 @@ public class AuthService {
 
         return status;
     }
-
+    /**
+     * 检查用户微信绑定状态
+     * 返回用户是否已绑定微信、微信昵称、头像等信息
+     *
+     * @param username 用户名（学号/工号）
+     * @return 微信绑定状态信息
+     */
     public WeChatStatusDto checkWeChatStatus(String username) {
         User user = getUserByUsername(username);
 
@@ -234,7 +284,13 @@ public class AuthService {
 
         return status;
     }
-
+    /**
+     * 解绑微信
+     * 清除用户与微信的绑定关系
+     *
+     * @param username 用户名（学号/工号）
+     * @throws BusinessException 用户不存在或未绑定微信时抛出
+     */
     public void unbindWeChat(String username) {
         User user = getUserByUsername(username);
         if (user == null) {
@@ -258,14 +314,24 @@ public class AuthService {
 
         log.info("用户 {} 成功解绑微信", username);
     }
-
+    /**
+     * 获取所有已绑定微信的用户
+     *
+     * @return 已绑定微信的用户列表
+     */
     public List<User> getAllUsersWithWeChat() {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.isNotNull("wx_openid")
                    .ne("wx_openid", "");
         return userMapper.selectList(queryWrapper);
     }
-
+    /**
+     * 调试方法：获取用户详细信息
+     * 用于开发调试，返回用户的完整信息字符串
+     *
+     * @param username 用户名（学号/工号）
+     * @return 用户详细信息字符串
+     */
     public String debugUserInfo(String username) {
         try {
             log.info("开始查询用户 {}", username);
@@ -302,7 +368,12 @@ public class AuthService {
             return "查询失败: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
     }
-
+    /**
+     * 测试数据库连接
+     * 用于检查数据库连接是否正常
+     *
+     * @return 数据库连接状态和用户总数
+     */
     public String testDatabaseConnection() {
         try {
             log.info("开始测试数据库连接");
@@ -316,7 +387,14 @@ public class AuthService {
             return "数据库连接失败: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
     }
-
+    /**
+     * 通过微信openid登录
+     * 适用于已绑定微信的用户快速登录
+     *
+     * @param openid 微信openid
+     * @return 登录响应信息
+     * @throws BusinessException 未找到绑定用户或用户被禁用时抛出
+     */
     public LoginResponse loginByOpenId(String openid) {
         log.info("开始通过openid登录，openid: {}", openid);
 
@@ -357,7 +435,14 @@ public class AuthService {
             throw new BusinessException(500, "登录失败: " + e.getMessage());
         }
     }
-
+    /**
+     * 通过微信授权code登录
+     * 推荐方式：通过微信授权code获取openid后登录
+     *
+     * @param code 微信授权code
+     * @return 登录响应信息
+     * @throws BusinessException code无效或登录失败时抛出
+     */
     public LoginResponse loginByCode(String code) {
         log.info("开始通过code登录，code: {}", code);
 
@@ -379,7 +464,12 @@ public class AuthService {
             throw new BusinessException(500, "登录失败: " + e.getMessage());
         }
     }
-
+    /**
+     * 根据openid查找用户
+     *
+     * @param openid 微信openid
+     * @return 用户对象，不存在时返回null
+     */
     public User getUserByOpenId(String openid) {
         try {
             log.info("根据openid查找用户，openid: {}", openid);
@@ -404,7 +494,14 @@ public class AuthService {
             return null;
         }
     }
-
+    /**
+     * 重置用户密码
+     * 仅管理员可调用，密码重置为"syjx@学号后四位"
+     * 使用事务确保数据一致性
+     *
+     * @param usernames 需要重置密码的用户名列表
+     * @throws BusinessException 用户不存在或无权限时抛出
+     */
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(List<String> usernames) {
 

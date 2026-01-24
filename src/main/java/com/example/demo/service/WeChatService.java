@@ -10,6 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * 微信服务类
+ * 提供微信授权、获取用户信息等功能
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -19,6 +23,14 @@ public class WeChatService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 通过code获取微信access_token和openid
+     * 用于微信网页授权登录
+     *
+     * @param code 微信授权code
+     * @return 微信访问令牌信息（包含openid、unionid等）
+     * @throws BusinessException code无效或微信API调用失败时抛出
+     */
     public WeChatAccessTokenDto getAccessToken(String code) {
         if (code == null || code.trim().isEmpty()) {
             throw new BusinessException(400, "微信授权code不能为空");
@@ -65,7 +77,15 @@ public class WeChatService {
             throw new BusinessException(500, "获取微信信息失败: " + e.getMessage());
         }
     }
-
+    /**
+     * 获取微信用户信息
+     * 通过access_token和openid获取用户的昵称、头像等信息
+     *
+     * @param accessToken 微信访问令牌
+     * @param openid 用户唯一标识
+     * @return 微信用户信息
+     * @throws BusinessException 参数无效或微信API调用失败时抛出
+     */
     public WeChatUserInfoDto getUserInfo(String accessToken, String openid) {
         if (accessToken == null || accessToken.trim().isEmpty()) {
             throw new BusinessException(400, "access_token不能为空");
@@ -108,7 +128,12 @@ public class WeChatService {
             throw new BusinessException(500, "获取微信用户信息失败: " + e.getMessage());
         }
     }
-
+    /**
+     * 验证微信配置是否正确
+     * 检查AppID和AppSecret是否已配置
+     *
+     * @return 配置是否正确
+     */
     public boolean validateConfig() {
         if (weChatConfig.getAppid() == null || weChatConfig.getAppid().isEmpty()) {
             log.warn("微信AppID未配置");
@@ -122,7 +147,13 @@ public class WeChatService {
 
         return true;
     }
-
+    /**
+     * 根据微信错误码返回用户友好的错误信息
+     *
+     * @param errcode 微信错误码
+     * @param errmsg 微信错误信息
+     * @return 用户友好的错误信息
+     */
     private String getWeChatErrorMessage(Integer errcode, String errmsg) {
         if (errcode == null) {
             return "微信接口调用失败";
@@ -175,7 +206,14 @@ public class WeChatService {
                 }
         }
     }
-
+    /**
+     * 解析微信API响应
+     * 将JSON字符串解析为DTO对象
+     *
+     * @param response 微信API返回的JSON字符串
+     * @return 解析后的DTO对象
+     * @throws BusinessException 解析失败时抛出
+     */
     private WeChatAccessTokenDto parseWeChatResponse(String response) {
         try {
             if (response == null || response.trim().isEmpty()) {
@@ -188,7 +226,13 @@ public class WeChatService {
             throw new BusinessException(500, "解析微信API响应失败: " + e.getMessage());
         }
     }
-
+    /**
+     * 通过code获取openid（简化版本）
+     * 直接从微信API获取openid，不返回完整的token信息
+     *
+     * @param code 微信授权code
+     * @return 微信openid，失败时返回null
+     */
     public String getOpenIdByCode(String code) {
         try {
             log.info("通过code获取openid，code: {}", code);

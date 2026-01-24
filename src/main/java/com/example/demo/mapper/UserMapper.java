@@ -7,9 +7,21 @@ import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
+/**
+ * 用户Mapper接口
+ * 提供用户数据访问操作
+ */
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
 
+    /**
+     * 查询指定班级未签到的学生
+     * 根据班级代码和课程ID查询该班级中未签到的学生列表
+     *
+     * @param classCode 班级代码
+     * @param className 课程ID
+     * @return 未签到的学生列表
+     */
     @Select("select * from users where " +
             "username in " +
                 "(select student_username from student_class_relations where " +
