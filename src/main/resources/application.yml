@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: demo1
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+file:
+  upload:
+    path: ${UPLOAD_PATH}
+    photo:
+      path: ${file.upload.path}photos/
+    document:
+      path: ${file.upload.path}documents/
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
+
+server:
+  port: ${SERVER_PORT}
+  address: ${SERVER_ADDRESS}
+  servlet:
+    context-path: /
+  tomcat:
+    relaxed-path-chars: [ '{', '}', '[', ']']
+    relaxed-query-chars: [ '{', '}', '[', ']']
+
+wechat:
+  appid: ${WECHAT_APPID}
+  secret: ${WECHAT_SECRET}
+  template-id: ${WECHAT_TEMPLATE_ID}
+  token: ${WECHAT_TOKEN}
+  api:
+    token-url: https://api.weixin.qq.com/cgi-bin/token
+    oauth2-token-url: https://api.weixin.qq.com/sns/oauth2/access_token
+    userinfo-url: https://api.weixin.qq.com/sns/userinfo
+
+auto-table:
+  mode: update
+  index-prefix:
+  model-package: com.example.demo.pojo.entity
+  show-banner: true
+
+management:
+  endpoints:
+    jmx:
+      domain: com.example.demo
