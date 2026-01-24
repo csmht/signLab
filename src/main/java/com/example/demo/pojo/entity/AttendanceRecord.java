@@ -29,17 +29,17 @@ public class AttendanceRecord {
     @Column(comment = "课程ID", type = "varchar(20)", notNull = true)
     private String courseId;
 
+    @Column(comment = "实验ID", type = "varchar(20)", notNull = true)
+    private String experimentId;
+
     @Column(comment = "学生用户名(学号)", type = "varchar(50)", notNull = true)
     private String studentUsername;
 
     @Column(comment = "签到时间", type = "datetime", notNull = true)
     private LocalDateTime attendanceTime;
 
-    @Column(comment = "签到状态：1-正常，其他值表示异常状态", type = "tinyint", defaultValue = "1")
-    private Integer attendanceStatus;
-
-    @Column(comment = "是否为跨班签到：0-否，1-是", type = "tinyint", defaultValue = "0")
-    private Integer isCrossClass;
+    @Column(comment = "签到状态：正常，补签，迟到，跨班签到", type = "char(20)", defaultValue = "正常")
+    private String attendanceStatus;
 
     @Column(comment = "学生实际所在班级代码", type = "varchar(20)")
     private String studentActualClassCode;

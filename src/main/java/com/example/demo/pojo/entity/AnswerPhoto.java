@@ -18,10 +18,6 @@ public class AnswerPhoto {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @TableField("answer_id")
-    @Column(comment = "回答ID", type = "bigint")
-    private Long answerId;
-
     @Column(comment = "照片文件名", type = "varchar(255)")
     private String photoName;
 

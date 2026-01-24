@@ -35,20 +35,8 @@ public class Topic {
     @Column(comment = "题目类型：1-单选题，2-多选题，3-判断题，4-填空题，5-简答题，6-其他", type = "int")
     private Integer type;
 
-    @Column(comment = "是否需要提交照片：0-不需要，1-需要", type = "bit")
-    private Boolean needPhoto;
-
-    @Column(comment = "是否需要提交文档：0-不需要，1-需要", type = "bit")
-    private Boolean needDoc;
-
-    @Column(comment = "是否必填：0-不需要，1-需要", type = "bit")
-    private Boolean needAnswer;
-
     @Column(comment = "题目内容", type = "varchar(255)")
     private String content;
-
-    @Column(comment = "题目总分", type = "bigint")
-    private Long totalScore;
 
     @Column(comment = "选项内容", type = "varchar(255)")
     private String choices;

@@ -38,26 +38,8 @@ public class Course {
     @Column(comment = "授课教师用户名", type = "varchar(50)", notNull = true)
     private String teacherUsername;
 
-    @Column(comment = "上课班级编号", type = "varchar(20)", notNull = true)
-    private String classCode;
-
-    @Column(comment = "上课地点", type = "varchar(100)")
-    private String location;
-
-    @Column(comment = "课程日期", type = "date", notNull = true)
-    private String courseDate;
-
-    @Column(comment = "上课时间段，格式如：08:00-09:40", type = "varchar(20)", notNull = true)
-    private String timeSlot;
-
     @Column(comment = "教师工号", type = "varchar(20)")
     private String teacherEmployeeId;
-
-    @Column(comment = "开始时间", type = "time")
-    private LocalTime startTime;
-
-    @Column(comment = "结束时间", type = "time")
-    private LocalTime endTime;
 
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createTime;

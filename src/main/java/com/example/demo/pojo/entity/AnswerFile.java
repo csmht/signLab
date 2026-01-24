@@ -19,9 +19,6 @@ public class AnswerFile {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(comment = "回答ID", type = "bigint")
-    private Long answerId;
-
     @Column(comment = "原始文件名", type = "varchar(255)")
     private String originalFileName;
 
