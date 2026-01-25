@@ -43,10 +43,9 @@ public class QrController {
      * @param httpRequest HTTP请求
      * @return 签到响应
      */
-    @GetMapping("/student/scan")
+    @GetMapping("/student/scan/{key}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<AttendanceResponse> scanAttendance(
-            @RequestParam("key") String key,
+    public ApiResponse<AttendanceResponse> scanAttendance( @PathVariable String key,
             HttpServletRequest httpRequest) {
 
         // 获取客户端IP地址
