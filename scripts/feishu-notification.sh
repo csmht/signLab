@@ -34,14 +34,14 @@ if [ "${EVENT_NAME}" == "push" ]; then
 🔗 **查看详情**: ${COMMIT_URL}"
 
 elif [ "${EVENT_NAME}" == "pull_request" ]; then
-  # PR 事件
-  PR_ACTION="${{ github.event.action }}"
-  PR_NUMBER="${{ github.event.pull_request.number }}"
-  PR_TITLE="${{ github.event.pull_request.title }}"
-  PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-  PR_URL="${{ github.event.pull_request.html_url }}"
-  PR_BRANCH="${{ github.event.pull_request.head.ref }}"
-  PR_MERGED="${{ github.event.pull_request.merged }}"
+  # PR 事件 - 从 GITHUB_EVENT_PATH 文件中提取数据
+  PR_ACTION=$(jq -r '.action' "$GITHUB_EVENT_PATH")
+  PR_NUMBER=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
+  PR_TITLE=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+  PR_AUTHOR=$(jq -r '.pull_request.user.login' "$GITHUB_EVENT_PATH")
+  PR_URL=$(jq -r '.pull_request.html_url' "$GITHUB_EVENT_PATH")
+  PR_BRANCH=$(jq -r '.pull_request.head.ref' "$GITHUB_EVENT_PATH")
+  PR_MERGED=$(jq -r '.pull_request.merged' "$GITHUB_EVENT_PATH")
 
   if [ "${PR_ACTION}" == "opened" ]; then
     EVENT_TYPE="PR 提起"
