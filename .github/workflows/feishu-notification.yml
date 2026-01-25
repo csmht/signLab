@@ -1,0 +1,28 @@
+name: 飞书通知
+
+on:
+  # 当 master 分支有推送时触发
+  push:
+    branches:
+      - master
+  # 当 PR 被提起、同步或关闭（合并）时触发
+  pull_request:
+    types: [opened, synchronize, closed]
+    branches:
+      - master
+
+jobs:
+  send-feishu-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 执行飞书通知脚本
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK }}
+        run: |
+          chmod +x scripts/feishu-notification.sh
+          ./scripts/feishu-notification.sh
