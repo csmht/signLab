@@ -99,13 +99,20 @@ echo "${MESSAGE}"
 
 # 发送到飞书 webhook
 echo "发送飞书通知..."
+
+# 使用 jq 构建 JSON 请求，确保正确处理特殊字符
+JSON_DATA=$(jq -n \
+  --arg msg_type "text" \
+  --arg text "${MESSAGE}" \
+  '{
+    msg_type: $msg_type,
+    content: {
+      text: $text
+    }
+  }')
+
 curl -X POST "${FEISHU_WEBHOOK_URL}" \
   -H "Content-Type: application/json" \
-  -d '{
-    "msg_type": "text",
-    "content": {
-      "text": "'"${MESSAGE}"'"
-    }
-  }'
+  -d "${JSON_DATA}"
 
 echo "飞书通知发送完成！"
