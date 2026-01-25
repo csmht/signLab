@@ -1,7 +1,10 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.mapper.AnswerFileMapper;
 import com.example.demo.pojo.dto.*;
+import com.example.demo.pojo.entity.AnswerFile;
 import com.example.demo.pojo.entity.User;
 import com.example.demo.enums.ResponseCode;
 import com.example.demo.exception.BusinessException;
@@ -25,7 +28,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
 
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;

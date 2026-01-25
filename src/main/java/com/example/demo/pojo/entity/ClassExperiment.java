@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 
 @Data
 @AutoTable
-@Table(value = "classes_experiment", comment = "班级实验表 - 记录班级参加的实验")
+@Table(value = "classes_experiment", comment = "班级实验表 - 记录班级参加的实验（即课次）")
 @TableName("classes_experiment")
 public class ClassExperiment {
 
@@ -37,7 +37,7 @@ public class ClassExperiment {
     @Column(comment = "实验结束填写时间", type = "datetime", notNull = true)
     private LocalDateTime endTime;
 
-    @Column(comment = "实验地点", type = "datetime", notNull = true)
-    private LocalDateTime experimentLocation;
+    @Column(comment = "实验地点", type = "varchar(100)", notNull = true)
+    private String experimentLocation;
 
 }
