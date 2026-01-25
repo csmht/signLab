@@ -12,6 +12,10 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 课程成绩表
+ * 记录学生的课程成绩信息
+ */
 @Data
 @AutoTable
 @Table(value = "course_grades", comment = "课程成绩表")
@@ -24,52 +28,68 @@ import java.time.LocalDateTime;
 @TableIndex(name = "idx_semester", fields = {"semester"})
 public class CourseGrade {
 
+    /** 成绩ID */
     @TableId(type = IdType.AUTO)
     @Column(comment = "成绩ID")
     private Long id;
 
+    /** 学生学号 */
     @Column(comment = "学生学号", type = "varchar(50)", notNull = true)
     private String studentUsername;
 
+    /** 课程ID */
     @Column(comment = "课程ID", type = "varchar(50)", notNull = true)
     private String courseId;
 
+    /** 成绩（字母等级或具体分数） */
     @Column(comment = "成绩（字母等级或具体分数）", type = "varchar(10)", notNull = true)
     private String grade;
 
+    /** 数字成绩（如适用，如90.5分） */
     @Column(comment = "数字成绩（如适用，如90.5分）", type = "decimal(5,2)")
     private BigDecimal gradeNumeric;
 
+    /** 成绩类型：字母等级、数字分数、通过/不通过 */
     @Column(comment = "成绩类型：字母等级、数字分数、通过/不通过", type = "enum('letter', 'numeric', 'pass_fail')", notNull = true, defaultValue = "'letter'")
     private String gradeType;
 
+    /** 满分值 */
     @Column(comment = "满分值", type = "decimal(5,2)", defaultValue = "100.00")
     private BigDecimal maxScore;
 
+    /** 打分教师用户名 */
     @Column(comment = "打分教师用户名", type = "varchar(50)", notNull = true)
     private String teacherUsername;
 
+    /** 教师评语 */
     @Column(comment = "教师评语", type = "text")
     private String teacherComment;
 
+    /** 成绩打分时间 */
     @Column(comment = "成绩打分时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime gradeTime;
 
+    /** 学期信息（如：2024-2025春正） */
     @Column(comment = "学期信息（如：2024-2025春正）", type = "varchar(20)")
     private String semester;
 
+    /** 是否已审核 */
     @Column(comment = "是否已审核", type = "boolean", defaultValue = "false")
     private Boolean isApproved;
 
+    /** 审核人用户名 */
     @Column(comment = "审核人用户名", type = "varchar(50)")
     private String approvedBy;
 
+    /** 审核时间 */
     @Column(comment = "审核时间", type = "datetime")
     private LocalDateTime approvedTime;
 
+    /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createdTime;
 
+    /** 更新时间 */
     @Column(comment = "更新时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedTime;
 }

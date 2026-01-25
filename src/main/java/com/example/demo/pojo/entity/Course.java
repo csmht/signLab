@@ -13,6 +13,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+/**
+ * 课程表
+ * 存储课程信息，包含教师工号和精确时间
+ */
 @Data
 @AutoTable
 @Table(value = "courses", comment = "课程表 - 存储课程信息，包含教师工号和精确时间")
@@ -26,27 +30,35 @@ import java.time.LocalTime;
 @TableIndex(name = "idx_courses_end_time", fields = {"endTime"})
 public class Course {
 
+    /** 主键ID */
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 课程ID */
     @Column(comment = "课程ID", type = "varchar(20)", notNull = true)
     private String courseId;
 
+    /** 课程名称 */
     @Column(comment = "课程名称", type = "varchar(200)", notNull = true)
     private String courseName;
 
+    /** 授课教师用户名 */
     @Column(comment = "授课教师用户名", type = "varchar(50)", notNull = true)
     private String teacherUsername;
 
+    /** 教师工号 */
     @Column(comment = "教师工号", type = "varchar(20)")
     private String teacherEmployeeId;
 
+    /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createTime;
 
+    /** 更新时间 */
     @Column(comment = "更新时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updateTime;
 
+    /** 是否删除 */
     @Column(comment = "是否删除", type = "tinyint", defaultValue = "0")
     private Integer isDeleted;
 }

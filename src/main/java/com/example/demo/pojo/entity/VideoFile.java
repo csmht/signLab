@@ -10,16 +10,15 @@ import com.tangzc.mpe.autotable.annotation.Table;
 import lombok.Data;
 
 /**
- * 回答文件表
- * 存储学生提交的文档文件信息
+ * 视频文件表
+ * 存储学生提交的视频文件信息
  */
 @Data
 @AutoTable
-@Table(value = "answer_files", comment = "回答文件表")
-@TableName("answer_files")
+@Table(value = "video_files", comment = "视频文件表")
+@TableName("video_files")
 @TableIndex(name = "idx_answer_id", fields = {"answerId"})
-public class AnswerFile {
-
+public class VideoFile {
     /** 主键ID */
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -35,6 +34,10 @@ public class AnswerFile {
     /** 存储文件名 */
     @Column(comment = "存储文件名", type = "varchar(255)")
     private String storedFileName;
+
+    /** 视频时长（秒） */
+    @Column(comment = "视频时长（秒）",type = "bigint")
+    private Long videoSeconds;
 
     /** 文件存储路径 */
     @Column(comment = "文件存储路径", type = "varchar(255)")

@@ -10,8 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 主题管理控制器
- * 提供主题的查询、创建、更新、删除等接口
+ * 题目管理控制器
  */
 @RequestMapping("/api/topic")
 @RestController

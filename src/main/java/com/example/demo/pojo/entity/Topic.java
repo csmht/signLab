@@ -16,6 +16,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 题目表
+ * 存储试卷中的题目信息
+ */
 @Data
 @AutoTable
 @Table(value = "topics", comment = "题目表 - 存储试卷中的题目信息")
@@ -23,30 +27,39 @@ import java.util.Map;
 @TableIndex(name = "idx_paper_id", fields = {"paperId"})
 public class Topic {
 
+    /** 主键ID */
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 试卷ID */
     @Column(comment = "试卷ID", type = "bigint")
     private Long paperId;
 
+    /** 题号 */
     @Column(comment = "题号", type = "int")
     private Integer number;
 
+    /** 题目类型：1-单选题，2-多选题，3-判断题，4-填空题，5-简答题，6-其他 */
     @Column(comment = "题目类型：1-单选题，2-多选题，3-判断题，4-填空题，5-简答题，6-其他", type = "int")
     private Integer type;
 
+    /** 题目内容 */
     @Column(comment = "题目内容", type = "varchar(255)")
     private String content;
 
+    /** 选项内容 */
     @Column(comment = "选项内容", type = "varchar(255)")
     private String choices;
 
+    /** 正确答案 */
     @Column(comment = "正确答案", type = "varchar(255)")
     private String correctAnswer;
 
+    /** 是否删除：0-未删除，1-已删除 */
     @Column(comment = "是否删除：0-未删除，1-已删除", type = "bit", defaultValue = "0")
     private Boolean isDeleted;
 
+    /** 将选项Map转换为字符串 */
     public static String choiceToString(Map<String, String> choices) {
         StringBuilder sb = new StringBuilder();
         if(choices == null || choices.isEmpty()){
@@ -64,6 +77,7 @@ public class Topic {
         return sb.toString();
     }
 
+    /** 将选项字符串转换为Map */
     public static Map<String, String> stringToChoice(String choices)throws BusinessException {
         Map<String, String> map = new HashMap<>();
         String[] choiceArray = choices.split("\\$");
@@ -77,6 +91,7 @@ public class Topic {
         return map;
     }
 
+    /** 解析填空题答案 */
     public static Map<String, String> parseFillBlankAnswer(String answer) throws BusinessException {
         Map<String, String> map = new HashMap<>();
         if (answer == null || answer.trim().isEmpty()) {
@@ -98,6 +113,7 @@ public class Topic {
         return map;
     }
 
+    /** 格式化填空题答案 */
     public static String formatFillBlankAnswer(Map<String, String> answerMap) {
         if (answerMap == null || answerMap.isEmpty()) {
             return "";
