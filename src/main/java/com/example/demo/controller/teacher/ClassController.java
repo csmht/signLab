@@ -2,13 +2,18 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.dto.ApiResponse;
 import com.example.demo.pojo.dto.BatchAddClassRequest;
 import com.example.demo.pojo.dto.BatchAddClassResponse;
+import com.example.demo.pojo.dto.BatchBindClassesToExperimentRequest;
+import com.example.demo.pojo.dto.BatchBindClassesToExperimentResponse;
 import com.example.demo.pojo.dto.BatchBindStudentsRequest;
 import com.example.demo.pojo.dto.BatchBindStudentsResponse;
+import com.example.demo.pojo.dto.ClassWithExperimentsResponse;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
+import com.example.demo.service.ClassExperimentService;
 import com.example.demo.service.ClassService;
 import com.example.demo.service.StudentClassRelationService;
 import lombok.RequiredArgsConstructor;
@@ -30,42 +35,41 @@ public class ClassController {
 
     private final ClassService classService;
     private final StudentClassRelationService studentClassRelationService;
+    private final ClassExperimentService classExperimentService;
 
     /**
-     * 根据ID查询班级
+     * 根据ID查询班级（包含实验信息）
      *
      * @param id 班级ID
-     * @return 班级信息
+     * @return 班级信息（包含实验信息）
      */
     @GetMapping("/{id}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Class> getById(@PathVariable Long id) {
+    public ApiResponse<ClassWithExperimentsResponse> getById(@PathVariable Long id) {
         try {
-            Class clazz = classService.getById(id);
-            if (clazz == null) {
-                return ApiResponse.error(404, "班级不存在");
-            }
-            return ApiResponse.success(clazz);
+            ClassWithExperimentsResponse response = classService.getClassWithExperimentsById(id);
+            return ApiResponse.success(response);
+        } catch (BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
 
     /**
-     * 根据班级代码查询班级
+     * 根据班级代码查询班级（包含实验信息）
      *
      * @param classCode 班级代码
-     * @return 班级信息
+     * @return 班级信息（包含实验信息）
      */
     @GetMapping("/code/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Class> getByClassCode(@PathVariable String classCode) {
+    public ApiResponse<ClassWithExperimentsResponse> getByClassCode(@PathVariable String classCode) {
         try {
-            Class clazz = classService.getByClassCode(classCode);
-            if (clazz == null) {
-                return ApiResponse.error(404, "班级不存在");
-            }
-            return ApiResponse.success(clazz);
+            ClassWithExperimentsResponse response = classService.getClassWithExperimentsByCode(classCode);
+            return ApiResponse.success(response);
+        } catch (BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
@@ -213,6 +217,45 @@ public class ClassController {
         try {
             int count = studentClassRelationService.batchUnbindStudents(classCode, studentUsernames);
             return ApiResponse.success(count, "解绑成功，共解绑 " + count + " 名学生");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "解绑失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 批量绑定班级到实验
+     *
+     * @param request 批量绑定班级到实验请求
+     * @return 绑定结果
+     */
+    @PostMapping("/bind-experiment")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<BatchBindClassesToExperimentResponse> batchBindClassesToExperiment(
+            @RequestBody BatchBindClassesToExperimentRequest request) {
+        try {
+            BatchBindClassesToExperimentResponse response = classExperimentService.batchBindClassesToExperiment(request);
+            return ApiResponse.success(response, "批量绑定完成");
+        } catch (Exception e) {
+            log.error("批量绑定班级到实验失败", e);
+            return ApiResponse.error(500, "批量绑定失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 批量解绑班级
+     *
+     * @param experimentId 实验ID
+     * @param classCodes 班级编号列表
+     * @return 解绑结果
+     */
+    @PostMapping("/unbind-experiment/{experimentId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Integer> batchUnbindClasses(
+            @PathVariable String experimentId,
+            @RequestBody List<String> classCodes) {
+        try {
+            int count = classExperimentService.batchUnbindClasses(experimentId, classCodes);
+            return ApiResponse.success(count, "解绑成功，共解绑 " + count + " 个班级");
         } catch (Exception e) {
             return ApiResponse.error(500, "解绑失败: " + e.getMessage());
         }

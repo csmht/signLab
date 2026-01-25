@@ -60,6 +60,14 @@ public class ExperimentalProcedure {
     @Column(comment = "题库详情ID(仅类型为3时有效)",type = "bigint")
     private Long procedureTopicId;
 
+    /** 步骤开始填写时间 */
+    @Column(comment = "步骤开始填写时间", type = "datetime", notNull = true)
+    private LocalDateTime startTime;
+
+    /** 步骤结束填写时间 */
+    @Column(comment = "步骤结束填写时间", type = "datetime", notNull = true)
+    private LocalDateTime endTime;
+
     /** 是否删除 */
     @Column(comment = "是否删除",type = "bit", notNull = true,defaultValue = "0")
     private Boolean isDeleted;

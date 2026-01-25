@@ -36,6 +36,10 @@ public class Experiment {
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createdTime;
 
+    /** 实验结束填写时间 */
+    @Column(comment = "实验结束填写时间", type = "datetime", notNull = true)
+    private LocalDateTime endTime;
+
     /** 更新时间 */
     @Column(comment = "更新时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
     private LocalDateTime updatedTime;
