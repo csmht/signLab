@@ -37,6 +37,22 @@ public class QrController {
     }
 
     /**
+     * 根据班级代码和实验ID获取签到二维码
+     *
+     * @param classCode 班级代码
+     * @param experimentId 实验ID
+     * @return 二维码数据
+     */
+    @GetMapping("/teacher/by-class-experiment")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<TeacherQrVO> getQrByClassAndExperiment(
+            @RequestParam("classCode") String classCode,
+            @RequestParam("experimentId") String experimentId) {
+        TeacherQrVO teacherQrVO = qrService.getTeacherQrVOByClassAndExperiment(classCode, experimentId);
+        return ApiResponse.success(teacherQrVO);
+    }
+
+    /**
      * 学生扫码签到（GET请求）
      * 学生扫码后自动跳转到此接口
      * @param key 加密的二维码数据
