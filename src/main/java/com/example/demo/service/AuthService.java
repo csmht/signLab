@@ -543,4 +543,143 @@ public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
             throw new BusinessException(404, "无权限重置密码");
         }
     }
+
+    /**
+     * 批量添加用户
+     * 支持通过Excel文件批量导入用户数据
+     * 密码生成规则：学生用学号，教师用syjx@+工号后四位
+     *
+     * @param users 用户列表
+     * @return 批量添加响应
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public BatchAddUserResponse batchAddUsers(List<BatchAddUserRequest> users) {
+        BatchAddUserResponse response = new BatchAddUserResponse();
+        response.setSuccessCount(0);
+        response.setDuplicateCount(0);
+        response.setFailCount(0);
+        response.setFailedUsers(new java.util.ArrayList<>());
+
+        // 批量大小
+        final int BATCH_SIZE = 500;
+        List<User> userBatch = new java.util.ArrayList<>();
+
+        for (BatchAddUserRequest userRequest : users) {
+            try {
+                // 验证必填字段
+                if (userRequest.getUsername() == null || userRequest.getUsername().trim().isEmpty()) {
+                    throw new BusinessException(400, "用户名不能为空");
+                }
+                if (userRequest.getName() == null || userRequest.getName().trim().isEmpty()) {
+                    throw new BusinessException(400, "姓名不能为空");
+                }
+                if (userRequest.getRole() == null || userRequest.getRole().trim().isEmpty()) {
+                    throw new BusinessException(400, "角色不能为空");
+                }
+
+                // 验证角色是否有效
+                String role = userRequest.getRole().trim().toLowerCase();
+                if (!"student".equals(role) && !"teacher".equals(role) && !"admin".equals(role)) {
+                    throw new BusinessException(400, "无效的角色: " + userRequest.getRole());
+                }
+
+                // 检查用户是否已存在
+                QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("username", userRequest.getUsername().trim());
+                User existingUser = userMapper.selectOne(queryWrapper);
+                if (existingUser != null) {
+                    response.setDuplicateCount(response.getDuplicateCount() + 1);
+                    log.warn("用户已存在，跳过: {}", userRequest.getUsername());
+                    continue;
+                }
+
+                // 生成密码
+                String rawPassword;
+                if ("teacher".equals(role)) {
+                    // 教师：syjx@ + 工号后四位
+                    String lastFourDigits = userRequest.getUsername().length() >= 4 ?
+                            userRequest.getUsername().substring(userRequest.getUsername().length() - 4) :
+                            userRequest.getUsername();
+                    rawPassword = "syjx@" + lastFourDigits;
+                } else {
+                    // 学生：学号
+                    rawPassword = userRequest.getUsername();
+                }
+
+                // BCrypt加密密码
+                String encodedPassword = passwordUtil.encode(rawPassword);
+
+                // 创建新用户
+                User user = new User();
+                user.setUsername(userRequest.getUsername().trim());
+                user.setName(userRequest.getName().trim());
+                user.setPassword(encodedPassword);
+                user.setRole(role);
+                user.setDepartment(userRequest.getDepartment());
+                user.setMajor(userRequest.getMajor());
+                user.setPasswordSet(1); // 已设置密码
+                user.setCreateTime(LocalDateTime.now());
+                user.setUpdateTime(LocalDateTime.now());
+                user.setIsDeleted(0);
+
+                userBatch.add(user);
+
+                // 批量插入
+                if (userBatch.size() >= BATCH_SIZE) {
+                    int inserted = batchInsertUsers(userBatch);
+                    response.setSuccessCount(response.getSuccessCount() + inserted);
+                    userBatch.clear();
+                }
+
+            } catch (BusinessException e) {
+                response.setFailCount(response.getFailCount() + 1);
+                BatchAddUserResponse.FailedUser failedUser = new BatchAddUserResponse.FailedUser();
+                failedUser.setUsername(userRequest.getUsername());
+                failedUser.setName(userRequest.getName());
+                failedUser.setReason(e.getMessage());
+                response.getFailedUsers().add(failedUser);
+                log.warn("添加用户失败: {}, 原因: {}", userRequest.getUsername(), e.getMessage());
+            } catch (Exception e) {
+                response.setFailCount(response.getFailCount() + 1);
+                BatchAddUserResponse.FailedUser failedUser = new BatchAddUserResponse.FailedUser();
+                failedUser.setUsername(userRequest.getUsername());
+                failedUser.setName(userRequest.getName());
+                failedUser.setReason("系统错误: " + e.getMessage());
+                response.getFailedUsers().add(failedUser);
+                log.error("添加用户异常: {}", userRequest.getUsername(), e);
+            }
+        }
+
+        // 插入剩余的记录
+        if (!userBatch.isEmpty()) {
+            int inserted = batchInsertUsers(userBatch);
+            response.setSuccessCount(response.getSuccessCount() + inserted);
+        }
+
+        log.info("批量添加用户完成，成功: {}, 重复: {}, 失败: {}",
+                response.getSuccessCount(), response.getDuplicateCount(), response.getFailCount());
+        return response;
+    }
+
+    /**
+     * 批量插入用户
+     *
+     * @param userList 用户列表
+     * @return 插入数量
+     */
+    private int batchInsertUsers(List<User> userList) {
+        int successCount = 0;
+        for (User user : userList) {
+            try {
+                int result = userMapper.insert(user);
+                if (result > 0) {
+                    successCount++;
+                    log.info("成功添加用户: {}", user.getUsername());
+                }
+            } catch (Exception e) {
+                log.error("插入用户失败: {}", user.getUsername(), e);
+            }
+        }
+        return successCount;
+    }
 }

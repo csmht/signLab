@@ -5,11 +5,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.enums.AttendanceStatus;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.AttendanceRecordMapper;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.dto.AttendanceListResponse;
 import com.example.demo.pojo.dto.AttendanceRequest;
 import com.example.demo.pojo.dto.AttendanceResponse;
+import com.example.demo.pojo.dto.UpdateAttendanceRequest;
 import com.example.demo.pojo.entity.AttendanceRecord;
+import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.StudentClassRelation;
+import com.example.demo.pojo.entity.User;
 import com.example.demo.util.CryptoUtil;
 import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +37,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
     private final CryptoUtil cryptoUtil;
     private final ClassExperimentService classExperimentService;
     private final StudentClassRelationService studentClassRelationService;
+    private final UserMapper userMapper;
+    private final ClassService classService;
 
     @Value("${slz.late.time:5}")
     private Long lateTime;
@@ -209,5 +216,155 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         queryWrapper.eq("course_id", courseId)
                 .eq("experiment_id", experimentId);
         return count(queryWrapper);
+    }
+
+    /**
+     * 查询指定班级实验的签到情况
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 签到列表响应
+     */
+    public com.example.demo.pojo.dto.AttendanceListResponse getAttendanceList(Long classExperimentId) {
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentService.getById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        String classCode = classExperiment.getClassCode();
+        String courseId = classExperiment.getCourseId();
+        String experimentId = classExperiment.getExperimentId();
+
+        // 2. 查询该班级的所有学生
+        QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+        studentClassQuery.eq("class_code", classCode);
+        List<StudentClassRelation> studentClassRelations =
+                studentClassRelationService.list(studentClassQuery);
+
+        // 3. 查询该课次的所有签到记录
+        QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+        attendanceQuery.eq("course_id", courseId)
+                .eq("experiment_id", experimentId);
+        List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
+
+        // 4. 构建签到信息映射（学生用户名 -> 签到记录）
+        java.util.Map<String, AttendanceRecord> attendanceMap = attendanceRecords.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        AttendanceRecord::getStudentUsername,
+                        record -> record
+                ));
+
+        // 5. 构建返回结果
+        com.example.demo.pojo.dto.AttendanceListResponse response = new com.example.demo.pojo.dto.AttendanceListResponse();
+        response.setNormalAttendanceList(new java.util.ArrayList<>());
+        response.setCrossClassAttendanceList(new java.util.ArrayList<>());
+        response.setNotAttendanceList(new java.util.ArrayList<>());
+
+        // 6. 遍历班级学生，分类处理
+        for (StudentClassRelation relation : studentClassRelations) {
+            String studentUsername = relation.getStudentUsername();
+            AttendanceRecord record = attendanceMap.get(studentUsername);
+
+            // 查询学生信息
+            User student = userMapper.selectOne(
+                    new QueryWrapper<User>()
+                            .eq("username", studentUsername)
+            );
+
+            // 查询班级信息
+            Class studentClass = classService.getByClassCode(classCode);
+
+            com.example.demo.pojo.dto.AttendanceListResponse.StudentAttendanceInfo info =
+                    new com.example.demo.pojo.dto.AttendanceListResponse.StudentAttendanceInfo();
+            info.setStudentUsername(studentUsername);
+            info.setStudentName(student != null ? student.getName() : studentUsername);
+            info.setClassName(studentClass != null ? studentClass.getClassName() : classCode);
+
+            if (record == null) {
+                // 未签到
+                info.setAttendanceId(null);
+                info.setAttendanceStatus(null);
+                info.setAttendanceTime(null);
+                response.getNotAttendanceList().add(info);
+            } else if (AttendanceStatus.CROSS_CLASS.getCode().equals(record.getAttendanceStatus())) {
+                // 跨班签到
+                info.setAttendanceId(record.getId());
+                info.setAttendanceStatus(record.getAttendanceStatus());
+                info.setAttendanceTime(record.getAttendanceTime());
+                response.getCrossClassAttendanceList().add(info);
+            } else {
+                // 非跨班签到（正常、迟到、补签）
+                info.setAttendanceId(record.getId());
+                info.setAttendanceStatus(record.getAttendanceStatus());
+                info.setAttendanceTime(record.getAttendanceTime());
+                response.getNormalAttendanceList().add(info);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 修改签到状态
+     *
+     * @param request 修改签到状态请求
+     * @return 是否修改成功
+     */
+    public boolean updateAttendanceStatus(com.example.demo.pojo.dto.UpdateAttendanceRequest request) {
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentService.getById(request.getClassExperimentId());
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        String courseId = classExperiment.getCourseId();
+        String experimentId = classExperiment.getExperimentId();
+        String studentUsername = request.getStudentUsername();
+
+        // 2. 查询学生是否已签到
+        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("course_id", courseId)
+                .eq("experiment_id", experimentId)
+                .eq("student_username", studentUsername);
+        AttendanceRecord record = getOne(queryWrapper);
+
+        // 3. 验证签到状态是否有效
+        try {
+            AttendanceStatus.fromCode(request.getAttendanceStatus());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(400, "无效的签到状态: " + request.getAttendanceStatus());
+        }
+
+        // 4. 查询学生实际所在班级
+        List<StudentClassRelation> studentClasses =
+                studentClassRelationService.getByStudentUsername(studentUsername);
+        if (studentClasses.isEmpty()) {
+            throw new BusinessException(404, "未找到学生班级信息");
+        }
+        String studentActualClassCode = studentClasses.get(0).getClassCode();
+
+        if (record == null) {
+            // 学生未签到，创建新的签到记录
+            record = new AttendanceRecord();
+            record.setCourseId(courseId);
+            record.setExperimentId(experimentId);
+            record.setStudentUsername(studentUsername);
+            record.setAttendanceTime(LocalDateTime.now());
+            record.setAttendanceStatus(request.getAttendanceStatus());
+            record.setStudentActualClassCode(studentActualClassCode);
+            record.setIpAddress(null);
+
+            boolean saved = save(record);
+            log.info("为学生 {} 创建签到记录，状态：{}", studentUsername, request.getAttendanceStatus());
+            return saved;
+        } else {
+            // 学生已签到，更新签到状态
+            record.setAttendanceStatus(request.getAttendanceStatus());
+            record.setUpdateTime(LocalDateTime.now());
+
+            boolean updated = updateById(record);
+            log.info("更新学生 {} 的签到状态为：{}", studentUsername, request.getAttendanceStatus());
+            return updated;
+        }
     }
 }
