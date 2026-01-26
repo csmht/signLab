@@ -1,0 +1,359 @@
+package com.example.demo.service;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.AssignmentSubmissionMapper;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.entity.AssignmentSubmission;
+import com.example.demo.pojo.entity.User;
+import com.example.demo.pojo.response.AssignmentSubmissionResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+/**
+ * 作业提交服务
+ * 提供作业上传、查询、批改等业务逻辑处理
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AssignmentSubmissionService extends ServiceImpl<AssignmentSubmissionMapper, AssignmentSubmission> {
+
+    private final UserMapper userMapper;
+
+    /** 作业存储根路径 */
+    private static final String ASSIGNMENT_ROOT_PATH = "uploads" + File.separator + "assignments";
+
+    /**
+     * 上传作业文件
+     *
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param studentUsername 学生用户名
+     * @param submissionType 提交类型（实验报告、数据文件等）
+     * @param file 作业文件
+     * @return 上传后的作业信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AssignmentSubmissionResponse uploadAssignment(String courseId, String experimentId,
+                                                        String studentUsername, String submissionType,
+                                                        MultipartFile file) {
+        // 1. 验证学生是否存在
+        User student = userMapper.selectOne(
+                new QueryWrapper<User>().eq("username", studentUsername)
+        );
+        if (student == null) {
+            throw new BusinessException(404, "学生不存在");
+        }
+
+        // 2. 验证文件是否为空
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(400, "文件不能为空");
+        }
+
+        // 3. 验证文件大小（限制50MB）
+        long maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.getSize() > maxSize) {
+            throw new BusinessException(400, "文件大小不能超过50MB");
+        }
+
+        try {
+            // 4. 生成存储路径：uploads/assignments/课程ID/实验ID/年/月/日/
+            String datePath = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy" + File.separator + "MM" + File.separator + "dd"));
+            String relativePath = courseId + File.separator + experimentId + File.separator + datePath;
+            String uploadDir = ASSIGNMENT_ROOT_PATH + File.separator + relativePath;
+
+            // 5. 创建目录
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                boolean created = directory.mkdirs();
+                if (!created) {
+                    throw new BusinessException(500, "创建存储目录失败");
+                }
+            }
+
+            // 6. 生成唯一文件名
+            String originalFilename = file.getOriginalFilename();
+            String extension = getFileExtension(originalFilename);
+            String uniqueFileName = UUID.randomUUID().toString() + "." + extension;
+            String filePath = uploadDir + File.separator + uniqueFileName;
+
+            // 7. 保存文件
+            Path targetPath = Paths.get(filePath);
+            file.transferTo(targetPath);
+
+            // 8. 创建作业记录
+            AssignmentSubmission submission = new AssignmentSubmission();
+            submission.setCourseId(courseId);
+            submission.setExperimentId(experimentId);
+            submission.setStudentUsername(studentUsername);
+            submission.setSubmissionType(submissionType);
+            submission.setFilePath(filePath);
+            submission.setFileName(originalFilename);
+            submission.setFileSize(file.getSize());
+            submission.setSubmissionStatus("draft"); // 默认为草稿状态
+            submission.setCreateTime(LocalDateTime.now());
+            submission.setUpdateTime(LocalDateTime.now());
+
+            // 9. 保存到数据库
+            boolean saved = save(submission);
+            if (!saved) {
+                // 如果保存失败，删除已上传的文件
+                Files.deleteIfExists(targetPath);
+                throw new BusinessException(500, "保存作业信息失败");
+            }
+
+            log.info("学生 {} 上传作业成功，课程：{}，实验：{}，类型：{}",
+                    studentUsername, courseId, experimentId, submissionType);
+
+            // 10. 构建返回结果
+            AssignmentSubmissionResponse response = new AssignmentSubmissionResponse();
+            response.setId(submission.getId());
+            response.setCourseId(courseId);
+            response.setExperimentId(experimentId);
+            response.setStudentUsername(studentUsername);
+            response.setStudentName(student.getName());
+            response.setSubmissionType(submissionType);
+            response.setFileName(originalFilename);
+            response.setFileSize(file.getSize());
+            response.setSubmissionStatus("draft");
+            response.setCreateTime(submission.getCreateTime());
+
+            return response;
+
+        } catch (IOException e) {
+            log.error("上传文件失败", e);
+            throw new BusinessException(500, "上传文件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 提交作业（将草稿状态改为已提交）
+     *
+     * @param submissionId 作业ID
+     * @param studentUsername 学生用户名（用于权限验证）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void submitAssignment(Long submissionId, String studentUsername) {
+        AssignmentSubmission submission = getById(submissionId);
+        if (submission == null || submission.getIsDeleted() == 1) {
+            throw new BusinessException(404, "作业不存在");
+        }
+
+        // 权限验证：只能提交自己的作业
+        if (!submission.getStudentUsername().equals(studentUsername)) {
+            throw new BusinessException(403, "无权提交此作业");
+        }
+
+        submission.setSubmissionStatus("submitted");
+        submission.setSubmissionTime(LocalDateTime.now());
+        submission.setUpdateTime(LocalDateTime.now());
+
+        boolean updated = updateById(submission);
+        if (!updated) {
+            throw new BusinessException(500, "提交作业失败");
+        }
+
+        log.info("学生 {} 提交作业成功，ID：{}", studentUsername, submissionId);
+    }
+
+    /**
+     * 查询学生的作业列表
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID（可选）
+     * @param experimentId 实验ID（可选）
+     * @return 作业列表
+     */
+    public List<AssignmentSubmissionResponse> getStudentSubmissions(String studentUsername, String courseId, String experimentId) {
+        QueryWrapper<AssignmentSubmission> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("student_username", studentUsername)
+                .eq("is_deleted", 0);
+
+        if (courseId != null && !courseId.trim().isEmpty()) {
+            queryWrapper.eq("course_id", courseId);
+        }
+
+        if (experimentId != null && !experimentId.trim().isEmpty()) {
+            queryWrapper.eq("experiment_id", experimentId);
+        }
+
+        queryWrapper.orderByDesc("create_time");
+
+        List<AssignmentSubmission> submissions = list(queryWrapper);
+
+        return submissions.stream().map(this::buildResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * 查询课程的作业列表（教师端）
+     *
+     * @param courseId 课程ID
+     * @param experimentId 实验ID（可选）
+     * @param submissionStatus 提交状态（可选）
+     * @return 作业列表
+     */
+    public List<AssignmentSubmissionResponse> getCourseSubmissions(String courseId, String experimentId, String submissionStatus) {
+        QueryWrapper<AssignmentSubmission> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("course_id", courseId)
+                .eq("is_deleted", 0);
+
+        if (experimentId != null && !experimentId.trim().isEmpty()) {
+            queryWrapper.eq("experiment_id", experimentId);
+        }
+
+        if (submissionStatus != null && !submissionStatus.trim().isEmpty()) {
+            queryWrapper.eq("submission_status", submissionStatus);
+        }
+
+        queryWrapper.orderByDesc("create_time");
+
+        List<AssignmentSubmission> submissions = list(queryWrapper);
+
+        return submissions.stream().map(this::buildResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * 根据ID查询作业详情
+     *
+     * @param submissionId 作业ID
+     * @return 作业详情
+     */
+    public AssignmentSubmissionResponse getSubmissionById(Long submissionId) {
+        AssignmentSubmission submission = getById(submissionId);
+        if (submission == null || submission.getIsDeleted() == 1) {
+            throw new BusinessException(404, "作业不存在");
+        }
+
+        return buildResponse(submission);
+    }
+
+    /**
+     * 批改作业
+     *
+     * @param submissionId 作业ID
+     * @param teacherComment 教师评语
+     * @param score 评分
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void gradeAssignment(Long submissionId, String teacherComment, java.math.BigDecimal score) {
+        AssignmentSubmission submission = getById(submissionId);
+        if (submission == null || submission.getIsDeleted() == 1) {
+            throw new BusinessException(404, "作业不存在");
+        }
+
+        submission.setSubmissionStatus("graded");
+        submission.setTeacherComment(teacherComment);
+        submission.setScore(score);
+        submission.setUpdateTime(LocalDateTime.now());
+
+        boolean updated = updateById(submission);
+        if (!updated) {
+            throw new BusinessException(500, "批改作业失败");
+        }
+
+        log.info("批改作业成功，ID：{}，评分：{}", submissionId, score);
+    }
+
+    /**
+     * 删除作业
+     *
+     * @param submissionId 作业ID
+     * @param studentUsername 当前登录用户名（用于权限验证）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAssignment(Long submissionId, String studentUsername) {
+        AssignmentSubmission submission = getById(submissionId);
+        if (submission == null || submission.getIsDeleted() == 1) {
+            throw new BusinessException(404, "作业不存在");
+        }
+
+        // 权限验证：学生只能删除自己的作业，且只能删除草稿状态的作业
+        if (!submission.getStudentUsername().equals(studentUsername)) {
+            throw new BusinessException(403, "无权删除此作业");
+        }
+
+        if (!"draft".equals(submission.getSubmissionStatus())) {
+            throw new BusinessException(400, "只能删除草稿状态的作业");
+        }
+
+        // 删除物理文件
+        try {
+            Path filePath = Paths.get(submission.getFilePath());
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("删除物理文件成功: {}", submission.getFilePath());
+            }
+        } catch (IOException e) {
+            log.warn("删除物理文件失败: {}", submission.getFilePath(), e);
+            // 即使物理文件删除失败，也继续删除数据库记录
+        }
+
+        // 软删除数据库记录
+        submission.setIsDeleted(1);
+        submission.setUpdateTime(LocalDateTime.now());
+        boolean updated = updateById(submission);
+        if (!updated) {
+            throw new BusinessException(500, "删除作业失败");
+        }
+
+        log.info("删除作业成功，ID：{}", submissionId);
+    }
+
+    /**
+     * 构建响应对象
+     */
+    private AssignmentSubmissionResponse buildResponse(AssignmentSubmission submission) {
+        AssignmentSubmissionResponse response = new AssignmentSubmissionResponse();
+        response.setId(submission.getId());
+        response.setCourseId(submission.getCourseId());
+        response.setExperimentId(submission.getExperimentId());
+        response.setStudentUsername(submission.getStudentUsername());
+
+        // 查询学生姓名
+        User student = userMapper.selectOne(
+                new QueryWrapper<User>().eq("username", submission.getStudentUsername())
+        );
+        response.setStudentName(student != null ? student.getName() : submission.getStudentUsername());
+
+        response.setSubmissionType(submission.getSubmissionType());
+        response.setFileName(submission.getFileName());
+        response.setFileSize(submission.getFileSize());
+        response.setSubmissionStatus(submission.getSubmissionStatus());
+        response.setTeacherComment(submission.getTeacherComment());
+        response.setScore(submission.getScore());
+        response.setSubmissionTime(submission.getSubmissionTime());
+        response.setCreateTime(submission.getCreateTime());
+
+        return response;
+    }
+
+    /**
+     * 获取文件的扩展名
+     */
+    private String getFileExtension(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return "";
+        }
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex < filename.length() - 1) {
+            return filename.substring(lastDotIndex + 1).toLowerCase();
+        }
+        return "";
+    }
+}
