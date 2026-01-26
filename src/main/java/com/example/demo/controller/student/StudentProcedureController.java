@@ -2,10 +2,13 @@ package com.example.demo.controller.student;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.pojo.request.CompleteDataCollectionProcedureRequest;
+import com.example.demo.pojo.request.CompleteTopicProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ProcedureSubmissionResponse;
 import com.example.demo.service.ProcedureSubmissionService;
 import com.example.demo.service.StudentExperimentalProcedureService;
+import com.example.demo.service.StudentProcedureCompletionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -26,64 +29,7 @@ public class StudentProcedureController {
 
     private final ProcedureSubmissionService procedureSubmissionService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
-
-    /**
-     * 上传步骤文件
-     *
-     * @param courseId 课程ID
-     * @param experimentId 实验ID
-     * @param submissionType 提交类型（实验报告、数据文件等）
-     * @param file 步骤文件
-     * @return 上传后的步骤信息
-     */
-    @PostMapping("/upload")
-    @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<ProcedureSubmissionResponse> uploadProcedureSubmission(
-            @RequestParam("courseId") String courseId,
-            @RequestParam("experimentId") String experimentId,
-            @RequestParam("submissionType") String submissionType,
-            @RequestParam("file") MultipartFile file) {
-        try {
-            // 获取当前登录学生用户名
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
-
-            ProcedureSubmissionResponse response = procedureSubmissionService.uploadProcedureSubmission(
-                    courseId, experimentId, studentUsername, submissionType, file
-            );
-
-            return ApiResponse.success(response, "上传成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("上传步骤文件失败", e);
-            return ApiResponse.error(500, "上传失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 提交步骤（将草稿状态改为已提交）
-     *
-     * @param submissionId 步骤提交ID
-     * @return 是否提交成功
-     */
-    @PostMapping("/{submissionId}/submit")
-    @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Void> submitProcedure(@PathVariable("submissionId") Long submissionId) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
-
-            procedureSubmissionService.submitProcedure(submissionId, studentUsername);
-
-            return ApiResponse.success(null, "提交成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("提交步骤失败", e);
-            return ApiResponse.error(500, "提交失败: " + e.getMessage());
-        }
-    }
+    private final StudentProcedureCompletionService studentProcedureCompletionService;
 
     /**
      * 查询学生的步骤提交列表
@@ -158,30 +104,6 @@ public class StudentProcedureController {
     }
 
     /**
-     * 删除步骤提交
-     *
-     * @param submissionId 步骤提交ID
-     * @return 是否删除成功
-     */
-    @DeleteMapping("/{submissionId}")
-    @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Void> deleteProcedure(@PathVariable("submissionId") Long submissionId) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
-
-            procedureSubmissionService.deleteProcedure(submissionId, studentUsername);
-
-            return ApiResponse.success(null, "删除成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("删除步骤提交失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 标记视频已观看
      * 学生观看完视频后调用此接口标记为已观看
      *
@@ -207,6 +129,77 @@ public class StudentProcedureController {
         } catch (Exception e) {
             log.error("标记视频观看失败", e);
             return ApiResponse.error(500, "标记失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 完成题库练习步骤
+     * 学生完成题库练习后调用此接口提交答案
+     *
+     * @param request 完成题库练习请求
+     * @return 是否提交成功
+     */
+    @PostMapping("/topic/complete")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<Void> completeTopicProcedure(@RequestBody CompleteTopicProcedureRequest request) {
+        try {
+            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            studentProcedureCompletionService.completeTopicProcedure(
+                    studentUsername,
+                    request.getClassCode(),
+                    request.getProcedureId(),
+                    request.getAnswers()
+            );
+
+            return ApiResponse.success(null, "提交成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("完成题库练习失败", e);
+            return ApiResponse.error(500, "提交失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 完成数据收集步骤
+     * 学生完成数据收集后调用此接口提交数据和文件
+     *
+     * @param procedureId  实验步骤ID
+     * @param classCode    班级编号
+     * @param dataAnswer   数据答案（文本类型）
+     * @param photos       照片文件列表
+     * @param documents    文档文件列表
+     * @return 是否提交成功
+     */
+    @PostMapping("/data-collection/complete")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<Void> completeDataCollectionProcedure(
+            @RequestParam("procedureId") Long procedureId,
+            @RequestParam("classCode") String classCode,
+            @RequestParam(value = "dataAnswer", required = false) String dataAnswer,
+            @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
+            @RequestParam(value = "documents", required = false) List<MultipartFile> documents) {
+        try {
+            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            studentProcedureCompletionService.completeDataCollectionProcedure(
+                    studentUsername,
+                    classCode,
+                    procedureId,
+                    dataAnswer,
+                    photos,
+                    documents
+            );
+
+            return ApiResponse.success(null, "提交成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("完成数据收集失败", e);
+            return ApiResponse.error(500, "提交失败: " + e.getMessage());
         }
     }
 }
