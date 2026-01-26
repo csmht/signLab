@@ -9,7 +9,8 @@
       "Bash(mvn compile:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(mvn:*)"
+      "Bash(mvn:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

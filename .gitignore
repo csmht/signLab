@@ -33,3 +33,4 @@ build/
 .vscode/
 /local-config.env
 /src/main/resources/sql/init_admin.sql
+/md/
