@@ -2,9 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.pojo.dto.ApiResponse;
-import com.example.demo.pojo.dto.AttendanceRequest;
-import com.example.demo.pojo.dto.AttendanceResponse;
+import com.example.demo.pojo.request.AttendanceRequest;
+import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.AttendanceResponse;
 import com.example.demo.pojo.vo.TeacherQrVO;
 import com.example.demo.service.AttendanceRecordService;
 import com.example.demo.service.QrService;

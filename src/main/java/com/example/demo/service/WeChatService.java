@@ -1,8 +1,8 @@
 package com.example.demo.service;
 
 import com.example.demo.config.WeChatConfig;
-import com.example.demo.pojo.dto.WeChatAccessTokenDto;
-import com.example.demo.pojo.dto.WeChatUserInfoDto;
+import com.example.demo.pojo.response.WeChatAccessTokenDto;
+import com.example.demo.pojo.response.WeChatUserInfoDto;
 import com.example.demo.exception.BusinessException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

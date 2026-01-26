@@ -3,7 +3,7 @@ package com.example.demo.listener;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
 import com.example.demo.exception.BusinessException;
-import com.example.demo.pojo.dto.BatchAddUserRequest;
+import com.example.demo.pojo.request.BatchAddUserRequest;
 import com.example.demo.pojo.excel.UserImportExcel;
 import com.example.demo.service.AuthService;
 import lombok.extern.slf4j.Slf4j;

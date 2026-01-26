@@ -2,9 +2,9 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.pojo.dto.ApiResponse;
-import com.example.demo.pojo.dto.AttendanceListResponse;
-import com.example.demo.pojo.dto.UpdateAttendanceRequest;
+import com.example.demo.pojo.request.UpdateAttendanceRequest;
+import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.AttendanceListResponse;
 import com.example.demo.pojo.entity.AttendanceRecord;
 import com.example.demo.service.AttendanceRecordService;
 import lombok.RequiredArgsConstructor;
