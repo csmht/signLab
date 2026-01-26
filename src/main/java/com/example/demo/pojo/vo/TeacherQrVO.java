@@ -1,4 +1,4 @@
-﻿ackage com.example.demo.pojo.vo;
+package com.example.demo.pojo.vo;
 
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;

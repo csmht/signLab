@@ -1,4 +1,4 @@
-﻿ackage com.example.demo.pojo.request;
+package com.example.demo.pojo.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
