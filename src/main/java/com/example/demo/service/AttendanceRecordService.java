@@ -228,7 +228,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * @param classExperimentId 班级实验ID
      * @return 签到列表响应
      */
-    public com.example.demo.pojo.dto.AttendanceListResponse getAttendanceList(Long classExperimentId) {
+    public AttendanceListResponse getAttendanceList(Long classExperimentId) {
         // 1. 查询班级实验信息
         ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
@@ -259,7 +259,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
                 ));
 
         // 5. 构建返回结果
-        com.example.demo.pojo.dto.AttendanceListResponse response = new com.example.demo.pojo.dto.AttendanceListResponse();
+        AttendanceListResponse response = new AttendanceListResponse();
         response.setNormalAttendanceList(new java.util.ArrayList<>());
         response.setCrossClassAttendanceList(new java.util.ArrayList<>());
         response.setNotAttendanceList(new java.util.ArrayList<>());
@@ -280,8 +280,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             classQuery.eq("class_code", classCode);
             Class studentClass = classMapper.selectOne(classQuery);
 
-            com.example.demo.pojo.dto.AttendanceListResponse.StudentAttendanceInfo info =
-                    new com.example.demo.pojo.dto.AttendanceListResponse.StudentAttendanceInfo();
+            AttendanceListResponse.StudentAttendanceInfo info =
+                    new AttendanceListResponse.StudentAttendanceInfo();
             info.setStudentUsername(studentUsername);
             info.setStudentName(student != null ? student.getName() : studentUsername);
             info.setClassName(studentClass != null ? studentClass.getClassName() : classCode);
@@ -316,7 +316,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * @param request 修改签到状态请求
      * @return 是否修改成功
      */
-    public boolean updateAttendanceStatus(com.example.demo.pojo.dto.UpdateAttendanceRequest request) {
+    public boolean updateAttendanceStatus(UpdateAttendanceRequest request) {
         // 1. 查询班级实验信息
         ClassExperiment classExperiment = classExperimentMapper.selectById(request.getClassExperimentId());
         if (classExperiment == null) {
@@ -373,5 +373,69 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             log.info("更新学生 {} 的签到状态为：{}", studentUsername, request.getAttendanceStatus());
             return updated;
         }
+    }
+
+    /**
+     * 查询学生的所有签到记录
+     *
+     * @param studentUsername 学生用户名
+     * @return 签到记录列表
+     */
+    public List<AttendanceRecord> getStudentAttendanceRecords(String studentUsername) {
+        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("student_username", studentUsername)
+                .orderByDesc("attendance_time");
+        return list(queryWrapper);
+    }
+
+    /**
+     * 查询学生的签到统计信息
+     *
+     * @param studentUsername 学生用户名
+     * @return 统计信息
+     */
+    public java.util.Map<String, Object> getStudentAttendanceStats(String studentUsername) {
+        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("student_username", studentUsername);
+        List<AttendanceRecord> records = list(queryWrapper);
+
+        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+
+        // 总签到次数
+        stats.put("totalAttendance", records.size());
+
+        // 正常签到次数
+        long normalCount = records.stream()
+                .filter(r -> AttendanceStatus.NORMAL.getCode().equals(r.getAttendanceStatus()))
+                .count();
+        stats.put("normalAttendance", normalCount);
+
+        // 迟到次数
+        long lateCount = records.stream()
+                .filter(r -> AttendanceStatus.LATE.getCode().equals(r.getAttendanceStatus()))
+                .count();
+        stats.put("lateAttendance", lateCount);
+
+        // 跨班签到次数
+        long crossClassCount = records.stream()
+                .filter(r -> AttendanceStatus.CROSS_CLASS.getCode().equals(r.getAttendanceStatus()))
+                .count();
+        stats.put("crossClassAttendance", crossClassCount);
+
+        // 补签次数
+        long makeupCount = records.stream()
+                .filter(r -> AttendanceStatus.MAKEUP.getCode().equals(r.getAttendanceStatus()))
+                .count();
+        stats.put("makeupAttendance", makeupCount);
+
+        // 签到率（假设正常和迟到都算签到成功）
+        if (records.size() > 0) {
+            double attendanceRate = (normalCount + lateCount + crossClassCount + makeupCount) * 100.0 / records.size();
+            stats.put("attendanceRate", Math.round(attendanceRate * 100.0) / 100.0); // 保留两位小数
+        } else {
+            stats.put("attendanceRate", 0.0);
+        }
+
+        return stats;
     }
 }
