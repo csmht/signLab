@@ -32,6 +32,9 @@ public class Experiment {
     @Column(comment = "实验名称", type = "varchar(200)", notNull = true)
     private String experimentName;
 
+    @Column(comment = "分数占比,%",type = "int")
+    private Integer percentage;
+
     /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createdTime;
