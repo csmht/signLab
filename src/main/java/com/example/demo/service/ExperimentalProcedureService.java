@@ -21,7 +21,7 @@ public class ExperimentalProcedureService extends ServiceImpl<ExperimentalProced
     public java.util.List<ExperimentalProcedure> getByExperimentId(Long experimentId) {
         QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("experiment_id", experimentId);
-        queryWrapper.orderByAsc("step_order");
+        queryWrapper.orderByAsc("number");
         return list(queryWrapper);
     }
 }

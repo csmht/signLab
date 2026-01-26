@@ -5,6 +5,7 @@ import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ProcedureSubmissionResponse;
 import com.example.demo.service.ProcedureSubmissionService;
+import com.example.demo.service.StudentExperimentalProcedureService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,7 @@ import java.util.List;
 public class StudentProcedureController {
 
     private final ProcedureSubmissionService procedureSubmissionService;
+    private final StudentExperimentalProcedureService studentExperimentalProcedureService;
 
     /**
      * 上传步骤文件
@@ -176,6 +178,35 @@ public class StudentProcedureController {
         } catch (Exception e) {
             log.error("删除步骤提交失败", e);
             return ApiResponse.error(500, "删除失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 标记视频已观看
+     * 学生观看完视频后调用此接口标记为已观看
+     *
+     * @param procedureId 实验步骤ID
+     * @param classCode   班级编号
+     * @return 是否标记成功
+     */
+    @PostMapping("/video/{procedureId}/viewed")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<Void> markVideoAsViewed(
+            @PathVariable("procedureId") Long procedureId,
+            @RequestParam("classCode") String classCode) {
+        try {
+            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            studentExperimentalProcedureService.markVideoAsViewed(
+                    studentUsername, classCode, procedureId);
+
+            return ApiResponse.success(null, "标记成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("标记视频观看失败", e);
+            return ApiResponse.error(500, "标记失败: " + e.getMessage());
         }
     }
 }
