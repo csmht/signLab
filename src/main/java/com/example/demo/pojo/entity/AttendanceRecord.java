@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 @TableIndex(name = "idx_attendance_course_id", fields = {"courseId"})
 @TableIndex(name = "idx_attendance_student_username", fields = {"studentUsername"})
 @TableIndex(name = "idx_student_actual_class", fields = {"studentActualClassCode"})
-@TableIndex(name = "idx_is_cross_class", fields = {"isCrossClass"})
 public class AttendanceRecord {
 
     /** 主键ID */
@@ -48,8 +47,8 @@ public class AttendanceRecord {
     private LocalDateTime attendanceTime;
 
     /** 签到状态：正常，补签，迟到，跨班签到 */
-    @Column(comment = "签到状态：正常，补签，迟到，跨班签到", type = "char(20)", defaultValue = "正常")
-    private String attendanceStatus;
+    @Column(comment = "签到状态：1-正常，2-补签，3-迟到，4-跨班签到", type = "int", defaultValue = "1")
+    private Integer attendanceStatus;
 
     /** 学生实际所在班级代码 */
     @Column(comment = "学生实际所在班级代码", type = "varchar(20)")

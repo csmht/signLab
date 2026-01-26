@@ -1,9 +1,11 @@
 package com.example.demo;
 
+import com.example.demo.config.AdminInitializer;
 import com.tangzc.autotable.springboot.EnableAutoTable;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication
 @EnableAutoTable
@@ -37,7 +39,9 @@ public class Demo1Application {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(Demo1Application.class, args);
+        ConfigurableApplicationContext context = SpringApplication.run(Demo1Application.class, args);
+        AdminInitializer bean = context.getBean(AdminInitializer.class);
+        bean.start();
     }
 
 }

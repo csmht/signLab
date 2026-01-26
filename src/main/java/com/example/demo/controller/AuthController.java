@@ -83,23 +83,6 @@ public class AuthController {
     }
 
     /**
-     * 检查用户是否存在
-     * 用于前端验证用户名是否可用
-     *
-     * @param username 用户名（学号/工号）
-     * @return 用户是否存在
-     */
-    @GetMapping("/check-user/{username}")
-    public ApiResponse<Boolean> checkUser(@PathVariable String username) {
-        try {
-            boolean exists = authService.checkUserExists(username);
-            return ApiResponse.success(exists);
-        } catch (Exception e) {
-            return ApiResponse.error(500, e.getMessage());
-        }
-    }
-
-    /**
      * 检查用户状态
      * 返回用户是否存在、是否已设置密码、用户角色等信息
      *

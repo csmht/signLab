@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Data
 @AutoTable
 @Table(value = "data_collection", comment = "实验步骤-数据收集表 - 存储实验学生需要完成的数据收集类型步骤的数据信息")
-@TableName("experiment_procedure")
+@TableName("data_collection")
 public class DataCollection {
 
     /** 主键ID */

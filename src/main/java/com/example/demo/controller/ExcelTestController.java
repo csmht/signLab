@@ -1,22 +1,24 @@
 package com.example.demo.controller;
 
+import com.alibaba.excel.EasyExcel;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.listener.UserImportListener;
 import com.example.demo.pojo.dto.ApiResponse;
-import com.example.demo.pojo.dto.BatchAddUserRequest;
-import com.example.demo.pojo.dto.BatchAddUserResponse;
+import com.example.demo.pojo.excel.UserImportExcel;
 import com.example.demo.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Excel测试导入控制器
  * 提供Excel批量导入数据的测试接口
- * 文件必须放在项目根目录下
  */
 @RequestMapping("/api/test/excel")
 @RestController
@@ -29,78 +31,53 @@ public class ExcelTestController {
 
     /**
      * 批量导入用户
-     * 文件必须放在项目根目录下，文件名为 users.xls 或 users.xlsx
+     * 通过上传 Excel 文件批量导入用户
      *
+     * @param file Excel 文件
      * @return 导入结果
      */
     @PostMapping("/import/users")
     @RequireRole(value = UserRole.ADMIN)
-    public ApiResponse<String> importUsers() {
+    public ApiResponse<String> importUsers(@RequestParam("file") MultipartFile file) {
         long startTime = System.currentTimeMillis();
         try {
-            // 项目根目录
-            String projectRoot = System.getProperty("user.dir");
-            java.io.File excelFile = new java.io.File(projectRoot, "users.xls");
-            if (!excelFile.exists()) {
-                excelFile = new java.io.File(projectRoot, "users.xlsx");
+            // 验证文件
+            if (file == null || file.isEmpty()) {
+                return ApiResponse.error(400, "请上传Excel文件");
             }
 
-            if (!excelFile.exists()) {
-                return ApiResponse.error(400, "文件不存在，请将 users.xls 或 users.xlsx 文件放在项目根目录下");
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
+                return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
             }
 
-            // 读取Excel文件，按列序号映射
-            List<Object> rawData = com.alibaba.excel.EasyExcel.read(excelFile)
+            // 创建监听器
+            UserImportListener listener = new UserImportListener(authService);
+
+            // 使用EasyExcel读取Excel文件
+            EasyExcel.read(file.getInputStream(), UserImportExcel.class, listener)
                     .sheet()
-                    .doReadSync();
+                    .doRead();
 
-            if (rawData == null || rawData.isEmpty()) {
-                return ApiResponse.error(400, "Excel文件中没有数据");
-            }
-
-            // 跳过标题行，从第二行开始
-            List<BatchAddUserRequest> users = new ArrayList<>();
-            for (int i = 1; i < rawData.size(); i++) {
-                Object row = rawData.get(i);
-                if (row instanceof List) {
-                    List<?> rowData = (List<?>) row;
-
-                    // 按列序号映射：id(0), username(1), name(2), password(3), role(4)
-                    if (rowData.size() > 4) {
-                        BatchAddUserRequest user = new BatchAddUserRequest();
-                        user.setUsername(getStringValue(rowData, 1)); // 第2列
-                        user.setName(getStringValue(rowData, 2));      // 第3列
-                        user.setRole(getStringValue(rowData, 4));     // 第5列
-
-                        // 院系（第10列，索引9）
-                        if (rowData.size() > 9) {
-                            user.setDepartment(getStringValue(rowData, 9));
-                        }
-
-                        // 专业（第11列，索引10）
-                        if (rowData.size() > 10) {
-                            user.setMajor(getStringValue(rowData, 10));
-                        }
-
-                        users.add(user);
-                    }
-                }
-            }
-
-            if (users.isEmpty()) {
-                return ApiResponse.error(400, "Excel文件中没有有效数据");
-            }
-
-            BatchAddUserResponse response = authService.batchAddUsers(users);
+            // 获取导入结果
+            UserImportListener.ImportResult result = listener.getResult();
 
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
 
-            String message = String.format("导入完成！成功：%d条，重复：%d条，失败：%d条，耗时：%dms",
-                    response.getSuccessCount(), response.getDuplicateCount(),
-                    response.getFailCount(), duration);
+            // 构建返回消息
+            StringBuilder message = new StringBuilder();
+            message.append(String.format("导入完成！成功：%d条，重复：%d条，失败：%d条，耗时：%dms",
+                    result.getSuccessCount(), result.getDuplicateCount(),
+                    result.getFailCount(), duration));
 
-            return ApiResponse.success(message);
+            // 如果有错误信息，添加到返回消息中
+            if (!result.getErrorMessages().isEmpty()) {
+                message.append("\n错误详情：\n");
+                result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
+            }
+
+            return ApiResponse.success(message.toString());
 
         } catch (com.example.demo.exception.BusinessException e) {
             return ApiResponse.error(e.getCode(), e.getMessage());
@@ -111,17 +88,59 @@ public class ExcelTestController {
     }
 
     /**
-     * 从列表中获取字符串值
+     * 获取用户导入模板
      *
-     * @param list 列表
-     * @param index 索引
-     * @return 字符串值
+     * @return Excel 文件
      */
-    private String getStringValue(List<?> list, int index) {
-        if (index < 0 || index >= list.size()) {
-            return null;
+    @GetMapping("/template/users")
+    @RequireRole(value = UserRole.ADMIN)
+    public void getUserImportTemplate(jakarta.servlet.http.HttpServletResponse response) throws IOException {
+        try {
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = java.net.URLEncoder.encode("用户导入模板", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            // 创建示例数据
+            List<UserImportExcel> data = new ArrayList<>();
+
+            // 学生示例1
+            UserImportExcel student1 = new UserImportExcel();
+            student1.setUsername("2021001");
+            student1.setName("张三");
+            student1.setRole("学生");
+            student1.setDepartment("计算机学院");
+            student1.setMajor("计算机科学与技术");
+            data.add(student1);
+
+            // 学生示例2
+            UserImportExcel student2 = new UserImportExcel();
+            student2.setUsername("2021002");
+            student2.setName("李四");
+            student2.setRole("学生");
+            student2.setDepartment("计算机学院");
+            student2.setMajor("软件工程");
+            data.add(student2);
+
+            // 教师示例
+            UserImportExcel teacher = new UserImportExcel();
+            teacher.setUsername("T001");
+            teacher.setName("王老师");
+            teacher.setRole("教师");
+            teacher.setDepartment("计算机学院");
+            data.add(teacher);
+
+            // 写入 Excel
+            EasyExcel.write(response.getOutputStream(), UserImportExcel.class)
+                    .sheet("用户导入模板")
+                    .doWrite(data);
+
+        } catch (Exception e) {
+            log.error("获取用户导入模板失败", e);
+            response.setStatus(500);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":500,\"message\":\"获取模板失败: " + e.getMessage() + "\"}");
         }
-        Object value = list.get(index);
-        return value == null ? null : value.toString().trim();
     }
 }

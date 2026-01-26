@@ -5,21 +5,27 @@ package com.example.demo.enums;
  */
 public enum AttendanceStatus {
 
-    NORMAL("正常", "正常签到"),
-    LATE("迟到", "迟到签到"),
-    MAKEUP("补签", "补签"),
-    CROSS_CLASS("跨班签到", "跨班签到");
+    NORMAL(1, "正常", "正常签到"),
+    LATE(3, "迟到", "迟到签到"),
+    MAKEUP(2, "补签", "补签"),
+    CROSS_CLASS(4, "跨班签到", "跨班签到");
 
-    private final String code;
+    private final Integer code;
+    private final String name;
     private final String description;
 
-    AttendanceStatus(String code, String description) {
+    AttendanceStatus(Integer code, String name, String description) {
         this.code = code;
+        this.name = name;
         this.description = description;
     }
 
-    public String getCode() {
+    public Integer getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getDescription() {
@@ -29,7 +35,10 @@ public enum AttendanceStatus {
     /**
      * 根据code获取枚举
      */
-    public static AttendanceStatus fromCode(String code) {
+    public static AttendanceStatus fromCode(Integer code) {
+        if (code == null) {
+            throw new IllegalArgumentException("签到状态不能为空");
+        }
         for (AttendanceStatus status : AttendanceStatus.values()) {
             if (status.code.equals(code)) {
                 return status;

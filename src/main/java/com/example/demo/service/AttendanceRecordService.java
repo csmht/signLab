@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.enums.AttendanceStatus;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.AttendanceRecordMapper;
+import com.example.demo.mapper.ClassExperimentMapper;
+import com.example.demo.mapper.ClassMapper;
+import com.example.demo.mapper.StudentClassRelationMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.dto.AttendanceListResponse;
 import com.example.demo.pojo.dto.AttendanceRequest;
@@ -35,10 +38,10 @@ import java.util.List;
 public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper, AttendanceRecord> {
 
     private final CryptoUtil cryptoUtil;
-    private final ClassExperimentService classExperimentService;
-    private final StudentClassRelationService studentClassRelationService;
+    private final ClassExperimentMapper classExperimentMapper;
+    private final StudentClassRelationMapper studentClassRelationMapper;
     private final UserMapper userMapper;
-    private final ClassService classService;
+    private final ClassMapper classMapper;
 
     @Value("${slz.late.time:5}")
     private Long lateTime;
@@ -98,8 +101,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             }
 
             // 5. 查询学生所在班级
-            List<StudentClassRelation> studentClasses = studentClassRelationService
-                    .getByStudentUsername(studentUsername);
+            QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+            studentClassQuery.eq("student_username", studentUsername);
+            List<StudentClassRelation> studentClasses = studentClassRelationMapper.selectList(studentClassQuery);
             if (studentClasses.isEmpty()) {
                 response.setSuccess(false);
                 response.setMessage("未找到班级信息，请联系管理员");
@@ -117,7 +121,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
             classExperimentQuery.eq("class_code", classCode)
                     .eq("experiment_id", experimentId);
-            ClassExperiment classExperiment = classExperimentService.getOne(classExperimentQuery);
+            ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentQuery);
             if (classExperiment == null) {
                 response.setSuccess(false);
                 response.setMessage("未找到班级实验信息");
@@ -226,7 +230,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      */
     public com.example.demo.pojo.dto.AttendanceListResponse getAttendanceList(Long classExperimentId) {
         // 1. 查询班级实验信息
-        ClassExperiment classExperiment = classExperimentService.getById(classExperimentId);
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
             throw new BusinessException(404, "班级实验不存在");
         }
@@ -239,7 +243,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
         studentClassQuery.eq("class_code", classCode);
         List<StudentClassRelation> studentClassRelations =
-                studentClassRelationService.list(studentClassQuery);
+                studentClassRelationMapper.selectList(studentClassQuery);
 
         // 3. 查询该课次的所有签到记录
         QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
@@ -272,7 +276,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             );
 
             // 查询班级信息
-            Class studentClass = classService.getByClassCode(classCode);
+            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+            classQuery.eq("class_code", classCode);
+            Class studentClass = classMapper.selectOne(classQuery);
 
             com.example.demo.pojo.dto.AttendanceListResponse.StudentAttendanceInfo info =
                     new com.example.demo.pojo.dto.AttendanceListResponse.StudentAttendanceInfo();
@@ -312,7 +318,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      */
     public boolean updateAttendanceStatus(com.example.demo.pojo.dto.UpdateAttendanceRequest request) {
         // 1. 查询班级实验信息
-        ClassExperiment classExperiment = classExperimentService.getById(request.getClassExperimentId());
+        ClassExperiment classExperiment = classExperimentMapper.selectById(request.getClassExperimentId());
         if (classExperiment == null) {
             throw new BusinessException(404, "班级实验不存在");
         }
@@ -336,8 +342,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         }
 
         // 4. 查询学生实际所在班级
-        List<StudentClassRelation> studentClasses =
-                studentClassRelationService.getByStudentUsername(studentUsername);
+        QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+        studentClassQuery.eq("student_username", studentUsername);
+        List<StudentClassRelation> studentClasses = studentClassRelationMapper.selectList(studentClassQuery);
         if (studentClasses.isEmpty()) {
             throw new BusinessException(404, "未找到学生班级信息");
         }

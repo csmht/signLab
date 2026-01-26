@@ -23,11 +23,8 @@ import java.time.LocalTime;
 @TableName("courses")
 @TableIndex(name = "uk_course_id", fields = {"courseId"}, type = IndexTypeEnum.UNIQUE)
 @TableIndex(name = "idx_courses_teacher_username", fields = {"teacherUsername"})
-@TableIndex(name = "idx_courses_class_code", fields = {"classCode"})
-@TableIndex(name = "idx_courses_course_date", fields = {"courseDate"})
 @TableIndex(name = "idx_courses_teacher_employee_id", fields = {"teacherEmployeeId"})
-@TableIndex(name = "idx_courses_start_time", fields = {"startTime"})
-@TableIndex(name = "idx_courses_end_time", fields = {"endTime"})
+@TableIndex(name = "idx_courses_start_time", fields = {"createTime"})
 public class Course {
 
     /** 主键ID */

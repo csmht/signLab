@@ -32,13 +32,13 @@ public class Class {
     @Column(comment = "班级名称", type = "varchar(100)", notNull = true)
     private String className;
 
-    /** 验证码 */
-    @Column(comment = "验证码", type = "varchar(10)", notNull = true)
-    private String verificationCode;
-
     /** 班级人数 */
     @Column(comment = "班级人数", type = "int", defaultValue = "0")
     private Integer studentCount;
+
+    /** 创建者 */
+    @Column(comment = "创建者", type = "varchar(50)")
+    private String creator;
 
     /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")

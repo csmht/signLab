@@ -12,6 +12,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * JWT工具类
+ * 用于生成和验证JWT令牌
+ * 令牌只包含用户名和角色信息
+ */
 @Component
 public class JwtUtil {
 
@@ -21,11 +26,17 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    public String generateToken(String username, String role, String name) {
+    /**
+     * 生成JWT令牌
+     * 令牌只包含用户名和角色
+     *
+     * @param username 用户名
+     * @param role 角色
+     * @return JWT令牌
+     */
+    public String generateToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("username", username);
         claims.put("role", role);
-        claims.put("name", name);
         return createToken(claims, username);
     }
 
@@ -44,16 +55,24 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * 从令牌中获取用户名
+     *
+     * @param token JWT令牌
+     * @return 用户名
+     */
     public String getUsernameFromToken(String token) {
         return getClaimsFromToken(token).getSubject();
     }
 
+    /**
+     * 从令牌中获取角色
+     *
+     * @param token JWT令牌
+     * @return 角色
+     */
     public String getRoleFromToken(String token) {
         return getClaimsFromToken(token).get("role", String.class);
-    }
-
-    public String getNameFromToken(String token) {
-        return getClaimsFromToken(token).get("name", String.class);
     }
 
     private Claims getClaimsFromToken(String token) {
@@ -65,21 +84,40 @@ public class JwtUtil {
                 .getBody();
     }
 
+    /**
+     * 检查令牌是否过期
+     *
+     * @param token JWT令牌
+     * @return 是否过期
+     */
     public Boolean isTokenExpired(String token) {
         Date expiration = getClaimsFromToken(token).getExpiration();
         return expiration.before(new Date());
     }
 
+    /**
+     * 验证令牌
+     *
+     * @param token JWT令牌
+     * @param username 用户名
+     * @return 是否有效
+     */
     public Boolean validateToken(String token, String username) {
         String extractedUsername = getUsernameFromToken(token);
         return (extractedUsername.equals(username) && !isTokenExpired(token));
     }
 
-    public String generateLongTermToken(String username, String role, String name, int days) {
+    /**
+     * 生成长期令牌
+     *
+     * @param username 用户名
+     * @param role 角色
+     * @param days 有效天数
+     * @return JWT令牌
+     */
+    public String generateLongTermToken(String username, String role, int days) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("username", username);
         claims.put("role", role);
-        claims.put("name", name);
         claims.put("isLongTerm", true);
 
         Date now = new Date();
@@ -96,6 +134,12 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * 解析令牌
+     *
+     * @param token JWT令牌
+     * @return 令牌信息
+     */
     public Map<String, Object> parseToken(String token) {
         try {
             Claims claims = getClaimsFromToken(token);
@@ -103,7 +147,6 @@ public class JwtUtil {
 
             result.put("username", claims.getSubject());
             result.put("role", claims.get("role"));
-            result.put("name", claims.get("name"));
             result.put("isLongTerm", claims.get("isLongTerm", Boolean.class));
             result.put("issuedAt", claims.getIssuedAt());
             result.put("expiration", claims.getExpiration());
@@ -117,14 +160,32 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * 获取令牌过期时间
+     *
+     * @param token JWT令牌
+     * @return 过期时间
+     */
     public Date getExpirationFromToken(String token) {
         return getClaimsFromToken(token).getExpiration();
     }
 
+    /**
+     * 获取令牌签发时间
+     *
+     * @param token JWT令牌
+     * @return 签发时间
+     */
     public Date getIssuedAtFromToken(String token) {
         return getClaimsFromToken(token).getIssuedAt();
     }
 
+    /**
+     * 检查是否为长期令牌
+     *
+     * @param token JWT令牌
+     * @return 是否为长期令牌
+     */
     public Boolean isLongTermToken(String token) {
         try {
             Claims claims = getClaimsFromToken(token);

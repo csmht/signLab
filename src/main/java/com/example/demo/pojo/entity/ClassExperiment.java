@@ -40,6 +40,10 @@ public class ClassExperiment {
     @Column(comment = "上课时间 例如：8:00-14:00", type = "varchar(20)", notNull = true)
     private String courseTime;
 
+    /** 实验开始时间 */
+    @Column(comment = "实验开始时间", type = "datetime", notNull = true)
+    private LocalDateTime startTime;
+
     /** 实验结束填写时间 */
     @Column(comment = "实验结束填写时间", type = "datetime", notNull = true)
     private LocalDateTime endTime;

@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.enums.UserRole;
 import com.example.demo.mapper.AnswerFileMapper;
 import com.example.demo.pojo.dto.*;
 import com.example.demo.pojo.entity.AnswerFile;
@@ -11,9 +12,9 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.util.JwtUtil;
 import com.example.demo.util.PasswordUtil;
+import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,7 +92,7 @@ public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
             }
         }
 
-        String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getName());
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
         LoginResponse response = new LoginResponse();
         response.setUserId(user.getId());
@@ -172,13 +173,13 @@ public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
      */
     public void setPassword(SetPasswordRequest request) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
+        // 获取当前登录用户名
+        String currentUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录，请先登录"));
 
-        request.setUsername(currentUsername);
 
-        if (request.getPassword() == null || !request.getPassword().matches("\\d{6}")) {
-            throw new BusinessException(400, "密码必须是6位数字");
+        if (request.getPassword() == null || request.getPassword().length()<= 5) {
+            throw new BusinessException(400, "密码至少是6位数");
         }
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -186,7 +187,7 @@ public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
         }
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", request.getUsername());
+        queryWrapper.eq("username", currentUsername);
         User user = userMapper.selectOne(queryWrapper);
 
         if (user == null) {
@@ -411,7 +412,7 @@ public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
                 throw new BusinessException(403, "用户已被禁用");
             }
 
-            String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getName());
+            String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
             log.info("openid登录成功，用户: {}", user.getUsername());
 
@@ -508,39 +509,31 @@ public class AuthService extends ServiceImpl<AnswerFileMapper, AnswerFile> {
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(List<String> usernames) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // 获取当前用户角色
+        UserRole currentUserRole = SecurityUtil.getCurrentRole()
+                .orElseThrow(() -> new BusinessException(401, "未登录，请先登录"));
 
-        String currentUserRole = null;
-        if (authentication.getAuthorities() != null && !authentication.getAuthorities().isEmpty()) {
-            currentUserRole = authentication.getAuthorities().iterator().next().getAuthority();
-
-            if (currentUserRole.startsWith("ROLE_")) {
-                currentUserRole = currentUserRole.substring(5).toLowerCase();
-            }
-
-            if("admin".equals(currentUserRole)){
-
-                for(String username : usernames) {
-                    QueryWrapper<User> queryWrapper = new QueryWrapper<User>().eq("username", username);
-                    User user = userMapper.selectOne(queryWrapper);
-                    if (user == null) {
-                        throw new BusinessException(404, "用户不存在，用户名: " + username + "重置失败");
-                    }
-
-                    String lastFourDigits = username.length() >= 4 ?
-                            username.substring(username.length() - 4) :
-                            username;
-                    String password = "syjx@" + lastFourDigits;
-                    String encodedPassword = passwordUtil.encode(password);
-                    user.setPassword(encodedPassword);
-                    user.setPasswordSet(1);
-                    userMapper.updateById(user);
+        // 只有管理员可以重置密码
+        if (UserRole.ADMIN.equals(currentUserRole)) {
+            for(String username : usernames) {
+                QueryWrapper<User> queryWrapper = new QueryWrapper<User>().eq("username", username);
+                User user = userMapper.selectOne(queryWrapper);
+                if (user == null) {
+                    throw new BusinessException(404, "用户不存在，用户名: " + username + "重置失败");
                 }
-            }else{
-                throw new BusinessException(404, "无权限重置密码");
+
+                String lastFourDigits = username.length() >= 4 ?
+                        username.substring(username.length() - 4) :
+                        username;
+                String password = "syjx@" + lastFourDigits;
+                String encodedPassword = passwordUtil.encode(password);
+                user.setPassword(encodedPassword);
+                user.setPasswordSet(1);
+                userMapper.updateById(user);
             }
-        }else{
-            throw new BusinessException(404, "无权限重置密码");
+        } else {
+                throw new BusinessException(404, "无权限重置密码");
+
         }
     }
 

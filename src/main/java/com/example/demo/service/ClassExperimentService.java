@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
+import com.example.demo.mapper.ClassMapper;
 import com.example.demo.pojo.dto.BatchBindClassesToExperimentRequest;
 import com.example.demo.pojo.dto.BatchBindClassesToExperimentResponse;
 import com.example.demo.pojo.entity.Class;
@@ -26,7 +27,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, ClassExperiment> {
 
-    private final ClassService classService;
+    private final ClassMapper classMapper;
 
     /**
      * 根据班级代码查询班级实验
@@ -73,7 +74,9 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
 
             try {
                 // 查询班级信息
-                Class clazz = classService.getByClassCode(classCode);
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.eq("class_code", classCode);
+                Class clazz = classMapper.selectOne(classQuery);
                 if (clazz == null) {
                     result.setSuccess(false);
                     result.setMessage("班级不存在");

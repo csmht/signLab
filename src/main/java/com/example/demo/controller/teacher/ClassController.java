@@ -4,7 +4,6 @@ import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.dto.ApiResponse;
-import com.example.demo.pojo.dto.BatchAddClassRequest;
 import com.example.demo.pojo.dto.BatchAddClassResponse;
 import com.example.demo.pojo.dto.BatchBindClassesToExperimentRequest;
 import com.example.demo.pojo.dto.BatchBindClassesToExperimentResponse;
@@ -13,6 +12,12 @@ import com.example.demo.pojo.dto.BatchBindStudentsResponse;
 import com.example.demo.pojo.dto.ClassWithExperimentsResponse;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
+import com.example.demo.pojo.request.BatchAddClassRequest;
+import com.example.demo.pojo.request.ClassQueryRequest;
+import com.example.demo.pojo.request.CreateClassRequest;
+import com.example.demo.pojo.request.UpdateClassRequest;
+import com.example.demo.pojo.response.ClassResponse;
+import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.service.ClassExperimentService;
 import com.example.demo.service.ClassService;
 import com.example.demo.service.StudentClassRelationService;
@@ -36,6 +41,25 @@ public class ClassController {
     private final ClassService classService;
     private final StudentClassRelationService studentClassRelationService;
     private final ClassExperimentService classExperimentService;
+
+    /**
+     * 查询班级列表（分页或列表）
+     * 支持根据班级代码、班级名称、创建者进行查询
+     *
+     * @param request 查询请求
+     * @return 查询结果
+     */
+    @PostMapping("/query")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<PageResponse<ClassResponse>> queryClasses(@RequestBody ClassQueryRequest request) {
+        try {
+            PageResponse<ClassResponse> response = classService.queryClasses(request);
+            return ApiResponse.success(response);
+        } catch (Exception e) {
+            log.error("查询班级列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
 
     /**
      * 根据ID查询班级（包含实验信息）
@@ -78,18 +102,28 @@ public class ClassController {
     /**
      * 创建班级（单个）
      *
-     * @param clazz 班级信息
+     * @param request 创建班级请求
      * @return 创建结果
      */
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Class> create(@RequestBody Class clazz) {
+    public ApiResponse<Class> create(@RequestBody CreateClassRequest request) {
         try {
             // 检查班级是否已存在
-            Class existingClass = classService.getByClassCode(clazz.getClassCode());
+            Class existingClass = classService.getByClassCode(request.getClassCode());
             if (existingClass != null) {
                 return ApiResponse.error(400, "班级编号已存在");
             }
+
+            // 创建班级
+            Class clazz = new Class();
+            clazz.setClassCode(request.getClassCode());
+            clazz.setClassName(request.getClassName());
+            clazz.setStudentCount(0);
+
+            // 设置创建者
+            String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+            clazz.setCreator(currentUsername);
 
             boolean success = classService.save(clazz);
             if (success) {
@@ -124,19 +158,29 @@ public class ClassController {
      * 更新班级信息
      *
      * @param id 班级ID
-     * @param clazz 班级信息
+     * @param request 更新班级请求
      * @return 更新结果
      */
     @PutMapping("/{id}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Void> update(@PathVariable Long id, @RequestBody Class clazz) {
+    public ApiResponse<Void> update(@PathVariable Long id, @RequestBody UpdateClassRequest request) {
         try {
-            clazz.setId(id);
-            boolean success = classService.updateById(clazz);
+            // 查询班级是否存在
+            Class existingClass = classService.getById(id);
+            if (existingClass == null) {
+                return ApiResponse.error(404, "班级不存在");
+            }
+
+            // 更新班级信息
+            if (request.getClassName() != null) {
+                existingClass.setClassName(request.getClassName());
+            }
+
+            boolean success = classService.updateById(existingClass);
             if (success) {
                 return ApiResponse.success(null, "班级更新成功");
             } else {
-                return ApiResponse.error(404, "班级不存在");
+                return ApiResponse.error(500, "班级更新失败");
             }
         } catch (Exception e) {
             return ApiResponse.error(500, "更新失败: " + e.getMessage());

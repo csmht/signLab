@@ -3,10 +3,12 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.StudentClassRelationMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.dto.BatchBindStudentsRequest;
 import com.example.demo.pojo.dto.BatchBindStudentsResponse;
+import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +29,7 @@ import java.util.List;
 public class StudentClassRelationService extends ServiceImpl<StudentClassRelationMapper, StudentClassRelation> {
 
     private final UserMapper userMapper;
-    private final ClassService classService;
+    private final ClassMapper classMapper;
 
     /**
      * 根据学生用户名查询班级关系列表
@@ -63,7 +65,9 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
         response.setFailList(new ArrayList<>());
 
         // 查询班级信息
-        com.example.demo.pojo.entity.Class clazz = classService.getByClassCode(request.getClassCode());
+        QueryWrapper<Class> classQuery = new QueryWrapper<>();
+        classQuery.eq("class_code", request.getClassCode());
+        com.example.demo.pojo.entity.Class clazz = classMapper.selectOne(classQuery);
         if (clazz == null) {
             throw new BusinessException(404, "班级不存在");
         }
@@ -116,7 +120,7 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
                     response.setSuccessCount(response.getSuccessCount() + 1);
 
                     // 更新班级人数
-                    classService.updateStudentCount(request.getClassCode(), 1);
+                    updateStudentCount(request.getClassCode(), 1);
 
                     log.info("学生 {} 绑定到班级 {} 成功", studentUsername, request.getClassCode());
                 } else {
@@ -159,11 +163,31 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
             if (removed) {
                 count++;
                 // 更新班级人数
-                classService.updateStudentCount(classCode, -1);
+                updateStudentCount(classCode, -1);
                 log.info("学生 {} 从班级 {} 解绑成功", studentUsername, classCode);
             }
         }
 
         return count;
+    }
+
+    /**
+     * 更新班级人数
+     *
+     * @param classCode 班级编号
+     * @param delta 人数变化量
+     */
+    private void updateStudentCount(String classCode, int delta) {
+        QueryWrapper<Class> classQuery = new QueryWrapper<>();
+        classQuery.eq("class_code", classCode);
+        Class clazz = classMapper.selectOne(classQuery);
+        if (clazz != null) {
+            int newCount = clazz.getStudentCount() + delta;
+            if (newCount < 0) {
+                newCount = 0;
+            }
+            clazz.setStudentCount(newCount);
+            classMapper.updateById(clazz);
+        }
     }
 }

@@ -3,21 +3,23 @@ package com.example.demo.aspect;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.util.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 角色验证切面
+ * 验证用户是否具有访问接口所需的权限
+ * 支持层级权限：管理员 > 教师 > 学生
+ */
 @Aspect
 @Component
 @Slf4j
@@ -41,37 +43,30 @@ public class RoleValidationAspect {
             return;
         }
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        // 检查用户是否已登录
+        if (!SecurityUtil.isAuthenticated()) {
             throw new BusinessException(401, "未登录，请先登录");
         }
 
-        Set<String> userRoles = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .map(auth -> auth.replace("ROLE_", ""))
-                .collect(Collectors.toSet());
+        // 获取用户的角色
+        UserRole userRole = SecurityUtil.getCurrentRole()
+                .orElseThrow(() -> new BusinessException(403, "用户角色无效"));
 
-        log.debug("当前用户角色: {}", userRoles);
+        log.debug("当前用户角色: {} (级别: {})", userRole.getDescription(), userRole.getLevel());
         log.debug("注解来源: {}", methodAnnotation != null ? "方法级别" : "类级别");
 
         UserRole[] requiredRoles = effectiveAnnotation.value();
-        boolean requireAll = effectiveAnnotation.requireAll();
 
-        boolean hasPermission;
-        if (requireAll) {
-            hasPermission = Arrays.stream(requiredRoles)
-                    .allMatch(role -> userRoles.contains(role.name()));
-            log.debug("AND验证 - 需要所有角色: {}, 用户拥有角色: {}, 结果: {}",
-                    Arrays.toString(requiredRoles), userRoles, hasPermission);
-        } else {
-            hasPermission = Arrays.stream(requiredRoles)
-                    .anyMatch(role -> userRoles.contains(role.name()));
-            log.debug("OR验证 - 需要任一角色: {}, 用户拥有角色: {}, 结果: {}",
-                    Arrays.toString(requiredRoles), userRoles, hasPermission);
-            if(userRoles.contains(UserRole.ADMIN.name())) {
-                hasPermission = true;
-            }
-        }
+        // 使用层级权限检查：用户角色的级别 >= 任一要求角色的级别，则满足权限
+        int minRequiredLevel = Arrays.stream(requiredRoles)
+                .mapToInt(UserRole::getLevel)
+                .min()
+                .orElse(Integer.MAX_VALUE);
+
+        boolean hasPermission = userRole.getLevel() >= minRequiredLevel;
+
+        log.debug("层级权限验证 - 用户级别: {}, 最低要求级别: {}, 结果: {}",
+                userRole.getLevel(), minRequiredLevel, hasPermission);
 
         if (!hasPermission) {
             String requiredRoleNames = Arrays.stream(requiredRoles)
