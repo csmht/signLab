@@ -4,17 +4,28 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.enums.ProcedureAccessDeniedReason;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
+import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ExperimentMapper;
+import com.example.demo.mapper.ProcedureTopicMapMapper;
+import com.example.demo.mapper.ProcedureTopicMapper;
+import com.example.demo.mapper.TopicMapper;
+import com.example.demo.mapper.VideoFileMapper;
 import com.example.demo.pojo.entity.ClassExperiment;
+import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.Experiment;
+import com.example.demo.pojo.entity.ProcedureTopic;
+import com.example.demo.pojo.entity.ProcedureTopicMap;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
+import com.example.demo.pojo.entity.Topic;
+import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.response.StudentExperimentDetailResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +42,11 @@ public class StudentExperimentService {
     private final ClassExperimentMapper classExperimentMapper;
     private final ExperimentalProcedureService experimentalProcedureService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
+    private final VideoFileMapper videoFileMapper;
+    private final DataCollectionMapper dataCollectionMapper;
+    private final ProcedureTopicMapper procedureTopicMapper;
+    private final ProcedureTopicMapMapper procedureTopicMapMapper;
+    private final TopicMapper topicMapper;
 
     /**
      * 查询学生实验详情（包含步骤列表及可访问性）
@@ -166,7 +182,124 @@ public class StudentExperimentService {
         response.setIsPreviousCompleted(checkIfPreviousCompleted(
                 procedure, studentUsername, classCode));
 
+        // 5. 根据步骤类型查询详细信息
+        fillProcedureDetailByType(response, procedure);
+
         return response;
+    }
+
+    /**
+     * 根据步骤类型填充详细信息
+     *
+     * @param response  步骤详情响应
+     * @param procedure 步骤信息
+     */
+    private void fillProcedureDetailByType(StudentProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        Integer type = procedure.getType();
+        if (type == null) {
+            return;
+        }
+
+        switch (type) {
+            case 1:
+                // 类型1：观看视频
+                fillVideoDetail(response, procedure);
+                break;
+            case 2:
+                // 类型2：数据收集
+                fillDataCollectionDetail(response, procedure);
+                break;
+            case 3:
+                // 类型3：题库答题
+                fillTopicDetail(response, procedure);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * 填充视频详情（类型1）
+     */
+    private void fillVideoDetail(StudentProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getVideoId() == null) {
+            return;
+        }
+
+        VideoFile videoFile = videoFileMapper.selectById(procedure.getVideoId());
+        if (videoFile != null) {
+            response.setVideoTitle(videoFile.getOriginalFileName());
+            response.setVideoSeconds(videoFile.getVideoSeconds());
+            response.setVideoFilePath(videoFile.getFilePath());
+            response.setVideoFileSize(videoFile.getFileSize());
+        }
+    }
+
+    /**
+     * 填充数据收集详情（类型2）
+     */
+    private void fillDataCollectionDetail(StudentProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getDataCollectionId() == null) {
+            return;
+        }
+
+        DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
+        if (dataCollection != null) {
+            response.setDataCollectionType(dataCollection.getType());
+            response.setDataRemark(dataCollection.getRemark());
+            response.setDataNeedPhoto(dataCollection.getNeedPhoto());
+            response.setDataNeedDoc(dataCollection.getNeedDoc());
+        }
+    }
+
+    /**
+     * 填充题库详情（类型3）
+     */
+    private void fillTopicDetail(StudentProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getProcedureTopicId() == null) {
+            return;
+        }
+
+        // 查询题库配置
+        ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+        if (procedureTopic != null) {
+            response.setTopicIsRandom(procedureTopic.getIsRandom());
+            response.setTopicNumber(procedureTopic.getNumber());
+            response.setTopicTags(procedureTopic.getTags());
+        }
+
+        // 查询题目列表
+        QueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new QueryWrapper<>();
+        topicMapQueryWrapper.eq("experimental_procedure_id", procedure.getId());
+        List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(topicMapQueryWrapper);
+
+        if (topicMaps != null && !topicMaps.isEmpty()) {
+            // 提取题目ID列表
+            List<Long> topicIds = topicMaps.stream()
+                    .map(ProcedureTopicMap::getTopicId)
+                    .collect(Collectors.toList());
+
+            // 查询题目详情
+            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
+            topicQueryWrapper.in("id", topicIds)
+                    .eq("is_deleted", false)
+                    .orderByAsc("number");
+            List<Topic> topics = topicMapper.selectList(topicQueryWrapper);
+
+            if (topics != null && !topics.isEmpty()) {
+                List<StudentProcedureDetailResponse.TopicDetail> topicDetails = new ArrayList<>();
+                for (Topic topic : topics) {
+                    StudentProcedureDetailResponse.TopicDetail topicDetail = new StudentProcedureDetailResponse.TopicDetail();
+                    topicDetail.setId(topic.getId());
+                    topicDetail.setNumber(topic.getNumber());
+                    topicDetail.setType(topic.getType());
+                    topicDetail.setContent(topic.getContent());
+                    topicDetail.setChoices(topic.getChoices());
+                    topicDetails.add(topicDetail);
+                }
+                response.setTopics(topicDetails);
+            }
+        }
     }
 
     /**
