@@ -172,6 +172,90 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
     }
 
     /**
+     * 学生通过验证码绑定班级
+     *
+     * @param studentUsername 学生用户名
+     * @param verificationCode 班级验证码
+     * @return 绑定的班级信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public com.example.demo.pojo.entity.Class bindClass(String studentUsername, String verificationCode) {
+        // 验证学生是否存在
+        User student = userMapper.selectOne(
+                new QueryWrapper<User>().eq("username", studentUsername)
+        );
+        if (student == null) {
+            throw new BusinessException(400, "学生不存在");
+        }
+
+        // 根据验证码查询班级
+        QueryWrapper<com.example.demo.pojo.entity.Class> classQuery = new QueryWrapper<>();
+        classQuery.eq("verification_code", verificationCode);
+        com.example.demo.pojo.entity.Class clazz = classMapper.selectOne(classQuery);
+        if (clazz == null) {
+            throw new BusinessException(400, "班级验证码无效");
+        }
+
+        // 检查是否已绑定过该班级
+        QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("student_username", studentUsername)
+                .eq("class_code", clazz.getClassCode());
+        StudentClassRelation existingRelation = getOne(queryWrapper);
+        if (existingRelation != null) {
+            throw new BusinessException(400, "已绑定过该班级");
+        }
+
+        // 创建绑定关系
+        StudentClassRelation relation = new StudentClassRelation();
+        relation.setStudentUsername(studentUsername);
+        relation.setClassCode(clazz.getClassCode());
+
+        boolean saved = save(relation);
+        if (!saved) {
+            throw new BusinessException(500, "绑定班级失败");
+        }
+
+        // 更新班级人数
+        updateStudentCount(clazz.getClassCode(), 1);
+
+        log.info("学生 {} 通过验证码绑定到班级 {} 成功", studentUsername, clazz.getClassCode());
+
+        return clazz;
+    }
+
+    /**
+     * 查询学生的班级列表（包含班级详细信息）
+     *
+     * @param studentUsername 学生用户名
+     * @return 班级信息列表
+     */
+    public java.util.List<com.example.demo.pojo.response.ClassInfoResponse> getStudentClassInfoList(String studentUsername) {
+        // 查询学生的班级关系
+        java.util.List<StudentClassRelation> relations = getByStudentUsername(studentUsername);
+
+        // 转换为班级信息响应
+        return relations.stream().map(relation -> {
+            com.example.demo.pojo.response.ClassInfoResponse response =
+                    new com.example.demo.pojo.response.ClassInfoResponse();
+            response.setClassCode(relation.getClassCode());
+            response.setBindTime(relation.getBindTime());
+
+            // 查询班级详细信息
+            com.example.demo.pojo.entity.Class clazz = classMapper.selectOne(
+                    new QueryWrapper<com.example.demo.pojo.entity.Class>()
+                            .eq("class_code", relation.getClassCode())
+            );
+            if (clazz != null) {
+                response.setId(clazz.getId());
+                response.setClassName(clazz.getClassName());
+                response.setStudentCount(clazz.getStudentCount());
+            }
+
+            return response;
+        }).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
      * 更新班级人数
      *
      * @param classCode 班级编号
