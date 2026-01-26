@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-Content 'src\\\\main\\\\java\\\\com\\\\example\\\\demo\\\\pojo\\\\entity\\\\Tag.java' -Encoding UTF8 | Set-Content 'src\\\\main\\\\java\\\\com\\\\example\\\\demo\\\\pojo\\\\entity\\\\Tag.java' -Encoding UTF8NoBOM\":*)",
+      "Bash(powershell:*)",
+      "Bash(tree:*)",
+      "Read(//c/Users/Liang/Desktop/Work/bbb/demo1/**)",
+      "Bash(done:*)",
+      "Bash(mvn compile:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

@@ -24,31 +24,6 @@ public class StudentAttendanceController {
     private final AttendanceRecordService attendanceRecordService;
 
     /**
-     * 扫码签到
-     * 学生扫描二维码进行签到
-     *
-     * @param request 签到请求（包含加密的二维码数据）
-     * @return 签到结果
-     */
-    @PostMapping("/scan")
-    @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<AttendanceResponse> scanAttendance(@RequestBody AttendanceRequest request) {
-        try {
-            AttendanceResponse response = attendanceRecordService.scanAttendance(request);
-            if (response.isSuccess()) {
-                return ApiResponse.success(response, response.getMessage());
-            } else {
-                return ApiResponse.error(400, response.getMessage());
-            }
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("签到失败", e);
-            return ApiResponse.error(500, "签到失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 查询学生的签到记录列表
      * 返回当前登录学生的所有签到记录
      *

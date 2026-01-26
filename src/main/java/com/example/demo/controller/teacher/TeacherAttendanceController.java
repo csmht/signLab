@@ -111,4 +111,25 @@ public class TeacherAttendanceController {
         }
     }
 
+    /**
+     * 查询跨班签到学生
+     * 查询指定班级实验中跨班签到的学生列表
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 跨班签到学生列表
+     */
+    @GetMapping("/cross-class-attendees")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<java.util.List<java.util.Map<String, Object>>> getCrossClassAttendees(
+            @RequestParam("classExperimentId") Long classExperimentId) {
+        try {
+            java.util.List<java.util.Map<String, Object>> attendees =
+                    attendanceRecordService.getCrossClassAttendees(classExperimentId);
+            return ApiResponse.success(attendees);
+        } catch (Exception e) {
+            log.error("查询跨班签到学生失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
 }

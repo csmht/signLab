@@ -438,4 +438,55 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
 
         return stats;
     }
+
+    /**
+     * 查询跨班签到学生列表
+     * 查询指定班级实验中跨班签到的学生
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 跨班签到学生列表
+     */
+    public java.util.List<java.util.Map<String, Object>> getCrossClassAttendees(Long classExperimentId) {
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        String courseId = classExperiment.getCourseId();
+        String experimentId = classExperiment.getExperimentId();
+        String classCode = classExperiment.getClassCode();
+
+        // 2. 查询该课次的所有签到记录
+        QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+        attendanceQuery.eq("course_id", courseId)
+                .eq("experiment_id", experimentId)
+                .eq("attendance_status", AttendanceStatus.CROSS_CLASS.getCode());
+        java.util.List<AttendanceRecord> crossClassRecords = list(attendanceQuery);
+
+        // 3. 构建返回结果
+        return crossClassRecords.stream().map(record -> {
+            java.util.Map<String, Object> info = new java.util.HashMap<>();
+            info.put("studentCode", record.getStudentUsername());
+            info.put("studentActualClassCode", record.getStudentActualClassCode());
+            info.put("attendanceTime", record.getAttendanceTime());
+            info.put("lastAttendanceTime", record.getAttendanceTime());
+
+            // 查询学生姓名
+            User student = userMapper.selectOne(
+                    new QueryWrapper<User>().eq("username", record.getStudentUsername())
+            );
+            info.put("studentName", student != null ? student.getName() : record.getStudentUsername());
+
+            // 查询学生实际班级名称
+            com.example.demo.pojo.entity.Class studentClass = classMapper.selectOne(
+                    new QueryWrapper<com.example.demo.pojo.entity.Class>()
+                            .eq("class_code", record.getStudentActualClassCode())
+            );
+            info.put("className", studentClass != null ? studentClass.getClassName() : record.getStudentActualClassCode());
+            info.put("studentType", "CROSS_CLASS_ATTENDEE");
+
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+    }
 }
