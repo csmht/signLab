@@ -22,6 +22,7 @@ public class WeChatService {
     private final WeChatConfig weChatConfig;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final com.example.demo.mapper.UserMapper userMapper;
 
     /**
      * 通过code获取微信access_token和openid
@@ -252,5 +253,143 @@ public class WeChatService {
             log.error("通过code获取openid异常，code: {}", code, e);
             return null;
         }
+    }
+
+    /**
+     * 通过微信OpenID查找用户
+     *
+     * @param wxOpenid 微信OpenID
+     * @return 用户信息
+     */
+    public com.example.demo.pojo.entity.User getUserByWxOpenid(String wxOpenid) {
+        if (wxOpenid == null || wxOpenid.trim().isEmpty()) {
+            return null;
+        }
+        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User> queryWrapper =
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
+        queryWrapper.eq("wx_openid", wxOpenid).eq("is_deleted", 0);
+        return userMapper.selectOne(queryWrapper);
+    }
+
+    /**
+     * 绑定微信账号
+     *
+     * @param username 用户名
+     * @param wxOpenid 微信OpenID
+     * @param wxUnionid 微信UnionID
+     * @param wxNickname 微信昵称
+     * @param wxAvatar 微信头像
+     * @return 绑定结果
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public com.example.demo.pojo.response.WeChatBindResponse bindWeChat(String username, String wxOpenid, String wxUnionid,
+                                                                         String wxNickname, String wxAvatar) {
+        // 1. 查询用户
+        com.example.demo.pojo.entity.User user = userMapper.selectOne(
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
+                .eq("username", username).eq("is_deleted", 0)
+        );
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        // 2. 检查微信OpenID是否已被其他用户绑定
+        if (wxOpenid != null && !wxOpenid.trim().isEmpty()) {
+            com.example.demo.pojo.entity.User existingUser = getUserByWxOpenid(wxOpenid);
+            if (existingUser != null && !existingUser.getId().equals(user.getId())) {
+                throw new BusinessException(400, "该微信账号已被其他用户绑定");
+            }
+        }
+
+        // 3. 更新用户微信信息
+        user.setWxOpenid(wxOpenid);
+        user.setWxUnionid(wxUnionid);
+        user.setWxNickname(wxNickname);
+        user.setWxAvatar(wxAvatar);
+        user.setWxBindTime(java.time.LocalDateTime.now());
+
+        boolean updated = userMapper.updateById(user) > 0;
+        if (!updated) {
+            throw new BusinessException(500, "绑定微信失败");
+        }
+
+        log.info("用户 {} 绑定微信成功，OpenID：{}", username, wxOpenid);
+
+        // 4. 构建返回结果
+        return buildWeChatBindResponse(user);
+    }
+
+    /**
+     * 解绑微信账号
+     *
+     * @param username 用户名
+     */
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public void unbindWeChat(String username) {
+        // 1. 查询用户
+        com.example.demo.pojo.entity.User user = userMapper.selectOne(
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
+                .eq("username", username).eq("is_deleted", 0)
+        );
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        // 2. 检查是否已绑定微信
+        if (user.getWxOpenid() == null || user.getWxOpenid().trim().isEmpty()) {
+            throw new BusinessException(400, "未绑定微信账号");
+        }
+
+        // 3. 清除微信信息
+        user.setWxOpenid(null);
+        user.setWxUnionid(null);
+        user.setWxNickname(null);
+        user.setWxAvatar(null);
+        user.setWxBindTime(null);
+
+        boolean updated = userMapper.updateById(user) > 0;
+        if (!updated) {
+            throw new BusinessException(500, "解绑微信失败");
+        }
+
+        log.info("用户 {} 解绑微信成功", username);
+    }
+
+    /**
+     * 获取用户微信绑定状态
+     *
+     * @param username 用户名
+     * @return 微信绑定状态
+     */
+    public com.example.demo.pojo.response.WeChatBindResponse getWeChatBindStatus(String username) {
+        // 1. 查询用户
+        com.example.demo.pojo.entity.User user = userMapper.selectOne(
+            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
+                .eq("username", username).eq("is_deleted", 0)
+        );
+        if (user == null) {
+            throw new BusinessException(404, "用户不存在");
+        }
+
+        // 2. 构建返回结果
+        return buildWeChatBindResponse(user);
+    }
+
+    /**
+     * 构建微信绑定响应
+     */
+    private com.example.demo.pojo.response.WeChatBindResponse buildWeChatBindResponse(com.example.demo.pojo.entity.User user) {
+        com.example.demo.pojo.response.WeChatBindResponse response = new com.example.demo.pojo.response.WeChatBindResponse();
+        response.setUserId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setName(user.getName());
+
+        boolean wxBound = user.getWxOpenid() != null && !user.getWxOpenid().trim().isEmpty();
+        response.setWxBound(wxBound);
+        response.setWxNickname(user.getWxNickname());
+        response.setWxAvatar(user.getWxAvatar());
+        response.setWxBindTime(user.getWxBindTime());
+
+        return response;
     }
 }
