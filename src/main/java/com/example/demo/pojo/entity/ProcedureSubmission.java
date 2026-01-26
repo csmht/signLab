@@ -11,14 +11,14 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 作业提交表
- * 记录学生提交的作业文件信息
+ * 实验步骤提交表
+ * 记录学生提交的实验步骤文件信息（如实验报告、数据文件等）
  */
 @Data
 @AutoTable
-@Table(value = "assignment_submissions", comment = "作业提交表 - 记录学生提交的作业文件信息")
-@TableName("assignment_submissions")
-public class AssignmentSubmission {
+@Table(value = "procedure_submissions", comment = "实验步骤提交表 - 记录学生提交的实验步骤文件信息")
+@TableName("procedure_submissions")
+public class ProcedureSubmission {
 
     /** 主键ID */
     @TableId(type = IdType.AUTO)

@@ -6,13 +6,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 作业提交响应
+ * 实验步骤提交响应
  */
 @Data
-public class AssignmentSubmissionResponse {
+public class ProcedureSubmissionResponse {
 
     /**
-     * 作业ID
+     * 步骤提交ID
      */
     private Long id;
 
