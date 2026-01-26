@@ -1,4 +1,4 @@
-﻿package com.example.demo.pojo.response;
+﻿ackage com.example.demo.pojo.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.example.demo.pojo.entity;
+﻿ackage com.example.demo.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.tangzc.autotable.annotation.AutoTable;
