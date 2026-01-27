@@ -52,8 +52,8 @@ public class ProcedureSubmission {
     @Column(comment = "文件大小（字节）", type = "bigint")
     private Long fileSize;
 
-    /** 提交状态：draft-草稿，submitted-已提交，graded-已批改 */
-    @Column(comment = "提交状态", type = "varchar(20)", defaultValue = "draft")
+    /** 提交状态：submitted-已提交，graded-已批改 */
+    @Column(comment = "提交状态", type = "varchar(20)")
     private String submissionStatus;
 
     /** 教师评语 */
