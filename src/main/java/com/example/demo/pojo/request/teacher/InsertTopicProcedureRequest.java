@@ -47,9 +47,9 @@ public class InsertTopicProcedureRequest {
     private Integer topicNumber;
 
     /**
-     * 标签限制（仅在随机抽取时有效，格式 id1,id2）
+     * 标签ID列表（仅在随机抽取时有效），后端自动拼接成"id1,id2"格式
      */
-    private String topicTags;
+    private List<String> topicTags;
 
     /**
      * 老师选定的题目ID列表（仅在非随机模式时有效）
