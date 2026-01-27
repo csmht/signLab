@@ -58,7 +58,7 @@ public class WeChatService {
             }
 
             if (result.getErrcode() != null && result.getErrcode() != 0) {
-                log.error("微信API返回错误：errcode: {}, errmsg: {}", result.getErrcode(), result.getErrmsg());
+                log.warn("微信API返回错误：errcode: {}, errmsg: {}", result.getErrcode(), result.getErrmsg());
                 String errorMessage = getWeChatErrorMessage(result.getErrcode(), result.getErrmsg());
                 throw new BusinessException(400, errorMessage);
             }
@@ -71,10 +71,11 @@ public class WeChatService {
             return result;
 
         } catch (Exception e) {
-            log.error("调用微信API异常", e);
             if (e instanceof BusinessException) {
+                log.warn("调用微信API异常，业务错误: {}", e.getMessage());
                 throw e;
             }
+            log.error("调用微信API异常", e);
             throw new BusinessException(500, "获取微信信息失败: " + e.getMessage());
         }
     }
@@ -113,7 +114,7 @@ public class WeChatService {
             }
 
             if (result.getErrcode() != null && result.getErrcode() != 0) {
-                log.error("微信API返回错误：errcode: {}, errmsg: {}", result.getErrcode(), result.getErrmsg());
+                log.warn("微信API返回错误：errcode: {}, errmsg: {}", result.getErrcode(), result.getErrmsg());
                 String errorMessage = getWeChatErrorMessage(result.getErrcode(), result.getErrmsg());
                 throw new BusinessException(400, "获取微信用户信息失败: " + errorMessage);
             }
@@ -122,10 +123,11 @@ public class WeChatService {
             return result;
 
         } catch (Exception e) {
-            log.error("调用微信API异常", e);
             if (e instanceof BusinessException) {
+                log.warn("调用微信API异常，业务错误: {}", e.getMessage());
                 throw e;
             }
+            log.error("调用微信API异常", e);
             throw new BusinessException(500, "获取微信用户信息失败: " + e.getMessage());
         }
     }
@@ -250,7 +252,7 @@ public class WeChatService {
             }
 
         } catch (Exception e) {
-            log.error("通过code获取openid异常，code: {}", code, e);
+            log.warn("通过code获取openid异常，code: {}, 原因: {}", code, e.getMessage());
             return null;
         }
     }

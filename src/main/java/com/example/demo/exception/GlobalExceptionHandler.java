@@ -4,8 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConversionException;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,6 +11,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
@@ -65,11 +65,48 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatchException(MethodArgumentTypeMismatchException e) {
-        log.warn("参数类型不匹配: {}", e.getMessage());
+        log.warn("参数类型不匹配: 参数 '{}' 无法转换为 '{}', 值: '{}'",
+                e.getName(), e.getRequiredType().getSimpleName(), e.getValue());
         Map<String, Object> response = new HashMap<>();
         response.put("code", 400);
-        response.put("message", "参数类型错误: " + e.getName());
+        response.put("message", "参数格式错误: " + e.getName());
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingParams(MissingServletRequestParameterException e) {
+        log.warn("缺少请求参数: {}", e.getParameterName());
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 400);
+        response.put("message", "缺少必要参数: " + e.getParameterName());
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.error("数据完整性异常: {}", e.getMessage());
+        // 根据具体错误信息判断是否是业务异常
+        String message = e.getMessage();
+        if (message != null) {
+            if (message.contains("Duplicate entry")) {
+                log.warn("数据重复: {}", message);
+                Map<String, Object> response = new HashMap<>();
+                response.put("code", 400);
+                response.put("message", "数据已存在，请勿重复添加");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (message.contains("cannot be null")) {
+                log.warn("必填字段为空: {}", message);
+                Map<String, Object> response = new HashMap<>();
+                response.put("code", 400);
+                response.put("message", "缺少必填字段");
+                return ResponseEntity.badRequest().body(response);
+            }
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 500);
+        response.put("message", "数据操作失败");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
     @ExceptionHandler({HttpMessageConversionException.class})
@@ -92,24 +129,6 @@ public class GlobalExceptionHandler {
         response.put("code", 400);
         response.put("message", "参数类型错误: " + e.getLocalizedMessage());
         return ResponseEntity.badRequest().body(response);
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<Map<String, Object>> handleAuthenticationException(AuthenticationException e) {
-        log.warn("认证异常: {}", e.getMessage());
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 401);
-        response.put("message", "认证失败: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException e) {
-        log.warn("授权异常: {}", e.getMessage());
-        Map<String, Object> response = new HashMap<>();
-        response.put("code", 403);
-        response.put("message", "权限不足: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
