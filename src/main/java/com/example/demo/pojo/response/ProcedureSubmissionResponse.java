@@ -52,9 +52,9 @@ public class ProcedureSubmissionResponse {
     private Long fileSize;
 
     /**
-     * 提交状态（draft-草稿，submitted-已提交，graded-已批改）
+     * 提交状态（0-未批改，1-已批改）
      */
-    private String submissionStatus;
+    private Integer submissionStatus;
 
     /**
      * 教师评语

@@ -39,7 +39,7 @@ public class TeacherProcedureController {
     public ApiResponse<List<ProcedureSubmissionResponse>> getCourseProcedureSubmissions(
             @PathVariable("courseId") String courseId,
             @RequestParam(value = "experimentId", required = false) String experimentId,
-            @RequestParam(value = "submissionStatus", required = false) String submissionStatus) {
+            @RequestParam(value = "submissionStatus", required = false) Integer submissionStatus) {
         try {
             List<ProcedureSubmissionResponse> submissions = procedureSubmissionService.getCourseSubmissions(
                     courseId, experimentId, submissionStatus

@@ -106,7 +106,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
             submission.setFilePath(filePath);
             submission.setFileName(originalFilename);
             submission.setFileSize(file.getSize());
-            submission.setSubmissionStatus("draft"); // 默认为草稿状态
+            submission.setSubmissionStatus(ProcedureSubmission.STATUS_NOT_GRADED); // 默认为未批改状态
             submission.setCreateTime(LocalDateTime.now());
             submission.setUpdateTime(LocalDateTime.now());
 
@@ -131,7 +131,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
             response.setSubmissionType(submissionType);
             response.setFileName(originalFilename);
             response.setFileSize(file.getSize());
-            response.setSubmissionStatus("draft");
+            response.setSubmissionStatus(ProcedureSubmission.STATUS_NOT_GRADED);
             response.setCreateTime(submission.getCreateTime());
 
             return response;
@@ -160,7 +160,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
             throw new BusinessException(403, "无权提交此步骤");
         }
 
-        submission.setSubmissionStatus("submitted");
+        submission.setSubmissionStatus(ProcedureSubmission.STATUS_NOT_GRADED);
         submission.setSubmissionTime(LocalDateTime.now());
         submission.setUpdateTime(LocalDateTime.now());
 
@@ -208,7 +208,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
      * @param submissionStatus 提交状态（可选）
      * @return 步骤列表
      */
-    public List<ProcedureSubmissionResponse> getCourseSubmissions(String courseId, String experimentId, String submissionStatus) {
+    public List<ProcedureSubmissionResponse> getCourseSubmissions(String courseId, String experimentId, Integer submissionStatus) {
         QueryWrapper<ProcedureSubmission> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("course_id", courseId)
                 .eq("is_deleted", 0);
@@ -217,7 +217,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
             queryWrapper.eq("experiment_id", experimentId);
         }
 
-        if (submissionStatus != null && !submissionStatus.trim().isEmpty()) {
+        if (submissionStatus != null) {
             queryWrapper.eq("submission_status", submissionStatus);
         }
 
@@ -257,7 +257,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
             throw new BusinessException(404, "步骤提交记录不存在");
         }
 
-        submission.setSubmissionStatus("graded");
+        submission.setSubmissionStatus(ProcedureSubmission.STATUS_GRADED);
         submission.setTeacherComment(teacherComment);
         submission.setScore(score);
         submission.setUpdateTime(LocalDateTime.now());
@@ -271,48 +271,16 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
     }
 
     /**
-     * 删除步骤提交
+     * 删除步骤提交（已禁用）
+     * 学生禁止删除步骤提交记录
      *
      * @param submissionId 步骤提交ID
      * @param studentUsername 当前登录用户名（用于权限验证）
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteProcedure(Long submissionId, String studentUsername) {
-        ProcedureSubmission submission = getById(submissionId);
-        if (submission == null || submission.getIsDeleted() == 1) {
-            throw new BusinessException(404, "步骤提交记录不存在");
-        }
-
-        // 权限验证：学生只能删除自己的步骤，且只能删除草稿状态的步骤
-        if (!submission.getStudentUsername().equals(studentUsername)) {
-            throw new BusinessException(403, "无权删除此步骤");
-        }
-
-        if (!"draft".equals(submission.getSubmissionStatus())) {
-            throw new BusinessException(400, "只能删除草稿状态的步骤");
-        }
-
-        // 删除物理文件
-        try {
-            Path filePath = Paths.get(submission.getFilePath());
-            if (Files.exists(filePath)) {
-                Files.delete(filePath);
-                log.info("删除物理文件成功: {}", submission.getFilePath());
-            }
-        } catch (IOException e) {
-            log.warn("删除物理文件失败: {}", submission.getFilePath(), e);
-            // 即使物理文件删除失败，也继续删除数据库记录
-        }
-
-        // 软删除数据库记录
-        submission.setIsDeleted(1);
-        submission.setUpdateTime(LocalDateTime.now());
-        boolean updated = updateById(submission);
-        if (!updated) {
-            throw new BusinessException(500, "删除步骤失败");
-        }
-
-        log.info("删除实验步骤提交成功，ID：{}", submissionId);
+        // 学生禁止删除步骤
+        throw new BusinessException(403, "学生禁止删除步骤提交记录");
     }
 
     /**

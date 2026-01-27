@@ -20,6 +20,10 @@ import java.time.LocalDateTime;
 @TableName("procedure_submissions")
 public class ProcedureSubmission {
 
+    /** 提交状态常量 */
+    public static final Integer STATUS_NOT_GRADED = 0;  // 未批改
+    public static final Integer STATUS_GRADED = 1;      // 已批改
+
     /** 主键ID */
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -52,9 +56,9 @@ public class ProcedureSubmission {
     @Column(comment = "文件大小（字节）", type = "bigint")
     private Long fileSize;
 
-    /** 提交状态：submitted-已提交，graded-已批改 */
-    @Column(comment = "提交状态", type = "varchar(20)")
-    private String submissionStatus;
+    /** 提交状态：0-未批改，1-已批改 */
+    @Column(comment = "提交状态", type = "tinyint", defaultValue = "0")
+    private Integer submissionStatus;
 
     /** 教师评语 */
     @Column(comment = "教师评语", type = "text")
