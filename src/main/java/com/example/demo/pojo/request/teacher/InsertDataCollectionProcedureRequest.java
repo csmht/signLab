@@ -5,15 +5,20 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 创建数据收集步骤请求
+ * 插入数据收集步骤请求
  */
 @Data
-public class CreateDataCollectionProcedureRequest {
+public class InsertDataCollectionProcedureRequest {
 
     /**
      * 实验ID
      */
     private Long experimentId;
+
+    /**
+     * 插入位置（在该步骤序号后插入）
+     */
+    private Integer afterNumber;
 
     /**
      * 是否可跳过
@@ -38,7 +43,7 @@ public class CreateDataCollectionProcedureRequest {
     /**
      * 数据描述
      * 类型为1时，按照：需求数据1$需求数据2$的格式
-     * 类型为2时，按照：x&表头1$列表头2#y&横表头1$横表头2$横表头3 格式储存
+     * 类型为2时，按照：x&列表头1$列表头2#y&横表头1$横表头2$横表头3 格式储存
      */
     private String dataRemark;
 

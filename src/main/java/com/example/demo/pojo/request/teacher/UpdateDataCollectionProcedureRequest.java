@@ -3,18 +3,17 @@ package com.example.demo.pojo.request.teacher;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
- * 创建题库练习步骤请求
+ * 修改数据收集步骤请求
  */
 @Data
-public class CreateTopicProcedureRequest {
+public class UpdateDataCollectionProcedureRequest {
 
     /**
-     * 实验ID
+     * 步骤ID
      */
-    private Long experimentId;
+    private Long id;
 
     /**
      * 是否可跳过
@@ -32,24 +31,26 @@ public class CreateTopicProcedureRequest {
     private String remark;
 
     /**
-     * 是否随机抽取
+     * 数据类型（1-关键数据，2-表格数据）
      */
-    private Boolean isRandom;
+    private Integer dataType;
 
     /**
-     * 题目数量（仅在随机抽取时有效）
+     * 数据描述
+     * 类型为1时，按照：需求数据1$需求数据2$的格式
+     * 类型为2时，按照：x&列表头1$列表头2#y&横表头1$横表头2$横表头3 格式储存
      */
-    private Integer topicNumber;
+    private String dataRemark;
 
     /**
-     * 标签限制（仅在随机抽取时有效，格式 id1,id2）
+     * 是否需要提交照片
      */
-    private String topicTags;
+    private Boolean needPhoto;
 
     /**
-     * 老师选定的题目ID列表（仅在非随机模式时有效）
+     * 是否需要提交文档
      */
-    private List<Long> teacherSelectedTopicIds;
+    private Boolean needDoc;
 
     /**
      * 步骤开始时间

@@ -6,15 +6,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 创建题库练习步骤请求
+ * 修改题库练习步骤请求
  */
 @Data
-public class CreateTopicProcedureRequest {
+public class UpdateTopicProcedureRequest {
 
     /**
-     * 实验ID
+     * 步骤ID
      */
-    private Long experimentId;
+    private Long id;
 
     /**
      * 是否可跳过

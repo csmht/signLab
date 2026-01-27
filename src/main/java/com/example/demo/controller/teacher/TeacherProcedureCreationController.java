@@ -5,6 +5,9 @@ import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.request.teacher.CreateDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.teacher.CreateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.CreateVideoProcedureRequest;
+import com.example.demo.pojo.request.teacher.UpdateDataCollectionProcedureRequest;
+import com.example.demo.pojo.request.teacher.UpdateTopicProcedureRequest;
+import com.example.demo.pojo.request.teacher.UpdateVideoProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.service.TeacherProcedureCreationService;
 import lombok.RequiredArgsConstructor;
@@ -84,6 +87,89 @@ public class TeacherProcedureCreationController {
         } catch (Exception e) {
             log.error("创建题库练习步骤失败", e);
             return ApiResponse.error(500, "创建失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 修改视频观看步骤
+     * 步骤类型：type=1（观看视频）
+     *
+     * @param request 修改视频步骤请求
+     * @return 是否修改成功
+     */
+    @PutMapping("/video")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Void> updateVideoProcedure(@RequestBody UpdateVideoProcedureRequest request) {
+        try {
+            teacherProcedureCreationService.updateVideoProcedure(request);
+            return ApiResponse.success(null, "修改成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("修改视频观看步骤失败", e);
+            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 修改数据收集步骤
+     * 步骤类型：type=2（数据收集）
+     *
+     * @param request 修改数据收集步骤请求
+     * @return 是否修改成功
+     */
+    @PutMapping("/data-collection")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Void> updateDataCollectionProcedure(@RequestBody UpdateDataCollectionProcedureRequest request) {
+        try {
+            teacherProcedureCreationService.updateDataCollectionProcedure(request);
+            return ApiResponse.success(null, "修改成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("修改数据收集步骤失败", e);
+            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 修改题库练习步骤
+     * 步骤类型：type=3（题库答题）
+     *
+     * @param request 修改题库练习步骤请求
+     * @return 是否修改成功
+     */
+    @PutMapping("/topic")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Void> updateTopicProcedure(@RequestBody UpdateTopicProcedureRequest request) {
+        try {
+            teacherProcedureCreationService.updateTopicProcedure(request);
+            return ApiResponse.success(null, "修改成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("修改题库练习步骤失败", e);
+            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 删除指定步骤
+     *
+     * @param procedureId 步骤ID
+     * @return 是否删除成功
+     */
+    @DeleteMapping("/{procedureId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Void> deleteProcedure(@PathVariable("procedureId") Long procedureId) {
+        try {
+            teacherProcedureCreationService.deleteProcedure(procedureId);
+            return ApiResponse.success(null, "删除成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("删除步骤失败", e);
+            return ApiResponse.error(500, "删除失败: " + e.getMessage());
         }
     }
 }

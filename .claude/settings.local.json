@@ -12,7 +12,12 @@
       "Bash(mvn:*)",
       "Bash(git rm:*)",
       "Bash(git mv:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(Get-Content \"C:\\\\Users\\\\Liang\\\\.claude\\\\projects\\\\c--Users-Liang-Desktop-Work-bbb-demo1\\\\4bfb8809-cc3c-42de-ade8-ad4bb12de6b9.jsonl\")",
+      "Bash(Select-Object:*)",
+      "Bash(ConvertFrom-Json)",
+      "Bash(Select-Object -ExpandProperty content)",
+      "Bash(git checkout:*)"
     ]
   }
 }

@@ -5,15 +5,15 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 创建视频观���步骤请求
+ * 修改视频观看步骤请求
  */
 @Data
-public class CreateVideoProcedureRequest {
+public class UpdateVideoProcedureRequest {
 
     /**
-     * 实验ID
+     * 步骤ID
      */
-    private Long experimentId;
+    private Long id;
 
     /**
      * 是否可跳过
