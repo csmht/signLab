@@ -5,6 +5,9 @@ import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.request.teacher.CreateDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.teacher.CreateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.CreateVideoProcedureRequest;
+import com.example.demo.pojo.request.teacher.InsertDataCollectionProcedureRequest;
+import com.example.demo.pojo.request.teacher.InsertTopicProcedureRequest;
+import com.example.demo.pojo.request.teacher.InsertVideoProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateVideoProcedureRequest;
@@ -150,6 +153,69 @@ public class TeacherProcedureCreationController {
         } catch (Exception e) {
             log.error("修改题库练习步骤失败", e);
             return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 插入视频观看步骤
+     * 步骤类型：type=1（观看视频）
+     *
+     * @param request 插入视频步骤请求
+     * @return 步骤ID
+     */
+    @PostMapping("/video/insert")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Long> insertVideoProcedure(@RequestBody InsertVideoProcedureRequest request) {
+        try {
+            Long procedureId = teacherProcedureCreationService.insertVideoProcedure(request);
+            return ApiResponse.success(procedureId, "插入成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("插入视频观看步骤失败", e);
+            return ApiResponse.error(500, "插入失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 插入数据收集步骤
+     * 步骤类型：type=2（数据收集）
+     *
+     * @param request 插入数据收集步骤请求
+     * @return 步骤ID
+     */
+    @PostMapping("/data-collection/insert")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Long> insertDataCollectionProcedure(@RequestBody InsertDataCollectionProcedureRequest request) {
+        try {
+            Long procedureId = teacherProcedureCreationService.insertDataCollectionProcedure(request);
+            return ApiResponse.success(procedureId, "插入成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("插入数据收集步骤失败", e);
+            return ApiResponse.error(500, "插入失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 插入题库练习步骤
+     * 步骤类型：type=3（题库答题）
+     *
+     * @param request 插入题库练习步骤请求
+     * @return 步骤ID
+     */
+    @PostMapping("/topic/insert")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Long> insertTopicProcedure(@RequestBody InsertTopicProcedureRequest request) {
+        try {
+            Long procedureId = teacherProcedureCreationService.insertTopicProcedure(request);
+            return ApiResponse.success(procedureId, "插入成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("插入题库练习步骤失败", e);
+            return ApiResponse.error(500, "插入失败: " + e.getMessage());
         }
     }
 
