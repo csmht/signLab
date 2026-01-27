@@ -713,7 +713,7 @@ public class TeacherProcedureCreationService {
         procedureTopic.setExperimentalProcedureId(procedure.getId());
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
-        procedureTopic.setTags(request.getTopicTags());
+        procedureTopic.setTags(request.getTopicTagsToString());
 
         procedureTopicMapper.insert(procedureTopic);
         log.info("题库详情记录创建成功，记录ID: {}", procedureTopic.getId());

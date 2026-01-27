@@ -49,7 +49,7 @@ public class InsertTopicProcedureRequest {
     /**
      * 标签ID列表（仅在随机抽取时有效），后端自动拼接成"id1,id2"格式
      */
-    private List<String> topicTags;
+    private List<Integer> topicTags;
 
     /**
      * 老师选定的题目ID列表（仅在非随机模式时有效）
@@ -65,4 +65,21 @@ public class InsertTopicProcedureRequest {
      * 步骤结束时间
      */
     private LocalDateTime endTime;
+
+
+    /**
+     * 转为String
+     * @return 转换后的字符串
+     */
+    public String getTopicTagsToString() {
+        StringBuilder tags = new StringBuilder();
+        for (int i = 0; i < topicTags.size(); i++) {
+            tags.append(topicTags.get(i));
+            if (i != topicTags.size() - 1) {
+                tags.append(",");
+            }
+        }
+        return tags.toString();
+    }
+
 }
