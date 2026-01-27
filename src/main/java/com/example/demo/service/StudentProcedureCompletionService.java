@@ -3,9 +3,11 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.StudentProcedureAttachmentMapper;
+import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
 import com.example.demo.pojo.entity.ProcedureTopicMap;
@@ -41,6 +43,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     private final ExperimentalProcedureService experimentalProcedureService;
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
+    private final DataCollectionMapper dataCollectionMapper;
 
     /** 步骤附件存储根路径 */
     private static final String ATTACHMENT_ROOT_PATH = "uploads" + File.separator + "procedure-attachments";
@@ -156,6 +159,12 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "提交数据收集失败");
         }
 
+        // 4. 自动判分（如果有正确答案）
+        autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
+                                         fillBlankAnswers, tableCellAnswers);
+
+        // 5. 保存照片文件
+
         // 4. 保存照片文件
         if (photos != null && !photos.isEmpty()) {
             for (MultipartFile photo : photos) {
@@ -267,6 +276,121 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         } catch (IOException e) {
             log.error("保存附件文件失败", e);
             throw new BusinessException(500, "保存附件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 自动判分数据收集步骤
+     * 如果配置了正确答案，则自动对比并评分
+     *
+     * @param procedureId        步骤ID
+     * @param studentAnswerId    学生答案记录ID
+     * @param fillBlankAnswers   填空类型答案
+     * @param tableCellAnswers   表格类型答案
+     */
+    private void autoGradeDataCollectionProcedure(Long procedureId, Long studentAnswerId,
+                                                  java.util.Map<String, String> fillBlankAnswers,
+                                                  java.util.Map<String, String> tableCellAnswers) {
+        try {
+            // 1. 查询数据收集配置
+            QueryWrapper<DataCollection> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("experimental_procedure_id", procedureId);
+            DataCollection dataCollection = dataCollectionMapper.selectOne(queryWrapper);
+
+            if (dataCollection == null || dataCollection.getCorrectAnswer() == null
+                    || dataCollection.getCorrectAnswer().trim().isEmpty()) {
+                // 没有配置正确答案，不进行自动判分
+                return;
+            }
+
+            // 2. 解析正确答案
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, String> correctAnswers = objectMapper.readValue(
+                    dataCollection.getCorrectAnswer(),
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {}
+            );
+
+            if (correctAnswers == null || correctAnswers.isEmpty()) {
+                return;
+            }
+
+            // 3. 对比答案并计算得分
+            int totalQuestions = correctAnswers.size();
+            int correctCount = 0;
+            Double tolerance = dataCollection.getTolerance();
+
+            // 判断填空类型答案
+            if (fillBlankAnswers != null && !fillBlankAnswers.isEmpty()) {
+                for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
+                    String studentAnswer = fillBlankAnswers.get(entry.getKey());
+                    if (isAnswerCorrect(studentAnswer, entry.getValue(), tolerance)) {
+                        correctCount++;
+                    }
+                }
+            }
+
+            // 判断表格类型答案
+            if (tableCellAnswers != null && !tableCellAnswers.isEmpty()) {
+                for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
+                    String studentAnswer = tableCellAnswers.get(entry.getKey());
+                    if (isAnswerCorrect(studentAnswer, entry.getValue(), tolerance)) {
+                        correctCount++;
+                    }
+                }
+            }
+
+            // 4. 计算得分（百分比制）
+            java.math.BigDecimal score = totalQuestions > 0
+                    ? new java.math.BigDecimal(correctCount * 100.0 / totalQuestions)
+                        .setScale(2, java.math.BigDecimal.ROUND_HALF_UP)
+                    : java.math.BigDecimal.ZERO;
+
+            // 5. 更新学生答案记录
+            StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getById(studentAnswerId);
+            if (studentProcedure != null) {
+                studentProcedure.setScore(score);
+                studentProcedure.setIsGraded(2); // 2-系统自动评分
+                studentProcedure.setTeacherComment("系统自动评分");
+                studentExperimentalProcedureService.updateById(studentProcedure);
+
+                log.info("自动判分完成，步骤ID：{}，学生答案ID：{}，得分：{}/{}",
+                        procedureId, studentAnswerId, score, totalQuestions);
+            }
+
+        } catch (Exception e) {
+            log.error("自动判分失败", e);
+            // 判分失败不影响提交，只记录日志
+        }
+    }
+
+    /**
+     * 判断答案是否正确
+     *
+     * @param studentAnswer 学生答案
+     * @param correctAnswer 正确答案
+     * @param tolerance     误差范围
+     * @return 是否正确
+     */
+    private boolean isAnswerCorrect(String studentAnswer, String correctAnswer, Double tolerance) {
+        if (studentAnswer == null || correctAnswer == null) {
+            return false;
+        }
+
+        // 尝试按数值比较
+        try {
+            double studentValue = Double.parseDouble(studentAnswer.trim());
+            double correctValue = Double.parseDouble(correctAnswer.trim());
+
+            if (tolerance != null && tolerance > 0) {
+                // 有误差范围，判断是否在误差范围内
+                return Math.abs(studentValue - correctValue) <= tolerance;
+            } else {
+                // 没有误差范围，精确匹配
+                return Math.abs(studentValue - correctValue) < 0.0001;
+            }
+        } catch (NumberFormatException e) {
+            // 不是数字，按字符串比较
+            return studentAnswer.trim().equalsIgnoreCase(correctAnswer.trim());
         }
     }
 

@@ -52,9 +52,9 @@ public class StudentExperimentalProcedure {
     @Column(comment = "得分", type = "decimal(5,2)", defaultValue = "0.00")
     private java.math.BigDecimal score;
 
-    /** 是否已评分 */
-    @Column(comment = "是否已评分", type = "bit", defaultValue = "0")
-    private Boolean isGraded;
+    /** 评分状态：0-未评分，1-教师人工评分，2-系统自动评分 */
+    @Column(comment = "评分状态", type = "tinyint", defaultValue = "0")
+    private Integer isGraded;
 
     /** 教师评语 */
     @Column(comment = "教师评语", type = "text")
