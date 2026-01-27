@@ -3,6 +3,8 @@ package com.example.demo.pojo.request.teacher;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 创建数据收集步骤请求
@@ -31,16 +33,46 @@ public class CreateDataCollectionProcedureRequest {
     private String remark;
 
     /**
-     * 数据类型（1-关键数据，2-表格数据）
+     * 数据类型（1-关键数据/填空，2-表格数据）
      */
     private Integer dataType;
 
     /**
-     * 数据描述
-     * 类型为1时，按照：需求数据1$需求数据2$的格式
-     * 类型为2时，按照：x&表头1$列表头2#y&横表头1$横表头2$横表头3 格式储存
+     * 填空类型数据（Map<需要的数据, 数据答案>）
+     * 当dataType=1时使用
      */
-    private String dataRemark;
+    private Map<String, String> fillBlanks;
+
+    /**
+     * 表格行表头（第一列的标识）
+     * 当dataType=2时使用
+     */
+    private List<String> tableRowHeaders;
+
+    /**
+     * 表格列表头（第一行的标识）
+     * 当dataType=2时使用
+     */
+    private List<String> tableColumnHeaders;
+
+    /**
+     * 表格单元格答案（Map<表格坐标, 答案>）
+     * 坐标格式：行索引,列索引，如"0,0"、"1,2"
+     * 当dataType=2时使用
+     */
+    private Map<String, String> tableCellAnswers;
+
+    /**
+     * 正确答案（Map<数据标识, 正确答案>）
+     * 用于自动判分，填空时key为数据名称，表格时key为单元格坐标
+     */
+    private Map<String, String> correctAnswer;
+
+    /**
+     * 误差范围（可选）
+     * 用于数值类答案的判分，允许的误差范围
+     */
+    private Double tolerance;
 
     /**
      * 是否需要提交照片

@@ -116,13 +116,16 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      * @param studentUsername 学生用户名
      * @param classCode       班级编号
      * @param procedureId     实验步骤ID
-     * @param dataAnswer      数据答案
+     * @param fillBlankAnswers 填空类型答案
+     * @param tableCellAnswers 表格类型答案
      * @param photos          照片文件列表
      * @param documents       文档文件列表
      */
     @Transactional(rollbackFor = Exception.class)
     public void completeDataCollectionProcedure(String studentUsername, String classCode,
-                                                Long procedureId, String dataAnswer,
+                                                Long procedureId,
+                                                java.util.Map<String, String> fillBlankAnswers,
+                                                java.util.Map<String, String> tableCellAnswers,
                                                 List<MultipartFile> photos,
                                                 List<MultipartFile> documents) {
         // 1. 查询并验证步骤信息
@@ -135,14 +138,17 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是数据收集类型");
         }
 
-        // 2. 创建学生步骤答案记录
+        // 2. 将答案转换为JSON格式存储
+        String answerJson = convertAnswersToJson(fillBlankAnswers, tableCellAnswers);
+
+        // 3. 创建学生步骤答案记录
         StudentExperimentalProcedure studentProcedure = new StudentExperimentalProcedure();
         studentProcedure.setExperimentId(procedure.getExperimentId());
         studentProcedure.setStudentUsername(studentUsername);
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(procedureId);
         studentProcedure.setNumber(procedure.getNumber());
-        studentProcedure.setAnswer(dataAnswer != null ? dataAnswer : "");
+        studentProcedure.setAnswer(answerJson);
         studentProcedure.setCreatedTime(LocalDateTime.now());
 
         boolean saved = studentExperimentalProcedureService.save(studentProcedure);
@@ -150,14 +156,14 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "提交数据收集失败");
         }
 
-        // 3. 保存照片文件
+        // 4. 保存照片文件
         if (photos != null && !photos.isEmpty()) {
             for (MultipartFile photo : photos) {
                 saveAttachment(procedureId, studentUsername, classCode, photo, 1);
             }
         }
 
-        // 4. 保存文档文件
+        // 5. 保存文档文件
         if (documents != null && !documents.isEmpty()) {
             for (MultipartFile document : documents) {
                 saveAttachment(procedureId, studentUsername, classCode, document, 2);
@@ -168,6 +174,33 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 studentUsername, classCode, procedureId,
                 photos != null ? photos.size() : 0,
                 documents != null ? documents.size() : 0);
+    }
+
+    /**
+     * 将答案转换为JSON格式
+     *
+     * @param fillBlankAnswers 填空类型答案
+     * @param tableCellAnswers 表格类型答案
+     * @return JSON字符串
+     */
+    private String convertAnswersToJson(java.util.Map<String, String> fillBlankAnswers,
+                                       java.util.Map<String, String> tableCellAnswers) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> answerData = new java.util.HashMap<>();
+
+            if (fillBlankAnswers != null && !fillBlankAnswers.isEmpty()) {
+                answerData.put("fillBlankAnswers", fillBlankAnswers);
+            }
+            if (tableCellAnswers != null && !tableCellAnswers.isEmpty()) {
+                answerData.put("tableCellAnswers", tableCellAnswers);
+            }
+
+            return objectMapper.writeValueAsString(answerData);
+        } catch (Exception e) {
+            log.error("转换答案为JSON失败", e);
+            throw new BusinessException(500, "答案格式转换失败");
+        }
     }
 
     /**

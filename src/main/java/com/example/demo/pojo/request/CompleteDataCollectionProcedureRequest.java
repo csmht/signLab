@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 完成数据收集请求
@@ -22,9 +23,17 @@ public class CompleteDataCollectionProcedureRequest {
     private String classCode;
 
     /**
-     * 数据答案（文本类型）
+     * 填空类型答案（Map<数据名称, 学生答案>）
+     * 当数据类型为1时使用
      */
-    private String dataAnswer;
+    private Map<String, String> fillBlankAnswers;
+
+    /**
+     * 表格类型答案（Map<表格坐标, 学生答案>）
+     * 坐标格式：行索引,列索引，如"0,0"、"1,2"
+     * 当数据类型为2时使用
+     */
+    private Map<String, String> tableCellAnswers;
 
     /**
      * 照片文件列表

@@ -171,7 +171,8 @@ public class StudentProcedureController {
      *
      * @param procedureId  实验步骤ID
      * @param classCode    班级编号
-     * @param dataAnswer   数据答案（文本类型）
+     * @param fillBlankAnswersJson 填空类型答案（JSON字符串）
+     * @param tableCellAnswersJson 表格类型答案（JSON字符串）
      * @param photos       照片文件列表
      * @param documents    文档文件列表
      * @return 是否提交成功
@@ -181,18 +182,36 @@ public class StudentProcedureController {
     public ApiResponse<Void> completeDataCollectionProcedure(
             @RequestParam("procedureId") Long procedureId,
             @RequestParam("classCode") String classCode,
-            @RequestParam(value = "dataAnswer", required = false) String dataAnswer,
+            @RequestParam(value = "fillBlankAnswers", required = false) String fillBlankAnswersJson,
+            @RequestParam(value = "tableCellAnswers", required = false) String tableCellAnswersJson,
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
             @RequestParam(value = "documents", required = false) List<MultipartFile> documents) {
         try {
             String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
+            // 解析JSON字符串为Map
+            java.util.Map<String, String> fillBlankAnswers = null;
+            java.util.Map<String, String> tableCellAnswers = null;
+
+            if (fillBlankAnswersJson != null && !fillBlankAnswersJson.trim().isEmpty()) {
+                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                fillBlankAnswers = objectMapper.readValue(fillBlankAnswersJson,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+            }
+
+            if (tableCellAnswersJson != null && !tableCellAnswersJson.trim().isEmpty()) {
+                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                tableCellAnswers = objectMapper.readValue(tableCellAnswersJson,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+            }
+
             studentProcedureCompletionService.completeDataCollectionProcedure(
                     studentUsername,
                     classCode,
                     procedureId,
-                    dataAnswer,
+                    fillBlankAnswers,
+                    tableCellAnswers,
                     photos,
                     documents
             );
