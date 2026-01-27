@@ -34,3 +34,5 @@ build/
 /local-config.env
 /src/main/resources/sql/init_admin.sql
 /md/
+/py/
+/测试结果.md
