@@ -25,7 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 教师创建步骤服务
@@ -41,6 +44,7 @@ public class TeacherProcedureCreationService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
+    private final ObjectMapper objectMapper;
 
     /**
      * 获取实验的最大步骤号
@@ -115,8 +119,24 @@ public class TeacherProcedureCreationService {
         if (request.getDataType() == null) {
             throw new com.example.demo.exception.BusinessException(400, "数据类型不能为空");
         }
-        if (request.getDataRemark() == null || request.getDataRemark().trim().isEmpty()) {
-            throw new com.example.demo.exception.BusinessException(400, "数据描述不能为空");
+
+        // 验证数据类型对应的字段
+        if (request.getDataType() == 1) {
+            // 填空类型必须提供 dataFields
+            if (request.getDataFields() == null || request.getDataFields().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "填空类型必须提供数据字段");
+            }
+        } else if (request.getDataType() == 2) {
+            // 表格类型必须提供表头和单元格答案
+            if (request.getTableRowHeaders() == null || request.getTableRowHeaders().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供行表头");
+            }
+            if (request.getTableColumnHeaders() == null || request.getTableColumnHeaders().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供列表头");
+            }
+            if (request.getTableCellAnswers() == null || request.getTableCellAnswers().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供单元格答案");
+            }
         }
 
         // 自动计算步骤号
@@ -138,18 +158,26 @@ public class TeacherProcedureCreationService {
         experimentalProcedureService.save(procedure);
         log.info("数据收集步骤创建成功，步骤ID: {}", procedure.getId());
 
-        // 2. 创建数据收集记录
+        // 2. 构建数据描述和正确答案JSON
+        String remark = buildDataCollectionRemark(request.getDataType(), request.getDataFields(),
+                request.getTableRowHeaders(), request.getTableColumnHeaders());
+        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), request.getDataFields(),
+                request.getTableCellAnswers());
+
+        // 3. 创建数据收集记录
         DataCollection dataCollection = new DataCollection();
         dataCollection.setExperimentalProcedureId(procedure.getId());
         dataCollection.setType(request.getDataType().longValue());
-        dataCollection.setRemark(request.getDataRemark());
+        dataCollection.setRemark(remark);
+        dataCollection.setCorrectAnswer(correctAnswer);
+        dataCollection.setTolerance(request.getTolerance());
         dataCollection.setNeedPhoto(request.getNeedPhoto() != null ? request.getNeedPhoto() : false);
         dataCollection.setNeedDoc(request.getNeedDoc() != null ? request.getNeedDoc() : false);
 
         dataCollectionMapper.insert(dataCollection);
         log.info("数据收集记录创建成功，记录ID: {}", dataCollection.getId());
 
-        // 3. 更新步骤的数据收集ID
+        // 4. 更新步骤的数据收集ID
         procedure.setDataCollectionId(dataCollection.getId());
         experimentalProcedureService.updateById(procedure);
 
@@ -210,7 +238,7 @@ public class TeacherProcedureCreationService {
         procedureTopic.setExperimentalProcedureId(procedure.getId());
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
-        procedureTopic.setTags(request.getTopicTags());
+        procedureTopic.setTags(joinTopicTags(request.getTopicTags()));
 
         procedureTopicMapper.insert(procedureTopic);
         log.info("题库详情记录创建成功，记录ID: {}", procedureTopic.getId());
@@ -313,8 +341,24 @@ public class TeacherProcedureCreationService {
         if (request.getDataType() == null) {
             throw new com.example.demo.exception.BusinessException(400, "数据类型不能为空");
         }
-        if (request.getDataRemark() == null || request.getDataRemark().trim().isEmpty()) {
-            throw new com.example.demo.exception.BusinessException(400, "数据描述不能为空");
+
+        // 验证数据类型对应的字段
+        if (request.getDataType() == 1) {
+            // 填空类型必须提供 dataFields
+            if (request.getDataFields() == null || request.getDataFields().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "填空类型必须提供数据字段");
+            }
+        } else if (request.getDataType() == 2) {
+            // 表格类型必须提供表头和单元格答案
+            if (request.getTableRowHeaders() == null || request.getTableRowHeaders().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供行表头");
+            }
+            if (request.getTableColumnHeaders() == null || request.getTableColumnHeaders().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供列表头");
+            }
+            if (request.getTableCellAnswers() == null || request.getTableCellAnswers().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供单元格答案");
+            }
         }
 
         // 更新步骤字段
@@ -332,7 +376,16 @@ public class TeacherProcedureCreationService {
             DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
             if (dataCollection != null) {
                 dataCollection.setType(request.getDataType().longValue());
-                dataCollection.setRemark(request.getDataRemark());
+
+                // 构建数据描述和正确答案JSON
+                String remark = buildDataCollectionRemark(request.getDataType(), request.getDataFields(),
+                        request.getTableRowHeaders(), request.getTableColumnHeaders());
+                String correctAnswer = buildCorrectAnswerJson(request.getDataType(), request.getDataFields(),
+                        request.getTableCellAnswers());
+
+                dataCollection.setRemark(remark);
+                dataCollection.setCorrectAnswer(correctAnswer);
+                dataCollection.setTolerance(request.getTolerance());
                 dataCollection.setNeedPhoto(request.getNeedPhoto() != null ? request.getNeedPhoto() : dataCollection.getNeedPhoto());
                 dataCollection.setNeedDoc(request.getNeedDoc() != null ? request.getNeedDoc() : dataCollection.getNeedDoc());
                 dataCollectionMapper.updateById(dataCollection);
@@ -397,7 +450,7 @@ public class TeacherProcedureCreationService {
             if (procedureTopic != null) {
                 procedureTopic.setIsRandom(request.getIsRandom());
                 procedureTopic.setNumber(request.getTopicNumber());
-                procedureTopic.setTags(request.getTopicTags());
+                procedureTopic.setTags(joinTopicTags(request.getTopicTags()));
                 procedureTopicMapper.updateById(procedureTopic);
                 log.info("题库详情记录更新成功，记录ID: {}", procedureTopic.getId());
 
@@ -511,8 +564,24 @@ public class TeacherProcedureCreationService {
         if (request.getDataType() == null) {
             throw new com.example.demo.exception.BusinessException(400, "数据类型不能为空");
         }
-        if (request.getDataRemark() == null || request.getDataRemark().trim().isEmpty()) {
-            throw new com.example.demo.exception.BusinessException(400, "数据描述不能为空");
+
+        // 验证数据类型对应的字段
+        if (request.getDataType() == 1) {
+            // 填空类型必须提供 dataFields
+            if (request.getDataFields() == null || request.getDataFields().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "填空类型必须提供数据字段");
+            }
+        } else if (request.getDataType() == 2) {
+            // 表格类型必须提供表头和单元格答案
+            if (request.getTableRowHeaders() == null || request.getTableRowHeaders().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供行表头");
+            }
+            if (request.getTableColumnHeaders() == null || request.getTableColumnHeaders().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供列表头");
+            }
+            if (request.getTableCellAnswers() == null || request.getTableCellAnswers().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供单元格答案");
+            }
         }
 
         // 验证afterNumber是否存在
@@ -549,11 +618,19 @@ public class TeacherProcedureCreationService {
         experimentalProcedureService.save(procedure);
         log.info("数据收集步骤插入成功，步骤ID: {}", procedure.getId());
 
+        // 构建数据描述和正确答案JSON
+        String remark = buildDataCollectionRemark(request.getDataType(), request.getDataFields(),
+                request.getTableRowHeaders(), request.getTableColumnHeaders());
+        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), request.getDataFields(),
+                request.getTableCellAnswers());
+
         // 创建数据收集记录
         DataCollection dataCollection = new DataCollection();
         dataCollection.setExperimentalProcedureId(procedure.getId());
         dataCollection.setType(request.getDataType().longValue());
-        dataCollection.setRemark(request.getDataRemark());
+        dataCollection.setRemark(remark);
+        dataCollection.setCorrectAnswer(correctAnswer);
+        dataCollection.setTolerance(request.getTolerance());
         dataCollection.setNeedPhoto(request.getNeedPhoto() != null ? request.getNeedPhoto() : false);
         dataCollection.setNeedDoc(request.getNeedDoc() != null ? request.getNeedDoc() : false);
 
@@ -698,6 +775,53 @@ public class TeacherProcedureCreationService {
     }
 
     /**
+     * 构建数据收集的remark（数据描述JSON）
+     */
+    private String buildDataCollectionRemark(Integer dataType,
+                                             Map<String, String> dataFields,
+                                             List<String> tableRowHeaders,
+                                             List<String> tableColumnHeaders) {
+        try {
+            Map<String, Object> remarkData = new HashMap<>();
+
+            if (dataType == 1) {
+                // 填空类型：保存数据字段名称列表
+                remarkData.put("dataFields", dataFields != null ? dataFields.keySet() : List.of());
+            } else if (dataType == 2) {
+                // 表格类型：保存表格���构
+                remarkData.put("tableRowHeaders", tableRowHeaders);
+                remarkData.put("tableColumnHeaders", tableColumnHeaders);
+            }
+
+            return objectMapper.writeValueAsString(remarkData);
+        } catch (Exception e) {
+            log.error("构建数据描述JSON失败", e);
+            throw new com.example.demo.exception.BusinessException(500, "构建数据描述失败");
+        }
+    }
+
+    /**
+     * 构建数据收集的correctAnswer（正确答案JSON）
+     */
+    private String buildCorrectAnswerJson(Integer dataType,
+                                          Map<String, String> dataFields,
+                                          Map<String, String> tableCellAnswers) {
+        try {
+            if (dataType == 1) {
+                // 填空类型：使用 dataFields 作为正确答案
+                return objectMapper.writeValueAsString(dataFields);
+            } else if (dataType == 2) {
+                // 表格类型：使用 tableCellAnswers 作为正确答案
+                return objectMapper.writeValueAsString(tableCellAnswers);
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("构建正确答案JSON失败", e);
+            throw new com.example.demo.exception.BusinessException(500, "构建正确答案失败");
+        }
+    }
+
+    /**
      * 验证创建步骤的公共必填字段（不验证number）
      */
     private void validateCommonFieldsForCreate(Long experimentId,
@@ -715,6 +839,19 @@ public class TeacherProcedureCreationService {
         if (startTime.isAfter(endTime)) {
             throw new com.example.demo.exception.BusinessException(400, "开始时间不能晚于结束时间");
         }
+    }
+
+    /**
+     * 将标签ID列表转换为逗号分隔的字符串
+     *
+     * @param topicTags 标签ID列表
+     * @return 逗号分隔的字符串，如 "id1,id2,id3"
+     */
+    private String joinTopicTags(List<String> topicTags) {
+        if (topicTags == null || topicTags.isEmpty()) {
+            return null;
+        }
+        return String.join(",", topicTags);
     }
 
     /**
