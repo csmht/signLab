@@ -105,6 +105,7 @@ public class StudentProcedureController {
 
     /**
      * 标记视频已观看
+     * 步骤类型：type=1（观看视频）
      * 学生观看完视频后调用此接口标记为已观看
      *
      * @param procedureId 实验步骤ID
@@ -134,6 +135,7 @@ public class StudentProcedureController {
 
     /**
      * 完成题库练习步骤
+     * 步骤类型：type=3（题库答题）
      * 学生完成题库练习后调用此接口提交答案
      *
      * @param request 完成题库练习请求
@@ -164,6 +166,7 @@ public class StudentProcedureController {
 
     /**
      * 完成数据收集步骤
+     * 步骤类型：type=2（数据收集）
      * 学生完成数据收集后调用此接口提交数据和文件
      *
      * @param procedureId  实验步骤ID

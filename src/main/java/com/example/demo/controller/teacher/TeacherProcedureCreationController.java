@@ -26,6 +26,7 @@ public class TeacherProcedureCreationController {
 
     /**
      * 创建视频观看步骤
+     * 步骤类型：type=1（观看视频）
      *
      * @param request 创建视频步骤请求
      * @return 步骤ID
@@ -46,6 +47,7 @@ public class TeacherProcedureCreationController {
 
     /**
      * 创建数据收集步骤
+     * 步骤类型：type=2（数据收集）
      *
      * @param request 创建数据收集步骤请求
      * @return 步骤ID
@@ -66,6 +68,7 @@ public class TeacherProcedureCreationController {
 
     /**
      * 创建题库练习步骤
+     * 步骤类型：type=3（题库答题）
      *
      * @param request 创建题库练习步骤请求
      * @return 步骤ID
