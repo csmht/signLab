@@ -42,7 +42,10 @@ public class WebMvcInterceptorConfig implements WebMvcConfigurer {
         registry.addInterceptor(authenticationInterceptor)
                 .order(0)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/error");
+                .excludePathPatterns(
+                    "/error",
+                    "/api/download/**"
+                );
 
         // 添加日志拦截器,优先级次之(order=1)
         registry.addInterceptor(httpLoggingInterceptor)

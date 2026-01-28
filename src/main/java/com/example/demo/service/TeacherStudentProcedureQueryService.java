@@ -3,9 +3,7 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
-import com.example.demo.pojo.response.ClassExperimentStatisticsResponse;
-import com.example.demo.pojo.response.StudentProcedureCompletionResponse;
-import com.example.demo.pojo.response.StudentProcedureDetailCompletionResponse;
+import com.example.demo.pojo.response.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,8 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +29,8 @@ public class TeacherStudentProcedureQueryService {
     private final StudentProcedureAttachmentMapper studentProcedureAttachmentMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
+    private final TopicTagMapMapper topicTagMapMapper;
+    private final ProcedureTopicMapper procedureTopicMapper;
     private final DataCollectionMapper dataCollectionMapper;
     private final VideoFileMapper videoFileMapper;
 
@@ -452,5 +451,470 @@ public class TeacherStudentProcedureQueryService {
         response.setStudentCompletions(studentCompletions);
 
         return response;
+    }
+
+    /**
+     * 查询指定学生已提交的步骤详情（带答案）
+     * 教师可以随时查看正确答案
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId   课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 步骤详情（带答案）
+     */
+    public StudentProcedureDetailWithAnswerResponse getStudentCompletedProcedureDetail(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生已提交步骤详情，学生: {}, 课程: {}, 实验: {}, 步骤: {}",
+                studentUsername, courseId, experimentId, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!procedure.getExperimentId().equals(experimentId)) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤与实验不匹配");
+        }
+
+        // 查询学生提交记录
+        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
+        wrapper.eq("experimental_procedure_id", procedureId);
+        wrapper.eq("student_username", studentUsername);
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
+
+        if (studentProcedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "未找到提交记录");
+        }
+
+        // 教师可以随时查看答案，所以isAfterEndTime始终为true
+        boolean isAfterEndTime = true;
+
+        StudentProcedureDetailWithAnswerResponse response = new StudentProcedureDetailWithAnswerResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setType(procedure.getType());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+        response.setSubmissionTime(studentProcedure.getCreatedTime());
+        response.setScore(studentProcedure.getScore());
+        response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsAfterEndTime(isAfterEndTime);
+
+        // 根据步骤类型填充详细信息
+        fillCompletedProcedureDetailByTypeForTeacher(response, procedure, studentProcedure, studentUsername, isAfterEndTime);
+
+        return response;
+    }
+
+    /**
+     * 查询指定学生未提交的步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId   课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 步骤详情（不含答案）
+     */
+    public StudentProcedureDetailWithoutAnswerResponse getStudentUncompletedProcedureDetail(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生未提交步骤详情，学生: {}, 课程: {}, 实验: {}, 步骤: {}",
+                studentUsername, courseId, experimentId, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!procedure.getExperimentId().equals(experimentId)) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤与实验不匹配");
+        }
+
+        // 检查是否已提交
+        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
+        wrapper.eq("experimental_procedure_id", procedureId);
+        wrapper.eq("student_username", studentUsername);
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
+
+        if (studentProcedure != null) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤已提交，请使用已提交接口查询");
+        }
+
+        StudentProcedureDetailWithoutAnswerResponse response = new StudentProcedureDetailWithoutAnswerResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setType(procedure.getType());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+
+        // 根据步骤类型填充详细信息
+        fillUncompletedProcedureDetailByTypeForTeacher(response, procedure);
+
+        return response;
+    }
+
+    /**
+     * 根据步骤类型填充已提交步骤的详细信息（教师版，始终返回答案）
+     */
+    private void fillCompletedProcedureDetailByTypeForTeacher(
+            StudentProcedureDetailWithAnswerResponse response,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure,
+            String username,
+            boolean isAfterEndTime) {
+
+        int type = procedure.getType();
+
+        if (type == 1) {
+            // 观看视频
+            fillVideoDetailForCompletedTeacher(response, procedure);
+        } else if (type == 2) {
+            // 数据收集
+            fillDataCollectionDetailForCompletedTeacher(response, procedure, username, isAfterEndTime);
+        } else if (type == 3) {
+            // 题库答题
+            fillTopicDetailForCompletedTeacher(response, procedure, studentProcedure, isAfterEndTime);
+        }
+    }
+
+    /**
+     * 根据步骤类型填充未提交步骤的详细信息（教师版）
+     */
+    private void fillUncompletedProcedureDetailByTypeForTeacher(
+            StudentProcedureDetailWithoutAnswerResponse response,
+            ExperimentalProcedure procedure) {
+
+        int type = procedure.getType();
+
+        if (type == 1) {
+            // 观看视频
+            fillVideoDetailForUncompletedTeacher(response, procedure);
+        } else if (type == 2) {
+            // 数据收集
+            fillDataCollectionDetailForUncompletedTeacher(response, procedure);
+        } else if (type == 3) {
+            // 题库答题
+            fillTopicDetailForUncompletedTeacher(response, procedure);
+        }
+    }
+
+    /**
+     * 填充视频详情（已提交）- 教师版
+     */
+    private void fillVideoDetailForCompletedTeacher(
+            StudentProcedureDetailWithAnswerResponse response,
+            ExperimentalProcedure procedure) {
+
+        if (procedure.getVideoId() != null) {
+            VideoFile videoFile = videoFileMapper.selectById(procedure.getVideoId());
+            if (videoFile != null) {
+                StudentProcedureDetailWithAnswerResponse.VideoDetail detail =
+                    new StudentProcedureDetailWithAnswerResponse.VideoDetail();
+                detail.setId(videoFile.getId());
+                detail.setTitle(videoFile.getOriginalFileName());
+                detail.setSeconds(videoFile.getVideoSeconds());
+                detail.setFilePath(videoFile.getFilePath());
+                detail.setFileSize(videoFile.getFileSize());
+                response.setVideoDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 填充数据收集详情（已提交）- 教师版
+     */
+    private void fillDataCollectionDetailForCompletedTeacher(
+            StudentProcedureDetailWithAnswerResponse response,
+            ExperimentalProcedure procedure,
+            String username,
+            boolean isAfterEndTime) {
+
+        if (procedure.getDataCollectionId() != null) {
+            DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
+            if (dataCollection != null) {
+                StudentProcedureDetailWithAnswerResponse.DataCollectionDetail detail =
+                    new StudentProcedureDetailWithAnswerResponse.DataCollectionDetail();
+                detail.setId(dataCollection.getId());
+                detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
+                detail.setRemark(dataCollection.getRemark());
+                detail.setNeedPhoto(dataCollection.getNeedPhoto());
+                detail.setNeedDoc(dataCollection.getNeedDoc());
+
+                // 查询附件信息
+                QueryWrapper<StudentProcedureAttachment> attachmentWrapper = new QueryWrapper<>();
+                attachmentWrapper.eq("procedure_id", procedure.getId());
+                attachmentWrapper.eq("student_username", username);
+                List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
+
+                List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> photos = new ArrayList<>();
+                List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> documents = new ArrayList<>();
+
+                for (StudentProcedureAttachment attachment : attachments) {
+                    StudentProcedureDetailWithAnswerResponse.AttachmentInfo info =
+                        new StudentProcedureDetailWithAnswerResponse.AttachmentInfo();
+                    info.setId(attachment.getId());
+                    info.setFileType(attachment.getFileType());
+                    info.setFileFormat(attachment.getFileFormat());
+                    info.setOriginalFileName(attachment.getOriginalFileName());
+                    info.setFileSize(attachment.getFileSize());
+                    info.setRemark(attachment.getRemark());
+                    info.setCreateTime(attachment.getCreateTime());
+
+                    if (attachment.getFileType() == 1) {
+                        photos.add(info);
+                    } else if (attachment.getFileType() == 2) {
+                        documents.add(info);
+                    }
+                }
+
+                detail.setPhotos(photos);
+                detail.setDocuments(documents);
+
+                // 解析答案JSON
+                String answer = studentExperimentalProcedureService.getOne(
+                    new QueryWrapper<StudentExperimentalProcedure>()
+                        .eq("experimental_procedure_id", procedure.getId())
+                        .eq("student_username", username)
+                ).getAnswer();
+
+                if (answer != null && !answer.isEmpty()) {
+                    try {
+                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        Map<String, Object> answerMap = mapper.readValue(answer,
+                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> fillBlankAnswers = (Map<String, String>) answerMap.get("fillBlankAnswers");
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
+
+                        detail.setFillBlankAnswers(fillBlankAnswers);
+                        detail.setTableCellAnswers(tableCellAnswers);
+                    } catch (Exception e) {
+                        log.warn("解析数据收集答案失败: {}", e.getMessage());
+                    }
+                }
+
+                // 教师始终可以查看正确答案
+                if (dataCollection.getCorrectAnswer() != null) {
+                    detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
+                }
+
+                response.setDataCollectionDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 填充题库详情（已提交）- 教师版，始终返回答案
+     */
+    private void fillTopicDetailForCompletedTeacher(
+            StudentProcedureDetailWithAnswerResponse response,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure,
+            boolean isAfterEndTime) {
+
+        if (procedure.getProcedureTopicId() != null) {
+            ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+            if (procedureTopic != null) {
+                StudentProcedureDetailWithAnswerResponse.TopicDetail detail =
+                    new StudentProcedureDetailWithAnswerResponse.TopicDetail();
+                detail.setId(procedureTopic.getId());
+                detail.setIsRandom(procedureTopic.getIsRandom());
+                detail.setNumber(procedureTopic.getNumber());
+                detail.setTags(procedureTopic.getTags());
+
+                // 查询题目列表
+                List<Topic> topics = getTopicsForProcedureTeacher(procedureTopic);
+                List<StudentProcedureDetailWithAnswerResponse.TopicItem> topicItems = new ArrayList<>();
+
+                // 解析学生答案
+                Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+                for (Topic topic : topics) {
+                    StudentProcedureDetailWithAnswerResponse.TopicItem item =
+                        new StudentProcedureDetailWithAnswerResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(topic.getChoices());
+
+                    String studentAnswer = studentAnswers.get(topic.getId());
+                    item.setStudentAnswer(studentAnswer);
+
+                    // 教师始终可以查看正确答案和是否正确
+                    item.setCorrectAnswer(topic.getCorrectAnswer());
+
+                    if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                        item.setIsCorrect(true);
+                    } else {
+                        item.setIsCorrect(false);
+                    }
+
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTopicDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 填充视频详情（未提交）- 教师版
+     */
+    private void fillVideoDetailForUncompletedTeacher(
+            StudentProcedureDetailWithoutAnswerResponse response,
+            ExperimentalProcedure procedure) {
+
+        if (procedure.getVideoId() != null) {
+            VideoFile videoFile = videoFileMapper.selectById(procedure.getVideoId());
+            if (videoFile != null) {
+                StudentProcedureDetailWithoutAnswerResponse.VideoDetail detail =
+                    new StudentProcedureDetailWithoutAnswerResponse.VideoDetail();
+                detail.setId(videoFile.getId());
+                detail.setTitle(videoFile.getOriginalFileName());
+                detail.setSeconds(videoFile.getVideoSeconds());
+                response.setVideoDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 填充数据收集详情（未提交）- 教师版
+     */
+    private void fillDataCollectionDetailForUncompletedTeacher(
+            StudentProcedureDetailWithoutAnswerResponse response,
+            ExperimentalProcedure procedure) {
+
+        if (procedure.getDataCollectionId() != null) {
+            DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
+            if (dataCollection != null) {
+                StudentProcedureDetailWithoutAnswerResponse.DataCollectionDetail detail =
+                    new StudentProcedureDetailWithoutAnswerResponse.DataCollectionDetail();
+                detail.setId(dataCollection.getId());
+                detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
+                detail.setRemark(dataCollection.getRemark());
+                detail.setNeedPhoto(dataCollection.getNeedPhoto());
+                detail.setNeedDoc(dataCollection.getNeedDoc());
+                response.setDataCollectionDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 填充题库详情（未提���）- 教师版
+     */
+    private void fillTopicDetailForUncompletedTeacher(
+            StudentProcedureDetailWithoutAnswerResponse response,
+            ExperimentalProcedure procedure) {
+
+        if (procedure.getProcedureTopicId() != null) {
+            ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+            if (procedureTopic != null) {
+                StudentProcedureDetailWithoutAnswerResponse.TopicDetail detail =
+                    new StudentProcedureDetailWithoutAnswerResponse.TopicDetail();
+                detail.setId(procedureTopic.getId());
+                detail.setIsRandom(procedureTopic.getIsRandom());
+                detail.setNumber(procedureTopic.getNumber());
+                detail.setTags(procedureTopic.getTags());
+
+                // 查询题目列表（不含答案）
+                List<Topic> topics = getTopicsForProcedureTeacher(procedureTopic);
+                List<StudentProcedureDetailWithoutAnswerResponse.TopicItem> topicItems = new ArrayList<>();
+
+                for (Topic topic : topics) {
+                    StudentProcedureDetailWithoutAnswerResponse.TopicItem item =
+                        new StudentProcedureDetailWithoutAnswerResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(topic.getChoices());
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTopicDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 根据题库详情获取题目列表（教师版）
+     */
+    private List<Topic> getTopicsForProcedureTeacher(ProcedureTopic procedureTopic) {
+        if (procedureTopic.getIsRandom()) {
+            // 随机抽取：根据标签过滤题目
+            if (procedureTopic.getTags() != null && !procedureTopic.getTags().isEmpty()) {
+                String[] tagIds = procedureTopic.getTags().split(",");
+                List<Long> tagIdList = Arrays.stream(tagIds)
+                    .filter(s -> s != null && !s.isEmpty())
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+
+                if (!tagIdList.isEmpty()) {
+                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
+                    tagWrapper.in("tag_id", tagIdList);
+                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+
+                    if (!topicTagMaps.isEmpty()) {
+                        List<Long> topicIds = topicTagMaps.stream()
+                            .map(TopicTagMap::getTopicId)
+                            .distinct()
+                            .collect(Collectors.toList());
+
+                        if (!topicIds.isEmpty()) {
+                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
+                            topicWrapper.in("id", topicIds);
+                            topicWrapper.orderByAsc("number");
+                            return topicMapper.selectList(topicWrapper);
+                        }
+                    }
+                }
+            }
+            return new ArrayList<>();
+        } else {
+            // 固定题目：从题库详情映射表查询
+            QueryWrapper<ProcedureTopicMap> mapWrapper = new QueryWrapper<>();
+            mapWrapper.eq("procedure_topic_id", procedureTopic.getId());
+            mapWrapper.orderByAsc("id");
+            List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(mapWrapper);
+
+            if (!topicMaps.isEmpty()) {
+                List<Long> topicIds = topicMaps.stream()
+                    .map(ProcedureTopicMap::getTopicId)
+                    .collect(Collectors.toList());
+
+                QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
+                topicWrapper.in("id", topicIds);
+                topicWrapper.orderByAsc("number");
+                return topicMapper.selectList(topicWrapper);
+            }
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 解析题库答案JSON
+     */
+    private Map<Long, String> parseTopicAnswers(String answerJson) {
+        if (answerJson == null || answerJson.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(answerJson,
+                new com.fasterxml.jackson.core.type.TypeReference<Map<Long, String>>() {});
+        } catch (Exception e) {
+            log.warn("解析题库答案失败: {}", e.getMessage());
+            return new HashMap<>();
+        }
     }
 }

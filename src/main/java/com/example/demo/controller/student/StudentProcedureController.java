@@ -6,9 +6,13 @@ import com.example.demo.pojo.request.CompleteDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.CompleteTopicProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ProcedureSubmissionResponse;
+import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
+import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
 import com.example.demo.service.ProcedureSubmissionService;
 import com.example.demo.service.StudentExperimentalProcedureService;
 import com.example.demo.service.StudentProcedureCompletionService;
+import com.example.demo.service.StudentProcedureQueryService;
+import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +34,7 @@ public class StudentProcedureController {
     private final ProcedureSubmissionService procedureSubmissionService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
     private final StudentProcedureCompletionService studentProcedureCompletionService;
+    private final StudentProcedureQueryService studentProcedureQueryService;
 
     /**
      * 查询学生的步骤提交列表
@@ -84,21 +89,68 @@ public class StudentProcedureController {
     }
 
     /**
-     * 根据ID查询步骤详情
+     * 查询已提交的步骤详情（带答案）
      *
-     * @param submissionId 步骤提交ID
-     * @return 步骤详情
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 步骤详情（带答案）
+     *
+     * 注意：需要判断当前时间是否超过步骤的endTime
+     * - 题库答题步骤：如果未超过endTime，correctAnswer和isCorrect字段设为null
+     * - 数据收集步骤：如果未超过endTime，correctAnswer字段设为null
+     * - 如果已超过endTime，才返回正确答案
      */
-    @GetMapping("/{submissionId}")
+    @GetMapping("/completed")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<ProcedureSubmissionResponse> getProcedureSubmissionById(@PathVariable("submissionId") Long submissionId) {
+    public ApiResponse<StudentProcedureDetailWithAnswerResponse> getCompletedProcedureDetail(
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @RequestParam("procedureId") Long procedureId) {
         try {
-            ProcedureSubmissionResponse submission = procedureSubmissionService.getSubmissionById(submissionId);
-            return ApiResponse.success(submission);
+            String username = SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            StudentProcedureDetailWithAnswerResponse response =
+                    studentProcedureQueryService.getCompletedProcedureDetail(
+                            courseId, experimentId, procedureId, username);
+
+            return ApiResponse.success(response, "查询成功");
         } catch (com.example.demo.exception.BusinessException e) {
             return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("查询步骤详情失败", e);
+            log.error("查询已提交步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询未提交的步骤详情
+     *
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 步骤详情（不含答案）
+     */
+    @GetMapping("/uncompleted")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<StudentProcedureDetailWithoutAnswerResponse> getUncompletedProcedureDetail(
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @RequestParam("procedureId") Long procedureId) {
+        try {
+            String username = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            StudentProcedureDetailWithoutAnswerResponse response =
+                    studentProcedureQueryService.getUncompletedProcedureDetail(
+                            courseId, experimentId, procedureId, username);
+
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询未提交步骤详情失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
