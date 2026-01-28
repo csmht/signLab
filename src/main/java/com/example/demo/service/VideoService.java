@@ -1,14 +1,20 @@
 package com.example.demo.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.VideoFileMapper;
 import com.example.demo.pojo.entity.VideoFile;
+import com.example.demo.pojo.request.VideoQueryRequest;
+import com.example.demo.pojo.response.PageResponse;
+import com.example.demo.pojo.response.VideoUploadResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -20,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 视频上传服务
@@ -175,6 +182,62 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
         } catch (Exception e) {
             log.error("删除视频失败", e);
             throw new BusinessException(500, "删除视频失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 分页查询视频列表
+     *
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    public PageResponse<VideoUploadResponse> queryVideos(VideoQueryRequest request) {
+        // 构建查询条件
+        QueryWrapper<VideoFile> queryWrapper = new QueryWrapper<>();
+
+        // 按原始文件名模糊查询
+        if (StringUtils.hasText(request.getOriginalFileName())) {
+            queryWrapper.like("original_file_name", request.getOriginalFileName().trim());
+        }
+
+        // 按回答ID精确查询
+        if (request.getAnswerId() != null) {
+            queryWrapper.eq("answer_id", request.getAnswerId());
+        }
+
+        // 按ID倒序排序
+        queryWrapper.orderByDesc("id");
+
+        // 判断是否分页查询
+        if (Boolean.TRUE.equals(request.getPageable())) {
+            // 分页查询
+            Page<VideoFile> page = new Page<>(request.getCurrent(), request.getSize());
+            Page<VideoFile> resultPage = page(page, queryWrapper);
+
+            // 转换为响应DTO
+            List<VideoUploadResponse> records = resultPage.getRecords().stream()
+                    .map(VideoUploadResponse::fromEntity)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(
+                    resultPage.getCurrent(),
+                    resultPage.getSize(),
+                    resultPage.getTotal(),
+                    records
+            );
+        } else {
+            // 列表查询
+            List<VideoFile> list = list(queryWrapper);
+            List<VideoUploadResponse> records = list.stream()
+                    .map(VideoUploadResponse::fromEntity)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(
+                    1L,
+                    (long) records.size(),
+                    (long) records.size(),
+                    records
+            );
         }
     }
 }

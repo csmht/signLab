@@ -225,19 +225,29 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
     /**
      * 查询指定班级实验的签到情况
      *
-     * @param classExperimentId 班级实验ID
+     * @param classId 班级ID
+     * @param experimentId 实验ID
      * @return 签到列表响应
      */
-    public AttendanceListResponse getAttendanceList(Long classExperimentId) {
-        // 1. 查询班级实验信息
-        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+    public AttendanceListResponse getAttendanceList(Long classId, String experimentId) {
+        // 1. 查询班级信息
+        Class clazz = classMapper.selectById(classId);
+        if (clazz == null) {
+            throw new BusinessException(404, "班级不存在");
+        }
+
+        String classCode = clazz.getClassCode();
+
+        // 2. 查询班级实验信息
+        QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
+        classExperimentQuery.eq("class_code", classCode)
+                .eq("experiment_id", experimentId);
+        ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentQuery);
         if (classExperiment == null) {
             throw new BusinessException(404, "班级实验不存在");
         }
 
-        String classCode = classExperiment.getClassCode();
         String courseId = classExperiment.getCourseId();
-        String experimentId = classExperiment.getExperimentId();
 
         // 2. 查询该班级的所有学生
         QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();

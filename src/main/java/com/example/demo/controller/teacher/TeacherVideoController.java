@@ -3,7 +3,9 @@ package com.example.demo.controller.teacher;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.entity.VideoFile;
+import com.example.demo.pojo.request.VideoQueryRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.response.VideoUploadResponse;
 import com.example.demo.service.VideoService;
 import com.example.demo.util.SecurityUtil;
@@ -110,6 +112,24 @@ public class TeacherVideoController {
 
         } catch (Exception e) {
             log.error("查询视频信息失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询视频列表(分页或列表)
+     *
+     * @param request 查询请求
+     * @return 视频列表
+     */
+    @PostMapping("/query")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<PageResponse<VideoUploadResponse>> queryVideos(@RequestBody VideoQueryRequest request) {
+        try {
+            PageResponse<VideoUploadResponse> response = videoService.queryVideos(request);
+            return ApiResponse.success(response, "查询成功");
+        } catch (Exception e) {
+            log.error("查询视频列表失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
