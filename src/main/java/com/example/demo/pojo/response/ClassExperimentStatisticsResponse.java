@@ -29,6 +29,11 @@ public class ClassExperimentStatisticsResponse {
     private String experimentName;
 
     /**
+     * 授课老师用户名
+     */
+    private String userName;
+
+    /**
      * 班级总人数
      */
     private Integer totalStudents;

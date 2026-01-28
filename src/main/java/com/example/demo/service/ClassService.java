@@ -110,6 +110,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
             experimentInfo.setStartTime(classExperiment.getStartTime());
             experimentInfo.setEndTime(classExperiment.getEndTime());
             experimentInfo.setExperimentLocation(classExperiment.getExperimentLocation());
+            experimentInfo.setUserName(classExperiment.getUserName());
 
             // 查询实验名称
             QueryWrapper<Experiment> experimentQuery = new QueryWrapper<>();

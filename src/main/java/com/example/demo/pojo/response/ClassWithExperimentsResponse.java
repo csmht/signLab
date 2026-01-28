@@ -92,6 +92,11 @@ public class ClassWithExperimentsResponse {
          * 实验地点
          */
         private String experimentLocation;
+
+        /**
+         * 授课老师用户名
+         */
+        private String userName;
     }
 
 }

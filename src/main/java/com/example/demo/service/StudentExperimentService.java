@@ -112,6 +112,7 @@ public class StudentExperimentService {
         response.setExperimentLocation(classExperiment.getExperimentLocation());
         response.setStartTime(classExperiment.getStartTime());
         response.setEndTime(classExperiment.getEndTime());
+        response.setUserName(classExperiment.getUserName());
         response.setProcedures(procedureDetails);
         response.setProgress(progress);
 

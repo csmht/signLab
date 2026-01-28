@@ -106,6 +106,13 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
                 classExperiment.setEndTime(request.getEndTime());
                 classExperiment.setExperimentLocation(request.getExperimentLocation());
 
+                // 设置授课老师：如果传参不为空则使用传参，否则使用当前登录用户
+                String userName = request.getUserName();
+                if (userName == null || userName.trim().isEmpty()) {
+                    userName = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+                }
+                classExperiment.setUserName(userName);
+
                 boolean saved = save(classExperiment);
                 if (saved) {
                     result.setSuccess(true);

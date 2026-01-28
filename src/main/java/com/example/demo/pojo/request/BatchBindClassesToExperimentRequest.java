@@ -46,4 +46,9 @@ public class BatchBindClassesToExperimentRequest {
      */
     private String experimentLocation;
 
+    /**
+     * 授课老师用户名
+     */
+    private String userName;
+
 }

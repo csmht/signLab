@@ -52,6 +52,11 @@ public class StudentExperimentDetailResponse {
     private LocalDateTime endTime;
 
     /**
+     * 授课老师用户名
+     */
+    private String userName;
+
+    /**
      * 步骤列表
      */
     private List<StudentProcedureDetailResponse> procedures;

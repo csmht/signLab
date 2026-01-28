@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class TeacherStudentProcedureQueryService {
 
     private final ExperimentMapper experimentMapper;
+    private final ClassExperimentMapper classExperimentMapper;
     private final ExperimentalProcedureService experimentalProcedureService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
     private final StudentProcedureAttachmentMapper studentProcedureAttachmentMapper;
@@ -317,7 +318,14 @@ public class TeacherStudentProcedureQueryService {
             throw new com.example.demo.exception.BusinessException(404, "实验不存在");
         }
 
-        // 2. 查询实验的所有步骤
+        // 2. 查询班级实验关系
+        QueryWrapper<com.example.demo.pojo.entity.ClassExperiment> classExperimentWrapper = new QueryWrapper<>();
+        classExperimentWrapper.eq("class_code", classCode)
+                .eq("experiment_id", experimentId.toString());
+        com.example.demo.pojo.entity.ClassExperiment classExperiment =
+                classExperimentMapper.selectOne(classExperimentWrapper);
+
+        // 3. 查询实验的所有步骤
         List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
 
         // 3. 查询班级中所有学生提交记录
@@ -443,6 +451,7 @@ public class TeacherStudentProcedureQueryService {
         response.setClassCode(classCode);
         response.setExperimentId(experimentId);
         response.setExperimentName(experiment.getExperimentName());
+        response.setUserName(classExperiment != null ? classExperiment.getUserName() : null);
         response.setTotalStudents(totalStudents);
         response.setSubmittedCount(submittedStudents);
         response.setCompletionRate(overallCompletionRate);
