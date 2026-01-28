@@ -48,6 +48,37 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
     }
 
     /**
+     * 生成班级编号
+     * 格式: CLASS + 6位数字(如 CLASS000001)
+     *
+     * @return 班级编号
+     */
+    public String generateClassCode() {
+        // 查询最大的班级编号
+        QueryWrapper<Class> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByDesc("class_code");
+        queryWrapper.last("LIMIT 1");
+        Class lastClass = getOne(queryWrapper);
+
+        int nextNum = 1;
+        if (lastClass != null && lastClass.getClassCode() != null) {
+            String lastCode = lastClass.getClassCode();
+            // 提取数字部分(CLASS000001 -> 000001 -> 1)
+            if (lastCode.matches("CLASS\\d{6}")) {
+                String numStr = lastCode.substring(5); // 去掉 "CLASS"
+                try {
+                    nextNum = Integer.parseInt(numStr) + 1;
+                } catch (NumberFormatException e) {
+                    log.warn("解析班级编号失败: {}", lastCode);
+                }
+            }
+        }
+
+        // 格式化为6位数字
+        return String.format("CLASS%06d", nextNum);
+    }
+
+    /**
      * 根据ID查询班级及其实验信息
      *
      * @param id 班级ID
@@ -225,23 +256,32 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
 
         for (BatchAddClassRequest.ClassInfo classInfo : request.getClasses()) {
             BatchAddClassResponse.ClassResult result = new BatchAddClassResponse.ClassResult();
-            result.setClassCode(classInfo.getClassCode());
+
+            // 确定班级编号:如果未传入则自动生成
+            String classCode = classInfo.getClassCode();
+            if (!StringUtils.hasText(classCode)) {
+                classCode = generateClassCode();
+            }
+
+            result.setClassCode(classCode);
             result.setClassName(classInfo.getClassName());
 
             try {
-                // 检查班级是否已存在
-                Class existingClass = getByClassCode(classInfo.getClassCode());
-                if (existingClass != null) {
-                    result.setSuccess(false);
-                    result.setMessage("班级编号已存在");
-                    response.getFailList().add(result);
-                    response.setFailCount(response.getFailCount() + 1);
-                    continue;
+                // 如果传入了班级编号,检查是否已存在
+                if (StringUtils.hasText(classInfo.getClassCode())) {
+                    Class existingClass = getByClassCode(classCode);
+                    if (existingClass != null) {
+                        result.setSuccess(false);
+                        result.setMessage("班级编号已存在");
+                        response.getFailList().add(result);
+                        response.setFailCount(response.getFailCount() + 1);
+                        continue;
+                    }
                 }
 
                 // 创建班级
                 Class clazz = new Class();
-                clazz.setClassCode(classInfo.getClassCode());
+                clazz.setClassCode(classCode);
                 clazz.setClassName(classInfo.getClassName());
                 clazz.setStudentCount(0);
                 clazz.setCreator(currentUsername);
@@ -251,7 +291,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
                     result.setSuccess(true);
                     response.getSuccessList().add(result);
                     response.setSuccessCount(response.getSuccessCount() + 1);
-                    log.info("班级 {} 添加成功", classInfo.getClassCode());
+                    log.info("班级 {} 添加成功", classCode);
                 } else {
                     result.setSuccess(false);
                     result.setMessage("班级添加失败");
@@ -259,7 +299,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
                     response.setFailCount(response.getFailCount() + 1);
                 }
             } catch (Exception e) {
-                log.error("添加班级 {} 失败", classInfo.getClassCode(), e);
+                log.error("添加班级 {} 失败", classCode, e);
                 result.setSuccess(false);
                 result.setMessage(e.getMessage());
                 response.getFailList().add(result);

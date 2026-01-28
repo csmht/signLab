@@ -56,4 +56,9 @@ public class PageResponse<T> {
         }
         return response;
     }
+
+    public static <T> PageResponse<T> of(Long current, Integer size, Long total, List<T> records) {
+        Long sizelong = size.longValue();
+        return of(current, sizelong, total, records);
+    }
 }

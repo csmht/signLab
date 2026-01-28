@@ -89,7 +89,7 @@ public class ClassController {
     }
 
     /**
-     * 创建班级（单个）
+     * 创建班级(单个)
      *
      * @param request 创建班级请求
      * @return 创建结果
@@ -98,15 +98,21 @@ public class ClassController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Class> create(@RequestBody CreateClassRequest request) {
         try {
-            // 检查班级是否已存在
-            Class existingClass = classService.getByClassCode(request.getClassCode());
-            if (existingClass != null) {
-                return ApiResponse.error(400, "班级编号已存在");
+            // 如果未传入班级编号,则自动生成
+            String classCode = request.getClassCode();
+            if (!org.springframework.util.StringUtils.hasText(classCode)) {
+                classCode = classService.generateClassCode();
+            } else {
+                // 如果传入了班级编号,检查是否已存在
+                Class existingClass = classService.getByClassCode(classCode);
+                if (existingClass != null) {
+                    return ApiResponse.error(400, "班级编号已存在");
+                }
             }
 
             // 创建班级
             Class clazz = new Class();
-            clazz.setClassCode(request.getClassCode());
+            clazz.setClassCode(classCode);
             clazz.setClassName(request.getClassName());
             clazz.setStudentCount(0);
 

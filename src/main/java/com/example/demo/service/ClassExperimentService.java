@@ -7,6 +7,8 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.ExperimentMapper;
+import com.example.demo.mapper.StudentClassRelationMapper;
+import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.request.BatchBindClassesToExperimentRequest;
 import com.example.demo.pojo.request.CourseSessionQueryRequest;
 import com.example.demo.pojo.response.BatchBindClassesToExperimentResponse;
@@ -36,6 +38,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
 
     private final ClassMapper classMapper;
     private final ExperimentMapper experimentMapper;
+    private final StudentClassRelationMapper studentClassRelationMapper;
 
     /**
      * 根据班级代码查询班级实验
@@ -185,7 +188,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             String studentUsername, List<String> classCodeList, CourseSessionQueryRequest request) {
 
         if (classCodeList == null || classCodeList.isEmpty()) {
-            return PageResponse.of(1L, request.getSize(), 0L, new ArrayList<>());
+            return PageResponse.of(1L,  request.getSize(), 0L, new ArrayList<>());
         }
 
         // 构建查询条件
@@ -200,6 +203,11 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         // 支持按课程ID过滤
         if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
             queryWrapper.eq("course_id", request.getCourseId().trim());
+        }
+
+        if(studentUsername != null && !studentUsername.trim().isEmpty()) {
+            List<String> list = studentClassRelationMapper.selectList(new QueryWrapper<StudentClassRelation>().eq("student_id", studentUsername)).stream().map(StudentClassRelation::getClassCode).toList();
+            queryWrapper.in("classCode", list);
         }
 
         queryWrapper.orderByDesc("start_time");

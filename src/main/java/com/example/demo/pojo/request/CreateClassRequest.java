@@ -11,9 +11,8 @@ import lombok.Data;
 public class CreateClassRequest {
 
     /**
-     * 班级编号
+     * 班级编号(可选,不传则自动生成)
      */
-    @NotBlank(message = "班级编号不能为空")
     private String classCode;
 
     /**

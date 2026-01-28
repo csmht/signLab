@@ -287,7 +287,6 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
                             .eq("class_code", relation.getClassCode())
             );
             if (clazz != null) {
-                response.setId(clazz.getId());
                 response.setClassName(clazz.getClassName());
                 response.setStudentCount(clazz.getStudentCount());
             }
