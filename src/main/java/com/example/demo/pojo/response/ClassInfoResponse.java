@@ -11,11 +11,6 @@ import java.time.LocalDateTime;
 public class ClassInfoResponse {
 
     /**
-     * 班级ID
-     */
-    private Long id;
-
-    /**
      * 班级编号
      */
     private String classCode;

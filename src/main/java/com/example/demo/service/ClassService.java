@@ -87,7 +87,6 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
      */
     private ClassWithExperimentsResponse buildClassWithExperimentsResponse(Class clazz) {
         ClassWithExperimentsResponse response = new ClassWithExperimentsResponse();
-        response.setId(clazz.getId());
         response.setClassCode(clazz.getClassCode());
         response.setClassName(clazz.getClassName());
         response.setStudentCount(clazz.getStudentCount());
@@ -194,7 +193,6 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
      */
     private ClassResponse convertToClassResponse(Class clazz) {
         ClassResponse response = new ClassResponse();
-        response.setId(clazz.getId());
         response.setClassCode(clazz.getClassCode());
         response.setClassName(clazz.getClassName());
         response.setStudentCount(clazz.getStudentCount());
