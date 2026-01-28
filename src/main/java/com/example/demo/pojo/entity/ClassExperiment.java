@@ -52,4 +52,8 @@ public class ClassExperiment {
     @Column(comment = "实验地点", type = "varchar(100)", notNull = true)
     private String experimentLocation;
 
+    /** 上课老师用户名 */
+    @Column(comment = "授课老师" , type = "varchar(20)" , notNull = true)
+    private String userName;
+
 }

@@ -59,29 +59,6 @@ public class CourseController {
     }
 
     /**
-     * 查询我的课程列表（分页）
-     *
-     * @param request 查询请求
-     * @return 课程列表
-     */
-    @PostMapping("/my")
-    @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<PageResponse<CourseResponse>> queryMyCourses(@RequestBody CourseQueryRequest request) {
-        try {
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new BusinessException(401, "未登录"));
-
-            PageResponse<CourseResponse> response = courseService.queryMyCourses(teacherUsername, request);
-            return ApiResponse.success(response);
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询我的课程列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 根据ID查询课程
      *
      * @param id 课程ID
