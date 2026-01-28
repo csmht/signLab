@@ -10,8 +10,10 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+
 
 mybatis-plus:
   configuration:
@@ -53,7 +55,6 @@ wechat:
     token-url: https://api.weixin.qq.com/cgi-bin/token
     oauth2-token-url: https://api.weixin.qq.com/sns/oauth2/access_token
     userinfo-url: https://api.weixin.qq.com/sns/userinfo
-
 auto-table:
   mode: update
   index-prefix:
