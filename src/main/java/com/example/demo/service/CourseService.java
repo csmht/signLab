@@ -37,6 +37,37 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
     }
 
     /**
+     * 生成课程ID
+     * 格式: COURSE + 6位数字(如 COURSE000001)
+     *
+     * @return 课程ID
+     */
+    public String generateCourseId() {
+        // 查询最大的课程ID
+        QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByDesc("id");
+        queryWrapper.last("LIMIT 1");
+        Course lastCourse = getOne(queryWrapper);
+
+        int nextNum = 1;
+        if (lastCourse != null && lastCourse.getCourseId() != null) {
+            String lastId = lastCourse.getCourseId();
+            // 提取数字部分(COURSE000001 -> 000001 -> 1)
+            if (lastId.matches("COURSE\\d{6}")) {
+                String numStr = lastId.substring(6); // 去掉 "COURSE"
+                try {
+                    nextNum = Integer.parseInt(numStr) + 1;
+                } catch (NumberFormatException e) {
+                    log.warn("解析课程ID失败: {}", lastId);
+                }
+            }
+        }
+
+        // 格式化为6位数字
+        return String.format("COURSE%06d", nextNum);
+    }
+
+    /**
      * 分页查询课程列表
      *
      * @param request 查询请求
@@ -160,15 +191,23 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
      * @return 课程信息
      */
     public CourseResponse createCourse(CreateCourseRequest request, String teacherUsername) {
+
+
+        // 如果未传入课程ID,则自动生成
+        String courseId = request.getCourseId();
+        if (courseId == null || courseId.trim().isEmpty()) {
+            courseId = generateCourseId();
+        }
+
         // 检查课程ID是否已存在
-        Course existingCourse = getByCourseCode(request.getCourseId());
+        Course existingCourse = getByCourseCode(courseId);
         if (existingCourse != null) {
             throw new BusinessException(400, "课程ID已存在");
         }
 
         // 创建课程
         Course course = new Course();
-        course.setCourseId(request.getCourseId());
+        course.setCourseId(courseId);
         course.setCourseName(request.getCourseName());
         course.setTeacherUsername(teacherUsername);
 
@@ -177,7 +216,7 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
             throw new BusinessException(500, "创建课程失败");
         }
 
-        log.info("教师 {} 创建课程 {} 成功", teacherUsername, request.getCourseId());
+        log.info("教师 {} 创建课程 {} 成功", teacherUsername, courseId);
 
         return buildCourseResponse(course);
     }

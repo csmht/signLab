@@ -1,0 +1,180 @@
+package com.example.demo.service;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.VideoFileMapper;
+import com.example.demo.pojo.entity.VideoFile;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * 视频上传服务
+ * 提供教师上传视频的业务逻辑处理
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
+
+    /** 支持的视频格式 */
+    private static final List<String> VIDEO_EXTENSIONS = Arrays.asList(
+            "mp4", "avi", "mov", "wmv", "flv", "mkv", "webm"
+    );
+
+    /** 视频文件最大大小（默认500MB） */
+    private static final long MAX_VIDEO_SIZE = 500 * 1024 * 1024;
+
+    @Value("${file.upload.path:uploads/}")
+    private String uploadBasePath;
+
+    /**
+     * 教师上传教学视频
+     *
+     * @param teacherUsername 教师用户名
+     * @param title 视频标题
+     * @param description 视频描述（可选）
+     * @param courseId 课程ID（可选）
+     * @param experimentId 实验ID（可选）
+     * @param file 视频文件
+     * @return 上传后的视频信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public VideoFile uploadTeacherVideo(String teacherUsername, String title, String description,
+                                        String courseId, String experimentId, MultipartFile file) {
+        // 1. 验证文件是否为空
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(400, "视频文件不能为空");
+        }
+
+        // 2. 验证视频标题
+        if (title == null || title.trim().isEmpty()) {
+            throw new BusinessException(400, "视频标题不能为空");
+        }
+
+        // 3. 验证文件格式
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null) {
+            throw new BusinessException(400, "文件名不能为空");
+        }
+
+        String extension = getFileExtension(originalFilename).toLowerCase();
+        if (!VIDEO_EXTENSIONS.contains(extension)) {
+            throw new BusinessException(400, "不支持的视频格式，仅支持：" + String.join(", ", VIDEO_EXTENSIONS));
+        }
+
+        // 4. 验证文件大小
+        if (file.getSize() > MAX_VIDEO_SIZE) {
+            throw new BusinessException(400, "视频文件大小不能超过500MB");
+        }
+
+        try {
+            // 5. 生成存储路径：uploads/teacher-videos/教师用户名/年/月/日/
+            String datePath = LocalDateTime.now().format(
+                    DateTimeFormatter.ofPattern("yyyy" + File.separator + "MM" + File.separator + "dd")
+            );
+            String relativePath = "teacher-videos" + File.separator + teacherUsername + File.separator + datePath;
+            String uploadDir = uploadBasePath + relativePath;
+
+            // 6. 创建目录
+            File directory = new File(uploadDir);
+            if (!directory.exists()) {
+                boolean created = directory.mkdirs();
+                if (!created) {
+                    throw new BusinessException(500, "创建存储目录失败");
+                }
+            }
+
+            // 7. 生成唯一文件名
+            String uniqueFileName = UUID.randomUUID().toString() + "." + extension;
+            String filePath = uploadDir + File.separator + uniqueFileName;
+
+            // 8. 保存文件
+            Path targetPath = Paths.get(filePath);
+            file.transferTo(targetPath);
+
+            // 9. 创建视频记录
+            VideoFile videoFile = new VideoFile();
+            videoFile.setOriginalFileName(originalFilename);
+            videoFile.setStoredFileName(uniqueFileName);
+            videoFile.setFilePath(relativePath + File.separator + uniqueFileName);
+            videoFile.setFileSize(file.getSize());
+
+            // 这里可以集成视频处理库来获取视频时长，暂时设置为0
+            videoFile.setVideoSeconds(0L);
+
+            // 保存到数据库
+            save(videoFile);
+
+            log.info("教师 {} 上传视频成功: {}", teacherUsername, originalFilename);
+            return videoFile;
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("上传视频失败", e);
+            throw new BusinessException(500, "上传视频失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取文件扩展名
+     *
+     * @param filename 文件名
+     * @return 扩展名
+     */
+    private String getFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf(".");
+        if (lastDotIndex == -1) {
+            return "";
+        }
+        return filename.substring(lastDotIndex + 1);
+    }
+
+    /**
+     * 删除视频文件
+     *
+     * @param videoId 视频ID
+     * @return 是否删除成功
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteVideo(Long videoId) {
+        try {
+            VideoFile videoFile = getById(videoId);
+            if (videoFile == null) {
+                throw new BusinessException(404, "视频不存在");
+            }
+
+            // 删除物理文件
+            String fullPath = uploadBasePath + videoFile.getFilePath();
+            Path path = Paths.get(fullPath);
+            if (Files.exists(path)) {
+                Files.delete(path);
+            }
+
+            // 删除数据库记录
+            boolean deleted = removeById(videoId);
+            log.info("删除视频成功: {}", videoFile.getOriginalFileName());
+            return deleted;
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("删除视频失败", e);
+            throw new BusinessException(500, "删除视频失败: " + e.getMessage());
+        }
+    }
+}
