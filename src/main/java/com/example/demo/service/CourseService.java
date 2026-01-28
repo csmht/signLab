@@ -32,7 +32,7 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
      */
     public Course getByCourseCode(String courseCode) {
         QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_code", courseCode);
+        queryWrapper.eq("course_id", courseCode);
         return getOne(queryWrapper);
     }
 

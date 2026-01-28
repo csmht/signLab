@@ -17,7 +17,9 @@
       "Bash(Select-Object:*)",
       "Bash(ConvertFrom-Json)",
       "Bash(Select-Object -ExpandProperty content)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(python:*)",
+      "Bash(iconv:*)"
     ]
   }
 }
