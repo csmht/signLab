@@ -5,10 +5,13 @@ import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.request.CompleteDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.CompleteTopicProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.CourseSessionResponse;
 import com.example.demo.pojo.response.ProcedureSubmissionResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
+import com.example.demo.service.ClassExperimentService;
 import com.example.demo.service.ProcedureSubmissionService;
+import com.example.demo.service.StudentClassRelationService;
 import com.example.demo.service.StudentExperimentalProcedureService;
 import com.example.demo.service.StudentProcedureCompletionService;
 import com.example.demo.service.StudentProcedureQueryService;
@@ -35,6 +38,41 @@ public class StudentProcedureController {
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
     private final StudentProcedureCompletionService studentProcedureCompletionService;
     private final StudentProcedureQueryService studentProcedureQueryService;
+    private final ClassExperimentService classExperimentService;
+    private final StudentClassRelationService studentClassRelationService;
+
+    /**
+     * 查询学生的课次列表
+     * 按照实验开始时间降序排序
+     *
+     * @return 课次列表
+     */
+    @GetMapping("/course-sessions")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<List<CourseSessionResponse>> getCourseSessions() {
+        try {
+            String studentUsername = SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            // 获取学生加入的班级列表
+            List<com.example.demo.pojo.entity.StudentClassRelation> relations =
+                    studentClassRelationService.getByStudentUsername(studentUsername);
+            List<String> classCodeList = relations.stream()
+                    .map(com.example.demo.pojo.entity.StudentClassRelation::getClassCode)
+                    .collect(java.util.stream.Collectors.toList());
+
+            // 查询课次列表
+            List<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForStudent(
+                    studentUsername, classCodeList);
+
+            return ApiResponse.success(sessions, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询课次列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
 
     /**
      * 查询学生的步骤提交列表

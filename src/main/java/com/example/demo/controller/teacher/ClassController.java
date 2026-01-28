@@ -275,6 +275,31 @@ public class ClassController {
     }
 
     /**
+     * 查询教师的课次列表
+     * 按照实验开始时间降序排序
+     *
+     * @return 课次列表
+     */
+    @GetMapping("/course-sessions")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<List<CourseSessionResponse>> getCourseSessions() {
+        try {
+            String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            List<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForTeacher(
+                    teacherUsername);
+
+            return ApiResponse.success(sessions, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询课次列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 批量解绑班级
      *
      * @param experimentId 实验ID

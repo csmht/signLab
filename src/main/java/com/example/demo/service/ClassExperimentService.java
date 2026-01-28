@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.ClassMapper;
+import com.example.demo.mapper.ExperimentMapper;
 import com.example.demo.pojo.request.BatchBindClassesToExperimentRequest;
 import com.example.demo.pojo.response.BatchBindClassesToExperimentResponse;
+import com.example.demo.pojo.response.CourseSessionResponse;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.ClassExperiment;
+import com.example.demo.pojo.entity.Experiment;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 班级实验服务
@@ -28,6 +32,7 @@ import java.util.List;
 public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, ClassExperiment> {
 
     private final ClassMapper classMapper;
+    private final ExperimentMapper experimentMapper;
 
     /**
      * 根据班级代码查询班级实验
@@ -163,5 +168,86 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         }
 
         return count;
+    }
+
+    /**
+     * 查询学生的课次列表
+     *
+     * @param studentUsername 学生用户名
+     @param classCodeList 学生所属的班级列表
+     * @return 课次列表（按实验开始时间倒序）
+     */
+    public List<CourseSessionResponse> getCourseSessionsForStudent(
+            String studentUsername, List<String> classCodeList) {
+
+        if (classCodeList == null || classCodeList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 查询这些班级的所有课次
+        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("class_code", classCodeList);
+        queryWrapper.orderByDesc("start_time");
+        List<ClassExperiment> classExperiments = list(queryWrapper);
+
+        // 构建响应列表
+        return classExperiments.stream()
+                .map(this::buildCourseSessionResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询教师的课次列表
+     *
+     * @param teacherUsername 教师用户名
+     * @return 课次列表（按实验开始时间倒序）
+     */
+    public List<CourseSessionResponse> getCourseSessionsForTeacher(String teacherUsername) {
+        // 查询该教师授课的所有课次
+        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_name", teacherUsername);
+        queryWrapper.orderByDesc("start_time");
+        List<ClassExperiment> classExperiments = list(queryWrapper);
+
+        // 构建响应列表
+        return classExperiments.stream()
+                .map(this::buildCourseSessionResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 构建课次响应
+     *
+     * @param classExperiment 班级实验实体
+     * @return 课次响应
+     */
+    private CourseSessionResponse buildCourseSessionResponse(ClassExperiment classExperiment) {
+        CourseSessionResponse response = new CourseSessionResponse();
+        response.setClassExperimentId(classExperiment.getId());
+        response.setClassCode(classExperiment.getClassCode());
+        response.setCourseId(classExperiment.getCourseId());
+        response.setExperimentId(Long.parseLong(classExperiment.getExperimentId()));
+        response.setCourseTime(classExperiment.getCourseTime());
+        response.setStartTime(classExperiment.getStartTime());
+        response.setEndTime(classExperiment.getEndTime());
+        response.setExperimentLocation(classExperiment.getExperimentLocation());
+        response.setUserName(classExperiment.getUserName());
+
+        // 查询班级名称
+        QueryWrapper<Class> classQuery = new QueryWrapper<>();
+        classQuery.eq("class_code", classExperiment.getClassCode());
+        Class clazz = classMapper.selectOne(classQuery);
+        if (clazz != null) {
+            response.setClassName(clazz.getClassName());
+        }
+
+        // 查询实验名称
+        Experiment experiment = experimentMapper.selectById(
+            Long.parseLong(classExperiment.getExperimentId()));
+        if (experiment != null) {
+            response.setExperimentName(experiment.getExperimentName());
+        }
+
+        return response;
     }
 }
