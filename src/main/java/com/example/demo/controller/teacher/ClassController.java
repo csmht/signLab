@@ -198,18 +198,23 @@ public class ClassController {
     }
 
     /**
-     * 查询班级的所有学生
+     * 查询班级的所有学生（分页）
      *
      * @param classCode 班级代码
+     * @param request   查询请求
      * @return 学生列表
      */
-    @GetMapping("/{classCode}/students")
+    @PostMapping("/{classCode}/students")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<StudentClassRelation>> getStudents(@PathVariable String classCode) {
+    public ApiResponse<PageResponse<StudentClassRelation>> getStudents(
+            @PathVariable String classCode,
+            @RequestBody com.example.demo.pojo.request.StudentQueryRequest request) {
         try {
-            List<StudentClassRelation> relations = studentClassRelationService.getByClassCode(classCode);
-            return ApiResponse.success(relations);
+            PageResponse<StudentClassRelation> response = studentClassRelationService.getStudentsByClassCodePage(
+                    classCode, request);
+            return ApiResponse.success(response);
         } catch (Exception e) {
+            log.error("查询学生列表失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
@@ -275,20 +280,22 @@ public class ClassController {
     }
 
     /**
-     * 查询教师的课次列表
+     * 查询教师的课次列表（分页）
      * 按照实验开始时间降序排序
      *
+     * @param request 查询请求
      * @return 课次列表
      */
-    @GetMapping("/course-sessions")
+    @PostMapping("/course-sessions")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<CourseSessionResponse>> getCourseSessions() {
+    public ApiResponse<PageResponse<CourseSessionResponse>> getCourseSessions(
+            @RequestBody com.example.demo.pojo.request.CourseSessionQueryRequest request) {
         try {
             String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForTeacher(
-                    teacherUsername);
+            PageResponse<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForTeacher(
+                    teacherUsername, request);
 
             return ApiResponse.success(sessions, "查询成功");
         } catch (com.example.demo.exception.BusinessException e) {

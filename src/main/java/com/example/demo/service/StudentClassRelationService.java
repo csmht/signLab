@@ -1,13 +1,16 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.StudentClassRelationMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.request.BatchBindStudentsRequest;
+import com.example.demo.pojo.request.StudentQueryRequest;
 import com.example.demo.pojo.response.BatchBindStudentsResponse;
+import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.entity.User;
@@ -47,6 +50,44 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
         QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("class_code", classCode);
         return list(queryWrapper);
+    }
+
+    /**
+     * 根据班级代码分页查询学生列表
+     *
+     * @param classCode 班级代码
+     * @param request   查询请求
+     * @return 分页结果
+     */
+    public PageResponse<StudentClassRelation> getStudentsByClassCodePage(
+            String classCode, StudentQueryRequest request) {
+
+        QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("class_code", classCode);
+
+        // 支持按学生用户名模糊查询
+        if (request.getStudentUsername() != null && !request.getStudentUsername().trim().isEmpty()) {
+            queryWrapper.like("student_username", request.getStudentUsername().trim());
+        }
+
+        // 按绑定时间倒序排序
+        queryWrapper.orderByDesc("bind_time");
+
+        // 分页查询
+        if (request.getPageable() != null && request.getPageable()) {
+            Page<StudentClassRelation> page = new Page<>(request.getCurrent(), request.getSize());
+            Page<StudentClassRelation> result = page(page, queryWrapper);
+            return PageResponse.of(
+                    result.getCurrent(),
+                    result.getSize(),
+                    result.getTotal(),
+                    result.getRecords()
+            );
+        } else {
+            // 不分页，返回全部数据
+            List<StudentClassRelation> records = list(queryWrapper);
+            return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
+        }
     }
 
     /**

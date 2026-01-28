@@ -1,14 +1,17 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.ExperimentMapper;
 import com.example.demo.pojo.request.BatchBindClassesToExperimentRequest;
+import com.example.demo.pojo.request.CourseSessionQueryRequest;
 import com.example.demo.pojo.response.BatchBindClassesToExperimentResponse;
 import com.example.demo.pojo.response.CourseSessionResponse;
+import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.Experiment;
@@ -171,48 +174,114 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
     }
 
     /**
-     * 查询学生的课次列表
+     * 查询学生的课次列表（分页）
      *
      * @param studentUsername 学生用户名
-     @param classCodeList 学生所属的班级列表
+     * @param classCodeList   学生所属的班级列表
+     * @param request         查询请求
      * @return 课次列表（按实验开始时间倒序）
      */
-    public List<CourseSessionResponse> getCourseSessionsForStudent(
-            String studentUsername, List<String> classCodeList) {
+    public PageResponse<CourseSessionResponse> getCourseSessionsForStudent(
+            String studentUsername, List<String> classCodeList, CourseSessionQueryRequest request) {
 
         if (classCodeList == null || classCodeList.isEmpty()) {
-            return new ArrayList<>();
+            return PageResponse.of(1L, request.getSize(), 0L, new ArrayList<>());
         }
 
-        // 查询这些班级的所有课次
+        // 构建查询条件
         QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("class_code", classCodeList);
-        queryWrapper.orderByDesc("start_time");
-        List<ClassExperiment> classExperiments = list(queryWrapper);
 
-        // 构建响应列表
-        return classExperiments.stream()
-                .map(this::buildCourseSessionResponse)
-                .collect(Collectors.toList());
+        // 支持按班级编号过滤
+        if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
+            queryWrapper.eq("class_code", request.getClassCode().trim());
+        }
+
+        // 支持按课程ID过滤
+        if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
+            queryWrapper.eq("course_id", request.getCourseId().trim());
+        }
+
+        queryWrapper.orderByDesc("start_time");
+
+        // 分页查询
+        if (request.getPageable() != null && request.getPageable()) {
+            Page<ClassExperiment> page = new Page<>(request.getCurrent(), request.getSize());
+            Page<ClassExperiment> result = page(page, queryWrapper);
+
+            // 构建响应列表
+            List<CourseSessionResponse> records = result.getRecords().stream()
+                    .map(this::buildCourseSessionResponse)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(
+                    result.getCurrent(),
+                    result.getSize(),
+                    result.getTotal(),
+                    records
+            );
+        } else {
+            // 不分页，返回全部数据
+            List<ClassExperiment> classExperiments = list(queryWrapper);
+            List<CourseSessionResponse> records = classExperiments.stream()
+                    .map(this::buildCourseSessionResponse)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
+        }
     }
 
     /**
-     * 查询教师的课次列表
+     * 查询教师的课次列表（分页）
      *
      * @param teacherUsername 教师用户名
+     * @param request         查询请求
      * @return 课次列表（按实验开始时间倒序）
      */
-    public List<CourseSessionResponse> getCourseSessionsForTeacher(String teacherUsername) {
-        // 查询该教师授课的所有课次
+    public PageResponse<CourseSessionResponse> getCourseSessionsForTeacher(
+            String teacherUsername, CourseSessionQueryRequest request) {
+
+        // 构建查询条件
         QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_name", teacherUsername);
-        queryWrapper.orderByDesc("start_time");
-        List<ClassExperiment> classExperiments = list(queryWrapper);
 
-        // 构建响应列表
-        return classExperiments.stream()
-                .map(this::buildCourseSessionResponse)
-                .collect(Collectors.toList());
+        // 支持按班级编号过滤
+        if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
+            queryWrapper.eq("class_code", request.getClassCode().trim());
+        }
+
+        // 支持按课程ID过滤
+        if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
+            queryWrapper.eq("course_id", request.getCourseId().trim());
+        }
+
+        queryWrapper.orderByDesc("start_time");
+
+        // 分页查询
+        if (request.getPageable() != null && request.getPageable()) {
+            Page<ClassExperiment> page = new Page<>(request.getCurrent(), request.getSize());
+            Page<ClassExperiment> result = page(page, queryWrapper);
+
+            // 构建响应列表
+            List<CourseSessionResponse> records = result.getRecords().stream()
+                    .map(this::buildCourseSessionResponse)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(
+                    result.getCurrent(),
+                    result.getSize(),
+                    result.getTotal(),
+                    records
+            );
+        } else {
+            // 不分页，返回全部数据
+            List<ClassExperiment> classExperiments = list(queryWrapper);
+            List<CourseSessionResponse> records = classExperiments.stream()
+                    .map(this::buildCourseSessionResponse)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
+        }
     }
 
     /**

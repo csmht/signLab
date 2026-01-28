@@ -42,14 +42,16 @@ public class StudentProcedureController {
     private final StudentClassRelationService studentClassRelationService;
 
     /**
-     * 查询学生的课次列表
+     * 查询学生的课次列表（分页）
      * 按照实验开始时间降序排序
      *
+     * @param request 查询请求
      * @return 课次列表
      */
-    @GetMapping("/course-sessions")
+    @PostMapping("/course-sessions")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<List<CourseSessionResponse>> getCourseSessions() {
+    public ApiResponse<com.example.demo.pojo.response.PageResponse<CourseSessionResponse>> getCourseSessions(
+            @RequestBody com.example.demo.pojo.request.CourseSessionQueryRequest request) {
         try {
             String studentUsername = SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
@@ -62,8 +64,9 @@ public class StudentProcedureController {
                     .collect(java.util.stream.Collectors.toList());
 
             // 查询课次列表
-            List<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForStudent(
-                    studentUsername, classCodeList);
+            com.example.demo.pojo.response.PageResponse<CourseSessionResponse> sessions =
+                    classExperimentService.getCourseSessionsForStudent(
+                            studentUsername, classCodeList, request);
 
             return ApiResponse.success(sessions, "查询成功");
         } catch (com.example.demo.exception.BusinessException e) {
