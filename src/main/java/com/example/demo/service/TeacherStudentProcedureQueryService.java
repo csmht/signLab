@@ -35,6 +35,7 @@ public class TeacherStudentProcedureQueryService {
     private final DataCollectionMapper dataCollectionMapper;
     private final VideoFileMapper videoFileMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
+    private final DownloadService downloadService;
 
     /**
      * 查询学生在指定班级实验中的步骤完成情况
@@ -242,6 +243,14 @@ public class TeacherStudentProcedureQueryService {
             info.setFilePath(attachment.getFilePath());
             info.setFileSize(attachment.getFileSize());
             info.setUploadTime(attachment.getCreateTime());
+
+            // 生成文件下载密钥
+            String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+            if (currentUsername != null) {
+                String downloadKey = downloadService.generateFileKey(
+                    DownloadService.TYPE_ATTACHMENT, attachment.getId(), currentUsername);
+                info.setDownloadKey(downloadKey);
+            }
 
             if (attachment.getFileType() == 1) {
                 photos.add(info);
@@ -692,6 +701,14 @@ public class TeacherStudentProcedureQueryService {
                     info.setFileSize(attachment.getFileSize());
                     info.setRemark(attachment.getRemark());
                     info.setCreateTime(attachment.getCreateTime());
+
+                    // 生成文件下载密钥
+                    String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+                    if (currentUsername != null) {
+                        String downloadKey = downloadService.generateFileKey(
+                            DownloadService.TYPE_ATTACHMENT, attachment.getId(), currentUsername);
+                        info.setDownloadKey(downloadKey);
+                    }
 
                     if (attachment.getFileType() == 1) {
                         photos.add(info);

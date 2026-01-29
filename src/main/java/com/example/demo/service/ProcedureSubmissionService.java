@@ -8,6 +8,7 @@ import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.entity.ProcedureSubmission;
 import com.example.demo.pojo.entity.User;
 import com.example.demo.pojo.response.ProcedureSubmissionResponse;
+import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionMapper, ProcedureSubmission> {
 
     private final UserMapper userMapper;
+    private final DownloadService downloadService;
 
     /** 步骤文件存储根路径 */
     private static final String PROCEDURE_SUBMISSION_ROOT_PATH = "uploads" + File.separator + "procedure-submissions";
@@ -307,6 +309,13 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
         response.setScore(submission.getScore());
         response.setSubmissionTime(submission.getSubmissionTime());
         response.setCreateTime(submission.getCreateTime());
+
+        // 生成文件下载密钥
+        String currentUsername = SecurityUtil.getCurrentUsername().orElse(null);
+        if (currentUsername != null) {
+            String downloadKey = downloadService.generateFileKey(DownloadService.TYPE_SUBMISSION, submission.getId(), currentUsername);
+            response.setDownloadKey(downloadKey);
+        }
 
         return response;
     }
