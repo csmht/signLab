@@ -37,6 +37,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
 
     private final ClassExperimentMapper classExperimentMapper;
     private final ExperimentMapper experimentMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 根据班级代码查询班级
@@ -125,9 +126,14 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
         response.setUpdateTime(clazz.getUpdateTime());
 
         // 查询班级的实验列表
-        QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
-        classExperimentQuery.eq("class_code", clazz.getClassCode());
-        List<ClassExperiment> classExperiments = classExperimentMapper.selectList(classExperimentQuery);
+        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(clazz.getClassCode());
+        List<ClassExperiment> classExperiments = new ArrayList<>();
+        for (Long id : experimentIds) {
+            ClassExperiment ce = classExperimentMapper.selectById(id);
+            if (ce != null) {
+                classExperiments.add(ce);
+            }
+        }
 
         // 构建实验信息列表
         List<ClassWithExperimentsResponse.ExperimentInfo> experimentInfos = new ArrayList<>();

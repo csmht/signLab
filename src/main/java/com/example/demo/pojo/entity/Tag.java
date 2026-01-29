@@ -26,6 +26,10 @@ public class Tag {
     @Column(comment = "标签名称", type = "varchar(50)", notNull = true)
     private String tagName;
 
+    /** 标签类型：1-学科标签、2-难度标签、3-题型标签、4-自定义标签 */
+    @Column(comment = "标签类型：1-学科标签、2-难度标签、3-题型标签、4-自定义标签", type = "varchar(2)", notNull = true)
+    private String type;
+
     /** 标签描述 */
     @Column(comment = "标签描述", type = "varchar(200)")
     private String description;

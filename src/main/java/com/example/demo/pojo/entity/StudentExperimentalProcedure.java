@@ -36,6 +36,10 @@ public class StudentExperimentalProcedure {
     @Column(comment = "班级编号", type = "varchar(20)", notNull = true)
     private String classCode;
 
+    /** 班级实验ID（用于合班上课场景） */
+    @Column(comment = "班级实验ID（用于合班上课场景）", type = "bigint")
+    private Long classExperimentId;
+
     /** 实验步骤ID */
     @Column(comment = "实验步骤ID", type = "int", notNull = true)
     private Long experimentalProcedureId;

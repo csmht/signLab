@@ -71,4 +71,16 @@ public class Topic {
     @Column(comment = "是否删除：0-未删除，1-已删除", type = "bit", defaultValue = "0")
     private Boolean isDeleted;
 
+    /** 创建者用户名 */
+    @Column(comment = "创建者用户名", type = "varchar(50)")
+    private String createdBy;
+
+    /** 创建时间 */
+    @Column(comment = "创建时间", type = "datetime")
+    private java.time.LocalDateTime createdTime;
+
+    /** 更新时间 */
+    @Column(comment = "更新时间", type = "datetime")
+    private java.time.LocalDateTime updatedTime;
+
 }

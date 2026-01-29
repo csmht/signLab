@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ public class QrService {
 
     private final CryptoUtil cryptoUtil;
     private final ClassExperimentMapper classExperimentMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 根据班级实验ID获取签到二维码
@@ -51,16 +53,18 @@ public class QrService {
      * @return 二维码数据
      */
     public TeacherQrVO getTeacherQrVOByClassAndExperiment(String classCode, String experimentId) {
-        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode)
-                .eq("experiment_id", experimentId);
-        ClassExperiment classExperiment = classExperimentMapper.selectOne(queryWrapper);
+        // 通过关联表查询班级实验ID
+        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
 
-        if (classExperiment == null) {
-            throw new BusinessException(404, "班级实验不存在");
+        // 找到匹配的实验
+        for (Long id : experimentIds) {
+            ClassExperiment ce = classExperimentMapper.selectById(id);
+            if (ce != null && ce.getExperimentId().equals(experimentId)) {
+                return generateQrVO(ce);
+            }
         }
 
-        return generateQrVO(classExperiment);
+        throw new BusinessException(404, "未找到对应的班级实验");
     }
 
     /**
@@ -74,7 +78,8 @@ public class QrService {
         TeacherQr teacherQr = new TeacherQr();
         currentUsername.ifPresent(teacherQr::setTeacherName);
         teacherQr.setEndTime(LocalDateTime.now().plusSeconds(duration + 2));
-        teacherQr.setClassCode(classExperiment.getClassCode());
+        // 使用 classExperimentId 而不是 classCode
+        teacherQr.setClassExperimentId(classExperiment.getId().toString());
         teacherQr.setExperimentCode(classExperiment.getExperimentId());
 
         TeacherQrVO teacherQrVO = new TeacherQrVO();
@@ -89,7 +94,7 @@ public class QrService {
 @Data
 class TeacherQr{
     private String teacherName;
-    private String classCode;
+    private String classExperimentId;  // 改用 classExperimentId
     private String experimentCode;
     private LocalDateTime endTime;
     private final String key ;
@@ -101,13 +106,13 @@ class TeacherQr{
     public TeacherQr(String key) {
         String[] split = key.split("\\|");
         this.teacherName = split[0];
-        this.classCode = split[1];
+        this.classExperimentId = split[1];
         this.experimentCode = split[2];
         this.endTime = LocalDateTime.parse(split[3]);
         this.key = split[4];
     }
 
     public String toString(){
-        return teacherName + "|" + this.classCode + "|" + this.experimentCode + "|" + endTime  + "|" + key;
+        return teacherName + "|" + this.classExperimentId + "|" + this.experimentCode + "|" + endTime  + "|" + key;
     }
 }

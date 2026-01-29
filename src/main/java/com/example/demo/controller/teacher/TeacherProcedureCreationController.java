@@ -12,10 +12,14 @@ import com.example.demo.pojo.request.teacher.UpdateDataCollectionProcedureReques
 import com.example.demo.pojo.request.teacher.UpdateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateVideoProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.service.TeacherProcedureCreationService;
+import com.example.demo.service.TeacherProcedureQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 教师创建实验步骤控制器
@@ -29,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 public class TeacherProcedureCreationController {
 
     private final TeacherProcedureCreationService teacherProcedureCreationService;
+    private final TeacherProcedureQueryService teacherProcedureQueryService;
 
     /**
      * 创建视频观看步骤
@@ -236,6 +241,47 @@ public class TeacherProcedureCreationController {
         } catch (Exception e) {
             log.error("删除步骤失败", e);
             return ApiResponse.error(500, "删除失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询单个步骤详情
+     *
+     * @param procedureId 步骤ID
+     * @return 步骤详情
+     */
+    @GetMapping("/{procedureId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<TeacherProcedureDetailResponse> getProcedureDetail(@PathVariable("procedureId") Long procedureId) {
+        try {
+            TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询实验的所有步骤详情
+     *
+     * @param experimentId 实验ID
+     * @return 步骤详情列表
+     */
+    @GetMapping("/experiment/{experimentId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<List<TeacherProcedureDetailResponse>> getExperimentProcedures(
+            @PathVariable("experimentId") Long experimentId) {
+        try {
+            List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId);
+            return ApiResponse.success(responses, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询实验步骤列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
 }

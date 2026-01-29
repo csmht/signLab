@@ -34,6 +34,7 @@ public class TeacherStudentProcedureQueryService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final DataCollectionMapper dataCollectionMapper;
     private final VideoFileMapper videoFileMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 查询学生在指定班级实验中的步骤完成情况
@@ -140,9 +141,21 @@ public class TeacherStudentProcedureQueryService {
         // 2. 查询学生的步骤完成记录
         QueryWrapper<StudentExperimentalProcedure> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("student_username", studentUsername)
-                .eq("class_code", classCode)
                 .eq("experimental_procedure_id", procedureId);
-        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(queryWrapper);
+        List<StudentExperimentalProcedure> studentProcedures = studentExperimentalProcedureService.list(queryWrapper);
+
+        // 从多条记录中找到匹配班级的记录
+        StudentExperimentalProcedure studentProcedure = null;
+        if (studentProcedures != null && !studentProcedures.isEmpty()) {
+            // 通过关联表查询班级实验ID列表
+            List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+            for (StudentExperimentalProcedure sp : studentProcedures) {
+                if (experimentIds.contains(sp.getClassExperimentId())) {
+                    studentProcedure = sp;
+                    break;
+                }
+            }
+        }
 
         // 3. 构建响应
         StudentProcedureDetailCompletionResponse response = new StudentProcedureDetailCompletionResponse();
@@ -186,7 +199,7 @@ public class TeacherStudentProcedureQueryService {
         switch (type) {
             case 2:
                 // 类型2：数据收集 - 查询附件
-                fillDataCollectionAttachments(response, procedure);
+                fillDataCollectionAttachments(response, procedure, studentProcedure);
                 break;
             case 3:
                 // 类型3：题库答题 - 解析答案并查询题目
@@ -202,13 +215,14 @@ public class TeacherStudentProcedureQueryService {
      */
     private void fillDataCollectionAttachments(
             StudentProcedureDetailCompletionResponse response,
-            ExperimentalProcedure procedure) {
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure) {
 
         QueryWrapper<StudentProcedureAttachment> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("procedure_id", procedure.getId())
                 .eq("student_username", response.getStudentUsername())
-                .eq("class_code", response.getClassCode())
-                .orderByDesc("created_time");
+                .eq("class_experiment_id", studentProcedure.getClassExperimentId())
+                .orderByDesc("create_time");
 
         List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(queryWrapper);
         if (attachments == null || attachments.isEmpty()) {
@@ -319,18 +333,24 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 2. 查询班级实验关系
-        QueryWrapper<com.example.demo.pojo.entity.ClassExperiment> classExperimentWrapper = new QueryWrapper<>();
-        classExperimentWrapper.eq("class_code", classCode)
-                .eq("experiment_id", experimentId.toString());
-        com.example.demo.pojo.entity.ClassExperiment classExperiment =
-                classExperimentMapper.selectOne(classExperimentWrapper);
+        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+
+        com.example.demo.pojo.entity.ClassExperiment classExperiment = null;
+        for (Long id : experimentIds) {
+            com.example.demo.pojo.entity.ClassExperiment ce = classExperimentMapper.selectById(id);
+            if (ce != null && ce.getExperimentId().equals(experimentId.toString())) {
+                classExperiment = ce;
+                break;
+            }
+        }
 
         // 3. 查询实验的所有步骤
         List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
 
-        // 3. 查询班级中所有学生提交记录
+        // 4. 查询班级中所有学生提交记录
+        // 使用已查询的班级实验ID列表
         QueryWrapper<StudentExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode);
+        queryWrapper.in("class_experiment_id", experimentIds);
         List<StudentExperimentalProcedure> allStudentProcedures = studentExperimentalProcedureService.list(queryWrapper);
 
         // 4. 获取唯一学生列表

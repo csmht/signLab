@@ -39,25 +39,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
     private final ClassMapper classMapper;
     private final ExperimentMapper experimentMapper;
     private final StudentClassRelationMapper studentClassRelationMapper;
-
-    /**
-     * 根据班级代码查询班级实验
-     */
-    public ClassExperiment getByClassCode(String classCode) {
-        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode);
-        return getOne(queryWrapper);
-    }
-
-    /**
-     * 根据班级代码和实验ID查询班级实验
-     */
-    public ClassExperiment getByClassCodeAndExperimentId(String classCode, String experimentId) {
-        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode)
-                .eq("experiment_id", experimentId);
-        return getOne(queryWrapper);
-    }
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 批量绑定班级到实验
@@ -79,72 +61,85 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             throw new BusinessException(400, "班级列表不能为空");
         }
 
+        // 检查所有班级是否存在
+        List<BatchBindClassesToExperimentResponse.ClassResult> validClassResults = new ArrayList<>();
         for (String classCode : request.getClassCodes()) {
-            BatchBindClassesToExperimentResponse.ClassResult result = new BatchBindClassesToExperimentResponse.ClassResult();
+            BatchBindClassesToExperimentResponse.ClassResult result =
+                new BatchBindClassesToExperimentResponse.ClassResult();
             result.setClassCode(classCode);
 
-            try {
-                // 查询班级信息
-                QueryWrapper<Class> classQuery = new QueryWrapper<>();
-                classQuery.eq("class_code", classCode);
-                Class clazz = classMapper.selectOne(classQuery);
-                if (clazz == null) {
-                    result.setSuccess(false);
-                    result.setMessage("班级不存在");
-                    response.getFailList().add(result);
-                    response.setFailCount(response.getFailCount() + 1);
-                    continue;
-                }
-                result.setClassName(clazz.getClassName());
+            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+            classQuery.eq("class_code", classCode);
+            Class clazz = classMapper.selectOne(classQuery);
 
-                // 检查班级是否已绑定到该实验
-                ClassExperiment existingClassExperiment = getByClassCodeAndExperimentId(classCode, request.getExperimentId());
-                if (existingClassExperiment != null) {
-                    result.setSuccess(false);
-                    result.setMessage("班级已绑定到该实验");
-                    response.getFailList().add(result);
-                    response.setFailCount(response.getFailCount() + 1);
-                    continue;
-                }
+            if (clazz == null) {
+                result.setSuccess(false);
+                result.setMessage("班级不存在");
+                response.getFailList().add(result);
+                response.setFailCount(response.getFailCount() + 1);
+                continue;
+            }
 
-                // 创建班级实验关系
-                ClassExperiment classExperiment = new ClassExperiment();
-                classExperiment.setClassCode(classCode);
-                classExperiment.setCourseId(request.getCourseId());
-                classExperiment.setExperimentId(request.getExperimentId());
-                classExperiment.setCourseTime(request.getCourseTime());
-                classExperiment.setStartTime(request.getStartTime());
-                classExperiment.setEndTime(request.getEndTime());
-                classExperiment.setExperimentLocation(request.getExperimentLocation());
+            result.setClassName(clazz.getClassName());
+            validClassResults.add(result);
+        }
 
-                // 设置授课老师：如果传参不为空则使用传参，否则使用当前登录用户
-                String userName = request.getUserName();
-                if (userName == null || userName.trim().isEmpty()) {
-                    userName = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
-                }
-                classExperiment.setUserName(userName);
+        if (validClassResults.isEmpty()) {
+            throw new BusinessException(400, "没有有效的班级可以绑定");
+        }
 
-                boolean saved = save(classExperiment);
-                if (saved) {
+        try {
+            // 创建一个 ClassExperiment 记录（合班上课）
+            ClassExperiment classExperiment = new ClassExperiment();
+            // 不再设置 classCode
+            classExperiment.setCourseId(request.getCourseId());
+            classExperiment.setExperimentId(request.getExperimentId());
+            classExperiment.setCourseTime(request.getCourseTime());
+            classExperiment.setStartTime(request.getStartTime());
+            classExperiment.setEndTime(request.getEndTime());
+            classExperiment.setExperimentLocation(request.getExperimentLocation());
+
+            String userName = request.getUserName();
+            if (userName == null || userName.trim().isEmpty()) {
+                userName = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+            }
+            classExperiment.setUserName(userName);
+
+            boolean saved = save(classExperiment);
+            if (saved) {
+                // 批量绑定班级
+                List<String> validClassCodes = validClassResults.stream()
+                        .map(e -> e.getClassCode())
+                        .collect(java.util.stream.Collectors.toList());
+
+                classExperimentClassRelationService.batchBindClassesToExperiment(
+                        classExperiment.getId(), validClassCodes);
+
+                // 所有班级都成功
+                for (BatchBindClassesToExperimentResponse.ClassResult result : validClassResults) {
                     result.setSuccess(true);
                     response.getSuccessList().add(result);
-                    response.setSuccessCount(response.getSuccessCount() + 1);
-                    log.info("班级 {} 绑定到实验 {} 成功", classCode, request.getExperimentId());
-                } else {
-                    result.setSuccess(false);
-                    result.setMessage("绑定失败");
-                    response.getFailList().add(result);
-                    response.setFailCount(response.getFailCount() + 1);
                 }
-            } catch (Exception e) {
-                log.error("绑定班级 {} 到实验 {} 失败", classCode, request.getExperimentId(), e);
+                response.setSuccessCount(validClassResults.size());
+                log.info("创建合班上课实验课次 {} 成功，绑定班级: {}",
+                    classExperiment.getId(), validClassCodes);
+            } else {
+                for (BatchBindClassesToExperimentResponse.ClassResult result : validClassResults) {
+                    result.setSuccess(false);
+                    result.setMessage("创建实验课次失败");
+                    response.getFailList().add(result);
+                }
+                response.setFailCount(validClassResults.size());
+            }
+        } catch (Exception e) {
+            log.error("批量绑定班级到实验失败", e);
+            for (BatchBindClassesToExperimentResponse.ClassResult result : validClassResults) {
                 result.setSuccess(false);
                 result.setMessage(e.getMessage());
                 response.getFailList().add(result);
-                response.setFailCount(response.getFailCount() + 1);
             }
+            response.setFailCount(validClassResults.size());
         }
-
         return response;
     }
 
@@ -191,13 +186,22 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             return PageResponse.of(1L,  request.getSize(), 0L, new ArrayList<>());
         }
 
+        // 通过关联表查询学生所属班级对应的所有班级实验ID
+        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCodes(classCodeList);
+
+        if (experimentIds.isEmpty()) {
+            return PageResponse.of(1L,  request.getSize(), 0L, new ArrayList<>());
+        }
+
         // 构建查询条件
         QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("class_code", classCodeList);
+        queryWrapper.in("id", experimentIds);
 
         // 支持按班级编号过滤
         if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
-            queryWrapper.eq("class_code", request.getClassCode().trim());
+            List<Long> filteredExperimentIds =
+                classExperimentClassRelationService.getExperimentIdsByClassCode(request.getClassCode().trim());
+            queryWrapper.in("id", filteredExperimentIds);
         }
 
         // 支持按课程ID过滤
@@ -207,7 +211,9 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
 
         if(studentUsername != null && !studentUsername.trim().isEmpty()) {
             List<String> list = studentClassRelationMapper.selectList(new QueryWrapper<StudentClassRelation>().eq("student_id", studentUsername)).stream().map(StudentClassRelation::getClassCode).toList();
-            queryWrapper.in("classCode", list);
+            List<Long> actualExperimentIds =
+                classExperimentClassRelationService.getExperimentIdsByClassCodes(list);
+            queryWrapper.in("id", actualExperimentIds);
         }
 
         queryWrapper.orderByDesc("start_time");
@@ -255,7 +261,9 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
 
         // 支持按班级编号过滤
         if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
-            queryWrapper.eq("class_code", request.getClassCode().trim());
+            List<Long> filteredExperimentIds =
+                classExperimentClassRelationService.getExperimentIdsByClassCode(request.getClassCode().trim());
+            queryWrapper.in("id", filteredExperimentIds);
         }
 
         // 支持按课程ID过滤
@@ -301,7 +309,6 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
     private CourseSessionResponse buildCourseSessionResponse(ClassExperiment classExperiment) {
         CourseSessionResponse response = new CourseSessionResponse();
         response.setClassExperimentId(classExperiment.getId());
-        response.setClassCode(classExperiment.getClassCode());
         response.setCourseId(classExperiment.getCourseId());
         response.setExperimentId(Long.parseLong(classExperiment.getExperimentId()));
         response.setCourseTime(classExperiment.getCourseTime());
@@ -310,12 +317,31 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         response.setExperimentLocation(classExperiment.getExperimentLocation());
         response.setUserName(classExperiment.getUserName());
 
+        // 查询关联的班级列表
+        List<String> classCodes =
+            classExperimentClassRelationService.getClassCodesByExperimentId(classExperiment.getId());
+
+        response.setClassCodes(classCodes);
+        response.setIsMergedClass(classCodes.size() > 1);
+
         // 查询班级名称
-        QueryWrapper<Class> classQuery = new QueryWrapper<>();
-        classQuery.eq("class_code", classExperiment.getClassCode());
-        Class clazz = classMapper.selectOne(classQuery);
-        if (clazz != null) {
-            response.setClassName(clazz.getClassName());
+        List<String> classNames = new ArrayList<>();
+        for (String code : classCodes) {
+            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+            classQuery.eq("class_code", code);
+            Class clazz = classMapper.selectOne(classQuery);
+            if (clazz != null) {
+                classNames.add(clazz.getClassName());
+            }
+        }
+        response.setClassNames(classNames);
+
+        // 主班级（兼容单班级场景）
+        if (!classCodes.isEmpty()) {
+            response.setClassCode(classCodes.get(0));
+            if (!classNames.isEmpty()) {
+                response.setClassName(classNames.get(0));
+            }
         }
 
         // 查询实验名称

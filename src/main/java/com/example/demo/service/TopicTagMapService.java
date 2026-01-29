@@ -97,4 +97,15 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
         queryWrapper.eq("topic_id", topicId);
         return remove(queryWrapper);
     }
+
+    /**
+     * 移除标签的所有关联（删除标签时使用）
+     * @param tagId 标签ID
+     * @return 是否移除成功
+     */
+    public boolean removeByTagId(Long tagId) {
+        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("tag_id", tagId);
+        return remove(queryWrapper);
+    }
 }

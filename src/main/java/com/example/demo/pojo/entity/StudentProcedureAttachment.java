@@ -36,6 +36,10 @@ public class StudentProcedureAttachment {
     @Column(comment = "班级编号", type = "varchar(20)")
     private String classCode;
 
+    /** 班级实验ID（用于合班上课场景） */
+    @Column(comment = "班级实验ID（用于合班上课场景）", type = "bigint")
+    private Long classExperimentId;
+
     /** 文件类型（1-照片，2-文档） */
     @Column(comment = "文件类型（1-照片，2-文档）", type = "int")
     private Integer fileType;

@@ -42,6 +42,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
     private final StudentClassRelationMapper studentClassRelationMapper;
     private final UserMapper userMapper;
     private final ClassMapper classMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     @Value("${slz.late.time:5}")
     private Long lateTime;
@@ -118,10 +119,17 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             String studentActualClassCode = isInClass ? classCode : studentClasses.get(0).getClassCode();
 
             // 7. 查询班级实验信息
-            QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
-            classExperimentQuery.eq("class_code", classCode)
-                    .eq("experiment_id", experimentId);
-            ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentQuery);
+            List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+
+            ClassExperiment classExperiment = null;
+            for (Long id : experimentIds) {
+                ClassExperiment ce = classExperimentMapper.selectById(id);
+                if (ce != null && ce.getExperimentId().equals(experimentId)) {
+                    classExperiment = ce;
+                    break;
+                }
+            }
+
             if (classExperiment == null) {
                 response.setSuccess(false);
                 response.setMessage("未找到班级实验信息");
@@ -239,10 +247,17 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         String classCode = clazz.getClassCode();
 
         // 2. 查询班级实验信息
-        QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
-        classExperimentQuery.eq("class_code", classCode)
-                .eq("experiment_id", experimentId);
-        ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentQuery);
+        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+
+        ClassExperiment classExperiment = null;
+        for (Long id : experimentIds) {
+            ClassExperiment ce = classExperimentMapper.selectById(id);
+            if (ce != null && ce.getExperimentId().equals(experimentId)) {
+                classExperiment = ce;
+                break;
+            }
+        }
+
         if (classExperiment == null) {
             throw new BusinessException(404, "班级实验不存在");
         }
@@ -439,7 +454,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         stats.put("makeupAttendance", makeupCount);
 
         // 签到率（假设正常和迟到都算签到成功）
-        if (records.size() > 0) {
+        if (!records.isEmpty()) {
             double attendanceRate = (normalCount + lateCount + crossClassCount + makeupCount) * 100.0 / records.size();
             stats.put("attendanceRate", Math.round(attendanceRate * 100.0) / 100.0); // 保留两位小数
         } else {
@@ -465,7 +480,6 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
 
         String courseId = classExperiment.getCourseId();
         String experimentId = classExperiment.getExperimentId();
-        String classCode = classExperiment.getClassCode();
 
         // 2. 查询该课次的所有签到记录
         QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();

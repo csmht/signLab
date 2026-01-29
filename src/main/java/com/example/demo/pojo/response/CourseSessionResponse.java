@@ -3,6 +3,7 @@ package com.example.demo.pojo.response;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 课次信息响应
@@ -16,14 +17,29 @@ public class CourseSessionResponse {
     private Long classExperimentId;
 
     /**
-     * 班级编号
+     * 主班级编号（用于兼容单班级场景）
      */
     private String classCode;
 
     /**
-     * 班级名称
+     * 主班级名称
      */
     private String className;
+
+    /**
+     * 班级编号列表（合班上课时返回多个）
+     */
+    private List<String> classCodes;
+
+    /**
+     * 班级名称列表（合班上课时返回多个）
+     */
+    private List<String> classNames;
+
+    /**
+     * 是否为合班上课
+     */
+    private Boolean isMergedClass;
 
     /**
      * 课程ID

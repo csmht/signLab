@@ -1,6 +1,7 @@
 package com.example.demo.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.tangzc.autotable.annotation.AutoTable;
@@ -9,6 +10,7 @@ import com.tangzc.mpe.autotable.annotation.Table;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 班级实验表
@@ -24,9 +26,11 @@ public class ClassExperiment {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 班级编号 */
-    @Column(comment = "班级编号", type = "varchar(20)", notNull = true)
-    private String classCode;
+    /**
+     * 关联的班级编号列表（仅查询时使用，不映射到数据库）
+     */
+    @TableField(exist = false)
+    private List<String> relatedClassCodes;
 
     /** 课程ID */
     @Column(comment = "课程ID", type = "varchar(20)", notNull = true)

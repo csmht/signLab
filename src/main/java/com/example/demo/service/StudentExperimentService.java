@@ -40,6 +40,7 @@ public class StudentExperimentService {
 
     private final ExperimentMapper experimentMapper;
     private final ClassExperimentMapper classExperimentMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final ExperimentalProcedureService experimentalProcedureService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
     private final VideoFileMapper videoFileMapper;
@@ -66,11 +67,17 @@ public class StudentExperimentService {
         }
 
         // 2. 查询班级实验绑定信息
-        ClassExperiment classExperiment = classExperimentMapper.selectOne(
-                new QueryWrapper<ClassExperiment>()
-                        .eq("class_code", classCode)
-                        .eq("experiment_id", experimentId.toString())
-        );
+        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+
+        ClassExperiment classExperiment = null;
+        for (Long id : experimentIds) {
+            ClassExperiment ce = classExperimentMapper.selectById(id);
+            if (ce != null && ce.getExperimentId().equals(experimentId.toString())) {
+                classExperiment = ce;
+                break;
+            }
+        }
+
         if (classExperiment == null) {
             throw new BusinessException(404, "班级未绑定该实验");
         }
