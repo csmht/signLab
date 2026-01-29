@@ -8,8 +8,6 @@ import com.tangzc.mpe.autotable.annotation.Column;
 import com.tangzc.mpe.autotable.annotation.Table;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 /**
  * 实验步骤表
  * 存储实验学生需要完成的步骤信息
@@ -59,14 +57,6 @@ public class ExperimentalProcedure {
     /** 题库详情ID(仅类型为3时有效) */
     @Column(comment = "题库详情ID(仅类型为3时有效)",type = "bigint")
     private Long procedureTopicId;
-
-    /** 步骤开始填写时间 */
-    @Column(comment = "步骤开始填写时间", type = "datetime", notNull = true)
-    private LocalDateTime startTime;
-
-    /** 步骤结束填写时间 */
-    @Column(comment = "步骤结束填写时间", type = "datetime", notNull = true)
-    private LocalDateTime endTime;
 
     /** 是否删除 */
     @Column(comment = "是否删除",type = "bit", notNull = true,defaultValue = "0")

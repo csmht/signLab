@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.enums.ProcedureAccessDeniedReason;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.StudentExperimentalProcedureMapper;
+import com.example.demo.pojo.entity.ClassExperimentProcedureTime;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.List;
 public class StudentExperimentalProcedureService extends ServiceImpl<StudentExperimentalProcedureMapper, StudentExperimentalProcedure> {
 
     private final ExperimentalProcedureService experimentalProcedureService;
+    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
 
     /**
      * 查询学生在指定班级实验中的所有步骤答案
@@ -85,43 +87,57 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
      * 判断步骤是否可访问
      * 综合检查前置步骤完成状态、时间窗口、是否可跳过
      *
-     * @param experimentId         实验ID
-     * @param classCode            班级编号
-     * @param studentUsername      学生用户名
-     * @param currentProcedure     当前步骤
+     * @param experimentId      实验ID
+     * @param classCode         班级编号
+     * @param studentUsername   学生用户名
+     * @param classExperimentId 班级实验ID
+     * @param currentProcedure  当前步骤
      * @return 可访问性原因
      */
     public ProcedureAccessDeniedReason checkProcedureAccessible(
             Long experimentId,
             String classCode,
             String studentUsername,
+            Long classExperimentId,
             ExperimentalProcedure currentProcedure) {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. 检查时间窗口
-        if (now.isBefore(currentProcedure.getStartTime())) {
+        // 1. 从 ClassExperimentProcedureTime 表查询时间配置
+        ClassExperimentProcedureTime procedureTime = classExperimentProcedureTimeService
+                .getByClassExperimentAndProcedure(classExperimentId, currentProcedure.getId());
+
+        if (procedureTime == null) {
+            // 如果未配置时间，抛出异常
+            throw new BusinessException(500, "步骤时间配置不存在，请联系教师");
+        }
+
+        LocalDateTime startTime = procedureTime.getStartTime();
+        LocalDateTime endTime = procedureTime.getEndTime();
+
+        // 2. 检查时间窗口
+        if (now.isBefore(startTime)) {
             return ProcedureAccessDeniedReason.NOT_STARTED;
         }
 
-        if (now.isAfter(currentProcedure.getEndTime())) {
+        if (now.isAfter(endTime)) {
             return ProcedureAccessDeniedReason.EXPIRED;
         }
 
-        // 2. 如果是第一个步骤，且时间窗口满足，则可访问
+        // 3. 如果是第一个步骤，且时间窗口满足，则可访问
         if (currentProcedure.getNumber() == 1) {
             return ProcedureAccessDeniedReason.ACCESSIBLE;
         }
 
-        // 3. 检查是否可跳过
+        // 4. 检查是否可跳过
         if (Boolean.TRUE.equals(currentProcedure.getIsSkip())) {
             return ProcedureAccessDeniedReason.ACCESSIBLE;
         }
 
-        // 4. 查询所有步骤，按序号排序
+        // 5. 查询所有步骤，按序号排序
         List<ExperimentalProcedure> allProcedures = experimentalProcedureService.getByExperimentId(experimentId);
 
-        // 5. 检查前置步骤是否完成或已过期
+        // 6. 检查前置步骤是否完成或已过期
         for (ExperimentalProcedure procedure : allProcedures) {
             // 只需要检查序号小于当前步骤的步骤
             if (procedure.getNumber() >= currentProcedure.getNumber()) {
@@ -135,7 +151,15 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
 
                 // 如果前置步骤未完成，检查是否已过期
                 if (!isCompleted) {
-                    boolean isExpired = now.isAfter(procedure.getEndTime());
+                    // 查询该前置步骤的时间配置
+                    ClassExperimentProcedureTime prevProcedureTime = classExperimentProcedureTimeService
+                            .getByClassExperimentAndProcedure(classExperimentId, procedure.getId());
+
+                    if (prevProcedureTime == null) {
+                        throw new BusinessException(500, "前置步骤时间配置不存在，请联系教师");
+                    }
+
+                    boolean isExpired = now.isAfter(prevProcedureTime.getEndTime());
                     if (!isExpired) {
                         return ProcedureAccessDeniedReason.PREVIOUS_NOT_COMPLETED;
                     }

@@ -48,6 +48,7 @@ public class StudentExperimentService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
+    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
 
     /**
      * 查询学生实验详情（包含步骤列表及可访问性）
@@ -94,11 +95,13 @@ public class StudentExperimentService {
                         studentUsername, classCode, experimentId);
 
         // 5. 构建步骤详情响应列表
+        Long classExperimentId = classExperiment.getId();
         List<StudentProcedureDetailResponse> procedureDetails = procedures.stream()
                 .map(procedure -> buildProcedureDetailResponse(
                         procedure,
                         studentUsername,
                         classCode,
+                        classExperimentId,
                         studentProcedures
                 ))
                 .collect(Collectors.toList());
