@@ -22,6 +22,7 @@ import com.example.demo.pojo.response.StudentProcedureDetailCompletionResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
 import com.example.demo.service.TeacherStudentProcedureQueryService;
+import com.example.demo.service.ClassExperimentClassRelationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
@@ -47,6 +48,7 @@ public class TeacherStudentController {
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final ClassExperimentMapper classExperimentMapper;
     private final TeacherStudentProcedureQueryService teacherStudentProcedureQueryService;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 查询学生列表（支持过滤）
@@ -69,6 +71,8 @@ public class TeacherStudentController {
             // 如果指定了班级实验，查询该实验的签到信息
             String courseId = null;
             String experimentId = null;
+            List<String> classCodes = new ArrayList<>();
+
             if (classExperimentId != null) {
                 ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
                 if (classExperiment == null) {
@@ -76,14 +80,35 @@ public class TeacherStudentController {
                 }
                 courseId = classExperiment.getCourseId();
                 experimentId = classExperiment.getExperimentId();
-                classCode = classExperiment.getClassCode(); // 使用班级实验的班级代码
+
+                // 通过关联表查询该实验关联的所有班级
+                classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+
+                // 如果没有指定classCode，使用查询到的班级列表
+                if (!StringUtils.hasText(classCode) && !classCodes.isEmpty()) {
+                    // 优先使用第一个班级作为主班级
+                    classCode = classCodes.get(0);
+                }
             }
 
             // 查询班级的所有学生
             QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+
+            // 确定要查询的班级列表
+            List<String> targetClassCodes = new ArrayList<>();
             if (StringUtils.hasText(classCode)) {
-                relationQuery.eq("class_code", classCode);
+                // 指定了班级代码，只查询该班级
+                targetClassCodes.add(classCode);
+            } else if (!classCodes.isEmpty()) {
+                // 没有指定班级代码，使用实验关联的所有班级
+                targetClassCodes.addAll(classCodes);
             }
+
+            // 如果有目标班级，查询这些班级的学生
+            if (!targetClassCodes.isEmpty()) {
+                relationQuery.in("class_code", targetClassCodes);
+            }
+
             List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
 
             // 查询所有签到记录（如果指定了班级实验）
