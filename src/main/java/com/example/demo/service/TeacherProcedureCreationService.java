@@ -239,6 +239,7 @@ public class TeacherProcedureCreationService {
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
         procedureTopic.setTags(joinTopicTags(request.getTopicTags()));
+        procedureTopic.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
 
         procedureTopicMapper.insert(procedureTopic);
         log.info("题库详情记录创建成功，记录ID: {}", procedureTopic.getId());
@@ -451,6 +452,7 @@ public class TeacherProcedureCreationService {
                 procedureTopic.setIsRandom(request.getIsRandom());
                 procedureTopic.setNumber(request.getTopicNumber());
                 procedureTopic.setTags(joinTopicTags(request.getTopicTags()));
+                procedureTopic.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
                 procedureTopicMapper.updateById(procedureTopic);
                 log.info("题库详情记录更新成功，记录ID: {}", procedureTopic.getId());
 
@@ -714,6 +716,7 @@ public class TeacherProcedureCreationService {
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
         procedureTopic.setTags(request.getTopicTagsToString());
+        procedureTopic.setTopicTypes(request.getTopicTypesToString());
 
         procedureTopicMapper.insert(procedureTopic);
         log.info("题库详情记录创建成功，记录ID: {}", procedureTopic.getId());
@@ -852,6 +855,21 @@ public class TeacherProcedureCreationService {
             return null;
         }
         return String.join(",", topicTags);
+    }
+
+    /**
+     * 将题目类型列表转换为逗号分隔的字符串
+     *
+     * @param topicTypes 题目类型列表
+     * @return 逗号分隔的字符串，如 "1,2,3"
+     */
+    private String joinTopicTypes(List<Integer> topicTypes) {
+        if (topicTypes == null || topicTypes.isEmpty()) {
+            return null;
+        }
+        return topicTypes.stream()
+                .map(String::valueOf)
+                .collect(java.util.stream.Collectors.joining(","));
     }
 
     /**

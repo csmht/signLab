@@ -41,6 +41,10 @@ public class ProcedureTopic {
     @Column(comment = "标签限制（仅在随机抽取时有效，格式 id1,id2）" , type = "text")
     private String tags;
 
+    /** 题目类型限制（仅在随机抽取时有效，格式 1,2,3，对应1-单选，2-多选，3-判断，4-填空，6-其他） */
+    @Column(comment = "题目类型限制（仅在随机抽取时有效，格式 1,2,3）" , type = "varchar(255)")
+    private String topicTypes;
+
     /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createdTime;

@@ -460,6 +460,19 @@ public class StudentProcedureQueryService {
                         if (!topicIds.isEmpty()) {
                             QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
                             topicWrapper.in("id", topicIds);
+
+                            // 添加题目类型过滤
+                            if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
+                                String[] typeArray = procedureTopic.getTopicTypes().split(",");
+                                List<Integer> types = Arrays.stream(typeArray)
+                                    .filter(s -> s != null && !s.isEmpty())
+                                    .map(Integer::parseInt)
+                                    .collect(Collectors.toList());
+                                if (!types.isEmpty()) {
+                                    topicWrapper.in("type", types);
+                                }
+                            }
+
                             topicWrapper.orderByAsc("number");
                             return topicMapper.selectList(topicWrapper);
                         }

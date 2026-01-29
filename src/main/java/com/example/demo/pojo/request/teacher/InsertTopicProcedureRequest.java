@@ -52,6 +52,12 @@ public class InsertTopicProcedureRequest {
     private List<Integer> topicTags;
 
     /**
+     * 题目类型列表（仅在随机抽取时有效），后端自动拼接成"1,2,3"格式
+     * 1-单选，2-多选，3-判断，4-填空，6-其他
+     */
+    private List<Integer> topicTypes;
+
+    /**
      * 老师选定的题目ID列表（仅在非随机模式时有效）
      */
     private List<Long> teacherSelectedTopicIds;
@@ -80,6 +86,24 @@ public class InsertTopicProcedureRequest {
             }
         }
         return tags.toString();
+    }
+
+    /**
+     * 题目类型转为String
+     * @return 转换后的字符串
+     */
+    public String getTopicTypesToString() {
+        if (topicTypes == null || topicTypes.isEmpty()) {
+            return null;
+        }
+        StringBuilder types = new StringBuilder();
+        for (int i = 0; i < topicTypes.size(); i++) {
+            types.append(topicTypes.get(i));
+            if (i != topicTypes.size() - 1) {
+                types.append(",");
+            }
+        }
+        return types.toString();
     }
 
 }

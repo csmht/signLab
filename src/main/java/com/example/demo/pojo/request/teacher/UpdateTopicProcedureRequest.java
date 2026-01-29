@@ -47,6 +47,12 @@ public class UpdateTopicProcedureRequest {
     private List<String> topicTags;
 
     /**
+     * 题目类型列表（仅在随机抽取时有效），后端自动拼接成"1,2,3"格式
+     * 1-单选，2-多选，3-判断，4-填空，6-其他
+     */
+    private List<Integer> topicTypes;
+
+    /**
      * 老师选定的题目ID列表（仅在非随机模式时有效）
      */
     private List<Long> teacherSelectedTopicIds;
