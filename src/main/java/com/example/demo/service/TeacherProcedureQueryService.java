@@ -6,6 +6,7 @@ import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TopicMapper;
 import com.example.demo.mapper.VideoFileMapper;
+import com.example.demo.pojo.entity.ClassExperimentProcedureTime;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
@@ -18,7 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -36,15 +39,17 @@ public class TeacherProcedureQueryService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
+    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
 
     /**
-     * 查询步骤详情（包含类型特定的完整信息）
+     * 查询步骤详情(包含类型特定的完整信息)
      *
-     * @param procedureId 步骤ID
+     * @param procedureId       步骤ID
+     * @param classExperimentId 班级实验ID(可选,用于查询时间配置)
      * @return 步骤详情
      */
-    public TeacherProcedureDetailResponse getProcedureDetail(Long procedureId) {
-        log.info("查询步骤详情，步骤ID: {}", procedureId);
+    public TeacherProcedureDetailResponse getProcedureDetail(Long procedureId, Long classExperimentId) {
+        log.info("查询步骤详情，步骤ID: {}, 班级实验ID: {}", procedureId, classExperimentId);
 
         // 1. 查询步骤基本信息
         ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
@@ -61,10 +66,24 @@ public class TeacherProcedureQueryService {
         response.setRemark(procedure.getRemark());
         response.setIsSkip(procedure.getIsSkip());
         response.setProportion(procedure.getProportion());
-        response.setStartTime(procedure.getStartTime());
-        response.setEndTime(procedure.getEndTime());
 
-        // 3. 根据步骤类型填充详细信息
+        // 3. 查询时间配置(如果提供了 classExperimentId)
+        if (classExperimentId != null) {
+            ClassExperimentProcedureTime procedureTime = classExperimentProcedureTimeService
+                    .getByClassExperimentAndProcedure(classExperimentId, procedureId);
+            if (procedureTime != null) {
+                response.setStartTime(procedureTime.getStartTime());
+                response.setEndTime(procedureTime.getEndTime());
+            } else {
+                response.setStartTime(null);
+                response.setEndTime(null);
+            }
+        } else {
+            response.setStartTime(null);
+            response.setEndTime(null);
+        }
+
+        // 4. 根据步骤类型填充详细信息
         fillProcedureDetailByType(response, procedure);
 
         return response;
@@ -73,16 +92,29 @@ public class TeacherProcedureQueryService {
     /**
      * 根据步骤类型查询实验的所有步骤详情
      *
-     * @param experimentId 实验ID
+     * @param experimentId      实验ID
+     * @param classExperimentId 班级实验ID(可选,用于查询时间配置)
      * @return 步骤详情列表
      */
-    public List<TeacherProcedureDetailResponse> getExperimentProcedures(Long experimentId) {
-        log.info("查询实验的所有步骤详情，实验ID: {}", experimentId);
+    public List<TeacherProcedureDetailResponse> getExperimentProcedures(Long experimentId, Long classExperimentId) {
+        log.info("查询实验的所有步骤详情，实验ID: {}, 班级实验ID: {}", experimentId, classExperimentId);
 
         // 1. 查询实验的所有步骤
         List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
 
-        // 2. 为每个步骤构建详情响应
+        // 2. 如果提供了 classExperimentId,查询所有步骤的时间配置
+        Map<Long, ClassExperimentProcedureTime> procedureTimeMap = new HashMap<>();
+        if (classExperimentId != null) {
+            List<ClassExperimentProcedureTime> procedureTimes =
+                    classExperimentProcedureTimeService.listByClassExperiment(classExperimentId);
+            procedureTimeMap = procedureTimes.stream()
+                    .collect(Collectors.toMap(
+                            ClassExperimentProcedureTime::getExperimentalProcedureId,
+                            t -> t,
+                            (existing, replacement) -> existing));
+        }
+
+        // 3. 为每个步骤构建详情响应
         List<TeacherProcedureDetailResponse> responses = new ArrayList<>();
         for (ExperimentalProcedure procedure : procedures) {
             TeacherProcedureDetailResponse response = new TeacherProcedureDetailResponse();
@@ -93,8 +125,16 @@ public class TeacherProcedureQueryService {
             response.setRemark(procedure.getRemark());
             response.setIsSkip(procedure.getIsSkip());
             response.setProportion(procedure.getProportion());
-            response.setStartTime(procedure.getStartTime());
-            response.setEndTime(procedure.getEndTime());
+
+            // 查询时间配置
+            ClassExperimentProcedureTime procedureTime = procedureTimeMap.get(procedure.getId());
+            if (procedureTime != null) {
+                response.setStartTime(procedureTime.getStartTime());
+                response.setEndTime(procedureTime.getEndTime());
+            } else {
+                response.setStartTime(null);
+                response.setEndTime(null);
+            }
 
             // 填充类型特定的详细信息
             fillProcedureDetailByType(response, procedure);

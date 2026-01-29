@@ -2,7 +2,6 @@ package com.example.demo.pojo.request.teacher;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -61,16 +60,6 @@ public class InsertTopicProcedureRequest {
      * 老师选定的题目ID列表（仅在非随机模式时有效）
      */
     private List<Long> teacherSelectedTopicIds;
-
-    /**
-     * 步骤开始时间
-     */
-    private LocalDateTime startTime;
-
-    /**
-     * 步骤结束时间
-     */
-    private LocalDateTime endTime;
 
 
     /**

@@ -72,8 +72,9 @@ public class TeacherProcedureCreationService {
         log.info("创建视频观看步骤，实验ID: {}", request.getExperimentId());
 
         // 验证必填字段
-        validateCommonFieldsForCreate(request.getExperimentId(),
-                request.getStartTime(), request.getEndTime());
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
 
         if (request.getVideoId() == null) {
             throw new com.example.demo.exception.BusinessException(400, "视频ID不能为空");
@@ -91,8 +92,7 @@ public class TeacherProcedureCreationService {
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
         procedure.setVideoId(request.getVideoId());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
         procedure.setIsDeleted(false);
 
         // 保存步骤
@@ -113,8 +113,9 @@ public class TeacherProcedureCreationService {
         log.info("创建数据收集步骤，实验ID: {}", request.getExperimentId());
 
         // 验证必填字段
-        validateCommonFieldsForCreate(request.getExperimentId(),
-                request.getStartTime(), request.getEndTime());
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
 
         if (request.getDataType() == null) {
             throw new com.example.demo.exception.BusinessException(400, "数据类型不能为空");
@@ -150,8 +151,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
         procedure.setIsDeleted(false);
 
         // 保存步骤
@@ -195,8 +195,9 @@ public class TeacherProcedureCreationService {
         log.info("创建题库练习步骤，实验ID: {}", request.getExperimentId());
 
         // 验证必填字段
-        validateCommonFieldsForCreate(request.getExperimentId(),
-                request.getStartTime(), request.getEndTime());
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
 
         if (request.getIsRandom() == null) {
             throw new com.example.demo.exception.BusinessException(400, "是否随机抽取不能为空");
@@ -225,8 +226,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
         procedure.setIsDeleted(false);
 
         // 保存步骤
@@ -308,8 +308,7 @@ public class TeacherProcedureCreationService {
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
         procedure.setVideoId(request.getVideoId());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
 
         experimentalProcedureService.updateById(procedure);
         log.info("视频观看步骤更新成功，步骤ID: {}", procedure.getId());
@@ -366,8 +365,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : procedure.getIsSkip());
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
 
         experimentalProcedureService.updateById(procedure);
         log.info("数据收集步骤更新成功，步骤ID: {}", procedure.getId());
@@ -439,8 +437,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : procedure.getIsSkip());
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
 
         experimentalProcedureService.updateById(procedure);
         log.info("题库练习步骤更新成功，步骤ID: {}", procedure.getId());
@@ -504,8 +501,9 @@ public class TeacherProcedureCreationService {
         log.info("插入视频观看步骤，实验ID: {}, 插入位置afterNumber: {}", request.getExperimentId(), request.getAfterNumber());
 
         // 验证必填字段
-        validateCommonFieldsForCreate(request.getExperimentId(),
-                request.getStartTime(), request.getEndTime());
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
 
         if (request.getVideoId() == null) {
             throw new com.example.demo.exception.BusinessException(400, "视频ID不能为空");
@@ -539,8 +537,7 @@ public class TeacherProcedureCreationService {
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
         procedure.setVideoId(request.getVideoId());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
         procedure.setIsDeleted(false);
 
         experimentalProcedureService.save(procedure);
@@ -560,8 +557,9 @@ public class TeacherProcedureCreationService {
         log.info("插入数据收集步骤，实验ID: {}, 插入位置afterNumber: {}", request.getExperimentId(), request.getAfterNumber());
 
         // 验证必填字段
-        validateCommonFieldsForCreate(request.getExperimentId(),
-                request.getStartTime(), request.getEndTime());
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
 
         if (request.getDataType() == null) {
             throw new com.example.demo.exception.BusinessException(400, "数据类型不能为空");
@@ -613,8 +611,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
         procedure.setIsDeleted(false);
 
         experimentalProcedureService.save(procedure);
@@ -657,8 +654,9 @@ public class TeacherProcedureCreationService {
         log.info("插入题库练习步骤，实验ID: {}, 插入位置afterNumber: {}", request.getExperimentId(), request.getAfterNumber());
 
         // 验证必填字段
-        validateCommonFieldsForCreate(request.getExperimentId(),
-                request.getStartTime(), request.getEndTime());
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
 
         if (request.getIsRandom() == null) {
             throw new com.example.demo.exception.BusinessException(400, "是否随机抽取不能为空");
@@ -703,8 +701,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        procedure.setStartTime(request.getStartTime());
-        procedure.setEndTime(request.getEndTime());
+        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
         procedure.setIsDeleted(false);
 
         experimentalProcedureService.save(procedure);
@@ -821,26 +818,6 @@ public class TeacherProcedureCreationService {
         } catch (Exception e) {
             log.error("构建正确答案JSON失败", e);
             throw new com.example.demo.exception.BusinessException(500, "构建正确答案失败");
-        }
-    }
-
-    /**
-     * 验证创建步骤的公共必填字段（不验证number）
-     */
-    private void validateCommonFieldsForCreate(Long experimentId,
-                                               java.time.LocalDateTime startTime,
-                                               java.time.LocalDateTime endTime) {
-        if (experimentId == null) {
-            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
-        }
-        if (startTime == null) {
-            throw new com.example.demo.exception.BusinessException(400, "步骤开始时间不能为空");
-        }
-        if (endTime == null) {
-            throw new com.example.demo.exception.BusinessException(400, "步骤结束时间不能为空");
-        }
-        if (startTime.isAfter(endTime)) {
-            throw new com.example.demo.exception.BusinessException(400, "开始时间不能晚于结束时间");
         }
     }
 

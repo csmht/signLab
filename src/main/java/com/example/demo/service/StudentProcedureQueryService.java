@@ -33,6 +33,9 @@ public class StudentProcedureQueryService {
     private final TopicTagMapMapper topicTagMapMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final DownloadService downloadService;
+    private final ClassExperimentMapper classExperimentMapper;
+    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 查询已提交的步骤详情（带答案）
@@ -66,8 +69,37 @@ public class StudentProcedureQueryService {
             throw new BusinessException(404, "未找到提交记录");
         }
 
-        // 判断是否已过答题时间
-        boolean isAfterEndTime = LocalDateTime.now().isAfter(procedure.getEndTime());
+        // 查询班级实验时间配置
+        boolean isAfterEndTime = false;
+        try {
+            // 1. 通过用户名查询学生所属班级，获取 classCode
+            // 注意:这里需要通过学生信息获取班级,具体实现根据你的业务逻辑调整
+            // 暂时通过 courseId 和 username 查询
+
+            // 2. 查询该班级绑定的实验列表，找到匹配的 classExperimentId
+            QueryWrapper<com.example.demo.pojo.entity.ClassExperiment> classExperimentWrapper = new QueryWrapper<>();
+            classExperimentWrapper.eq("course_id", courseId);
+            classExperimentWrapper.eq("experiment_id", experimentId);
+            // 假设可以通过某种方式获取学生的 classCode
+            // 这里需要根据实际业务逻辑补充
+            com.example.demo.pojo.entity.ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentWrapper);
+
+            if (classExperiment != null) {
+                // 3. 从 ClassExperimentProcedureTime 表查询步骤时间配置
+                com.example.demo.pojo.entity.ClassExperimentProcedureTime procedureTime =
+                    classExperimentProcedureTimeService.getByClassExperimentAndProcedure(
+                        classExperiment.getId(), procedureId);
+
+                // 4. 判断是否已过答题时间
+                if (procedureTime != null && procedureTime.getEndTime() != null) {
+                    isAfterEndTime = LocalDateTime.now().isAfter(procedureTime.getEndTime());
+                }
+            }
+        } catch (Exception e) {
+            log.error("查询步骤时间配置失败", e);
+            // 如果查询失败,默认不允许查看答案
+            isAfterEndTime = false;
+        }
 
         StudentProcedureDetailWithAnswerResponse response = new StudentProcedureDetailWithAnswerResponse();
         response.setId(procedure.getId());
