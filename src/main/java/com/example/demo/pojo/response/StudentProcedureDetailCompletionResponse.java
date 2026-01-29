@@ -125,6 +125,11 @@ public class StudentProcedureDetailCompletionResponse {
          * 上传时间
          */
         private LocalDateTime uploadTime;
+
+        /**
+         * 文件下载密钥
+         */
+        private String downloadKey;
     }
 
     /**

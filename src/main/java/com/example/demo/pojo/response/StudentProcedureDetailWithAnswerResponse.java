@@ -285,5 +285,10 @@ public class StudentProcedureDetailWithAnswerResponse {
          * 创建时间
          */
         private LocalDateTime createTime;
+
+        /**
+         * 文件下载密钥
+         */
+        private String downloadKey;
     }
 }

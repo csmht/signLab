@@ -103,7 +103,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
             submission.setExperimentId(experimentId);
             submission.setStudentUsername(studentUsername);
             submission.setSubmissionType(submissionType);
-            submission.setFilePath(filePath);
+            submission.setFilePath(relativePath + File.separator + uniqueFileName);  // 只保存相对路径
             submission.setFileName(originalFilename);
             submission.setFileSize(file.getSize());
             submission.setSubmissionStatus(ProcedureSubmission.STATUS_NOT_GRADED); // 默认为未批改状态

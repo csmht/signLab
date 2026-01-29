@@ -262,7 +262,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             attachment.setFileFormat(extension);
             attachment.setOriginalFileName(originalFilename);
             attachment.setStoredFileName(uniqueFileName);
-            attachment.setFilePath(filePath);
+            attachment.setFilePath(relativePath + File.separator + uniqueFileName);  // 只保存相对路径
             attachment.setFileSize(file.getSize());
             attachment.setCreateTime(LocalDateTime.now());
 

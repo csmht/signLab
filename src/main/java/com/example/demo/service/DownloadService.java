@@ -45,6 +45,9 @@ public class DownloadService {
     @Value("${slz.download.play-expire-minutes:30}")
     private int playExpireMinutes;
 
+    /** 文件存储基础路径 */
+    private static final String FILE_BASE_PATH = "uploads" + File.separator + "signlab" + File.separator;
+
     /** 文件类型：视频 */
     private static final String TYPE_VIDEO = "video";
     /** 文件类型：步骤提交文件 */
@@ -104,13 +107,14 @@ public class DownloadService {
             throw new BusinessException(404, "视频文件不存在");
         }
 
-        File file = new File(videoFile.getFilePath());
+        String fullPath = FILE_BASE_PATH + videoFile.getFilePath();
+        File file = new File(fullPath);
         if (!file.exists()) {
             throw new BusinessException(404, "视频文件不存在");
         }
 
         VideoFileDownloadInfo downloadInfo = new VideoFileDownloadInfo();
-        downloadInfo.setFilePath(videoFile.getFilePath());
+        downloadInfo.setFilePath(fullPath);
         downloadInfo.setFileName(videoFile.getOriginalFileName());
         downloadInfo.setFileSize(videoFile.getFileSize());
         return downloadInfo;
@@ -134,11 +138,12 @@ public class DownloadService {
             if (submission == null) {
                 throw new BusinessException(404, "文件不存在");
             }
-            File file = new File(submission.getFilePath());
+            String fullPath = FILE_BASE_PATH + submission.getFilePath();
+            File file = new File(fullPath);
             if (!file.exists()) {
                 throw new BusinessException(404, "文件不存在");
             }
-            downloadInfo.setFilePath(submission.getFilePath());
+            downloadInfo.setFilePath(fullPath);
             downloadInfo.setFileName(submission.getFileName());
             downloadInfo.setFileSize(submission.getFileSize());
         } else if (TYPE_ATTACHMENT.equals(fileType)) {
@@ -146,11 +151,12 @@ public class DownloadService {
             if (attachment == null) {
                 throw new BusinessException(404, "文件不存在");
             }
-            File file = new File(attachment.getFilePath());
+            String fullPath = FILE_BASE_PATH + attachment.getFilePath();
+            File file = new File(fullPath);
             if (!file.exists()) {
                 throw new BusinessException(404, "文件不存在");
             }
-            downloadInfo.setFilePath(attachment.getFilePath());
+            downloadInfo.setFilePath(fullPath);
             downloadInfo.setFileName(attachment.getOriginalFileName());
             downloadInfo.setFileSize(attachment.getFileSize());
         } else {
@@ -219,13 +225,14 @@ public class DownloadService {
                 throw new BusinessException(404, "视频文件不存在");
             }
 
-            File file = new File(videoFile.getFilePath());
+            String fullPath = FILE_BASE_PATH + videoFile.getFilePath();
+            File file = new File(fullPath);
             if (!file.exists()) {
                 throw new BusinessException(404, "视频文件不存在");
             }
 
             VideoFilePlayInfo playInfo = new VideoFilePlayInfo();
-            playInfo.setFilePath(videoFile.getFilePath());
+            playInfo.setFilePath(fullPath);
             playInfo.setFileName(videoFile.getOriginalFileName());
             playInfo.setFileSize(videoFile.getFileSize());
             playInfo.setUsername(username);
