@@ -11,6 +11,7 @@ import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TopicMapper;
 import com.example.demo.mapper.VideoFileMapper;
 import com.example.demo.pojo.entity.ClassExperiment;
+import com.example.demo.pojo.entity.ClassExperimentProcedureTime;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.Experiment;
@@ -132,16 +133,18 @@ public class StudentExperimentService {
     /**
      * 构建步骤详情响应
      *
-     * @param procedure         步骤信息
-     * @param studentUsername   学生用户名
-     * @param classCode         班级编号
-     * @param studentProcedures 学生的步骤答案列表
+     * @param procedure           步骤信息
+     * @param studentUsername     学生用户名
+     * @param classCode           班级编号
+     * @param classExperimentId   班级实验ID
+     * @param studentProcedures   学生的步骤答案列表
      * @return 步骤详情响应
      */
     private StudentProcedureDetailResponse buildProcedureDetailResponse(
             ExperimentalProcedure procedure,
             String studentUsername,
             String classCode,
+            Long classExperimentId,
             List<StudentExperimentalProcedure> studentProcedures) {
 
         StudentProcedureDetailResponse response = new StudentProcedureDetailResponse();
@@ -156,10 +159,21 @@ public class StudentExperimentService {
         response.setVideoId(procedure.getVideoId());
         response.setDataCollectionId(procedure.getDataCollectionId());
         response.setProcedureTopicId(procedure.getProcedureTopicId());
-        response.setStartTime(procedure.getStartTime());
-        response.setEndTime(procedure.getEndTime());
 
-        // 2. 学生完成状态
+        // 2. 从 ClassExperimentProcedureTime 表查询步骤时间
+        ClassExperimentProcedureTime procedureTime = classExperimentProcedureTimeService
+                .getByClassExperimentAndProcedure(classExperimentId, procedure.getId());
+
+        if (procedureTime != null) {
+            response.setStartTime(procedureTime.getStartTime());
+            response.setEndTime(procedureTime.getEndTime());
+        } else {
+            // 如果未配置时间，设置为 null
+            response.setStartTime(null);
+            response.setEndTime(null);
+        }
+
+        // 3. 学生完成状态
         StudentExperimentalProcedure studentProcedure = studentProcedures.stream()
                 .filter(sp -> sp.getExperimentalProcedureId().equals(procedure.getId()))
                 .findFirst()
@@ -177,23 +191,24 @@ public class StudentExperimentService {
             response.setSubmissionTime(studentProcedure.getCreatedTime());
         }
 
-        // 3. 可访问性判断
+        // 4. 可访问性判断
         ProcedureAccessDeniedReason accessReason = studentExperimentalProcedureService
                 .checkProcedureAccessible(
                         procedure.getExperimentId(),
                         classCode,
                         studentUsername,
+                        classExperimentId,
                         procedure
                 );
 
         response.setIsAccessible(accessReason == ProcedureAccessDeniedReason.ACCESSIBLE);
         response.setInaccessibleReason(accessReason.getDescription());
 
-        // 4. 前置步骤完成状态（用于前端展示）
+        // 5. 前置步骤完成状态（用于前端展示）
         response.setIsPreviousCompleted(checkIfPreviousCompleted(
                 procedure, studentUsername, classCode));
 
-        // 5. 根据步骤类型查询详细信息
+        // 6. 根据步骤类型查询详细信息
         fillProcedureDetailByType(response, procedure);
 
         return response;
