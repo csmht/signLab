@@ -46,14 +46,14 @@ public class DownloadService {
     private int playExpireMinutes;
 
     /** 文件存储基础路径 */
-    private static final String FILE_BASE_PATH = "uploads" + File.separator + "signlab" + File.separator;
+    public static final String FILE_BASE_PATH = "uploads" + File.separator + "signlab" + File.separator;
 
     /** 文件类型：视频 */
-    private static final String TYPE_VIDEO = "video";
+    public static final String TYPE_VIDEO = "video";
     /** 文件类型：步骤提交文件 */
-    private static final String TYPE_SUBMISSION = "submission";
+    public static final String TYPE_SUBMISSION = "submission";
     /** 文件类型：步骤附件 */
-    private static final String TYPE_ATTACHMENT = "attachment";
+    public static final String TYPE_ATTACHMENT = "attachment";
 
     /**
      * 生成视频下载密钥
