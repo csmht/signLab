@@ -46,7 +46,8 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             "/api/student/download/word/**",
             "/api/assignment/download/**",
             "/actuator/**",
-            "/error"
+            "/error",
+            "/api/download/*"
     );
 
     @Override
