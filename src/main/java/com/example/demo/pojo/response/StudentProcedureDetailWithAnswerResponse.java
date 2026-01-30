@@ -39,6 +39,17 @@ public class StudentProcedureDetailWithAnswerResponse {
     private Integer proportion;
 
     /**
+     * 是否可修改
+     * true-可以修改，false-不可修改
+     */
+    private Boolean isModifiable;
+
+    /**
+     * 不可修改的原因（当isModifiable为false时返回）
+     */
+    private String notModifiableReason;
+
+    /**
      * 提交时间
      */
     private LocalDateTime submissionTime;
@@ -74,6 +85,11 @@ public class StudentProcedureDetailWithAnswerResponse {
      * 题库详情（类型3）
      */
     private TopicDetail topicDetail;
+
+    /**
+     * 限时答题详情（类型5）
+     */
+    private TimedQuizDetail timedQuizDetail;
 
     /**
      * 视频详情
@@ -221,9 +237,9 @@ public class StudentProcedureDetailWithAnswerResponse {
         private String content;
 
         /**
-         * 选项内容
+         * 选项内容（key: 选项字母如A、B、C、D，value: 选项内容）
          */
-        private String choices;
+        private Map<String, String> choices;
 
         /**
          * 学生答案
@@ -244,6 +260,62 @@ public class StudentProcedureDetailWithAnswerResponse {
          * 得分
          */
         private BigDecimal score;
+
+        public void setChoices(Map<String,String> choices){
+            this.choices = choices;
+        }
+
+        // 将答案从String变为Map
+        public void setChoices(String choices) {
+            if (choices == null || choices.trim().isEmpty()) {
+                setChoices(Map.of());
+                return;
+            }
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                setChoices(mapper.readValue(choices,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {}));
+            } catch (Exception e) {
+                // 解析失败时设置为null
+                setChoices(Map.of());
+            }
+        }
+    }
+
+    /**
+     * 限时答题详情（类型5）
+     */
+    @Data
+    public static class TimedQuizDetail {
+        /**
+         * 限时答题配置ID
+         */
+        private Long id;
+
+        /**
+         * 是否随机抽取题目
+         */
+        private Boolean isRandom;
+
+        /**
+         * 题目数量
+         */
+        private Integer number;
+
+        /**
+         * 答题时间限制（分钟）
+         */
+        private Integer quizTimeLimit;
+
+        /**
+         * 是否已锁定
+         */
+        private Boolean isLocked;
+
+        /**
+         * 题目列表（带答案）
+         */
+        private List<TopicItem> topics;
     }
 
     /**

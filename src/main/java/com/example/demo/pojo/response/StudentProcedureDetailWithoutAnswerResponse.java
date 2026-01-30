@@ -3,6 +3,7 @@ package com.example.demo.pojo.response;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 学生步骤详情响应（未提交）
@@ -49,6 +50,11 @@ public class StudentProcedureDetailWithoutAnswerResponse {
      * 题库详情（类型3）
      */
     private TopicDetail topicDetail;
+
+    /**
+     * 限时答题详情（类型5）
+     */
+    private TimedQuizDetail timedQuizDetail;
 
     /**
      * 视频详情
@@ -164,8 +170,69 @@ public class StudentProcedureDetailWithoutAnswerResponse {
         private String content;
 
         /**
-         * 选项内容
+         * 选项内容（key: 选项字母如A、B、C、D，value: 选项内容）
          */
-        private String choices;
+        private Map<String, String> choices;
+
+        public void setChoices(Map<String,String> choices){
+            this.choices = choices;
+        }
+
+        // 将答案从String变为Map
+        public void setChoices(String choices) {
+            if (choices == null || choices.trim().isEmpty()) {
+                setChoices(Map.of());
+                return;
+            }
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                setChoices(mapper.readValue(choices,
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {}));
+            } catch (Exception e) {
+                // 解析失败时设置为null
+                setChoices(Map.of());
+            }
+        }
+    }
+
+    /**
+     * 限时答题详情（类型5）
+     */
+    @Data
+    public static class TimedQuizDetail {
+        /**
+         * 限时答题配置ID
+         */
+        private Long id;
+
+        /**
+         * 是否随机抽取题目
+         */
+        private Boolean isRandom;
+
+        /**
+         * 题目数量
+         */
+        private Integer number;
+
+        /**
+         * 答题时间限制（分钟）
+         */
+        private Integer quizTimeLimit;
+
+        /**
+         * 密钥（用于后续提交验证）
+         */
+        private String secretKey;
+
+        /**
+         * 剩余答题时间（秒）
+         */
+        private Long remainingTime;
+
+        /**
+         * 题目列表（不含答案）
+         */
+        private List<TopicItem> topics;
     }
 }

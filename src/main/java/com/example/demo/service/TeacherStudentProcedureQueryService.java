@@ -34,6 +34,7 @@ public class TeacherStudentProcedureQueryService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final DataCollectionMapper dataCollectionMapper;
     private final VideoFileMapper videoFileMapper;
+    private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final DownloadService downloadService;
 
@@ -974,6 +975,649 @@ public class TeacherStudentProcedureQueryService {
         } catch (Exception e) {
             log.warn("解析题库答案失败: {}", e.getMessage());
             return new HashMap<>();
+        }
+    }
+
+    // ============================================
+    // 按类型分化的专门查询方法
+    // ============================================
+
+    /**
+     * 查询学生已提交的视频观看步骤详情
+     */
+    public com.example.demo.pojo.response.StudentVideoProcedureDetailResponse getStudentCompletedVideoProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生已提交视频观看步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(1).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是视频观看");
+        }
+
+        // 查询学生提交记录
+        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
+        wrapper.eq("experimental_procedure_id", procedureId);
+        wrapper.eq("student_username", studentUsername);
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
+
+        if (studentProcedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "未找到提交记录");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentVideoProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentVideoProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+        response.setSubmissionTime(studentProcedure.getCreatedTime());
+        response.setScore(studentProcedure.getScore());
+        response.setTeacherComment(studentProcedure.getTeacherComment());
+
+        // 填充视频详情
+        if (procedure.getVideoId() != null) {
+            VideoFile videoFile = videoFileMapper.selectById(procedure.getVideoId());
+            if (videoFile != null) {
+                com.example.demo.pojo.response.StudentVideoProcedureDetailResponse.VideoDetail detail =
+                    new com.example.demo.pojo.response.StudentVideoProcedureDetailResponse.VideoDetail();
+                detail.setId(videoFile.getId());
+                detail.setTitle(videoFile.getOriginalFileName());
+                detail.setSeconds(videoFile.getVideoSeconds());
+                detail.setFilePath(videoFile.getFilePath());
+                detail.setFileSize(videoFile.getFileSize());
+                response.setVideoDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生未提交的视频观看步骤详情
+     */
+    public com.example.demo.pojo.response.StudentVideoProcedureDetailResponse getStudentUncompletedVideoProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生未提交视频观看步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(1).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是视频观看");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentVideoProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentVideoProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+
+        // 填充视频详情
+        if (procedure.getVideoId() != null) {
+            VideoFile videoFile = videoFileMapper.selectById(procedure.getVideoId());
+            if (videoFile != null) {
+                com.example.demo.pojo.response.StudentVideoProcedureDetailResponse.VideoDetail detail =
+                    new com.example.demo.pojo.response.StudentVideoProcedureDetailResponse.VideoDetail();
+                detail.setId(videoFile.getId());
+                detail.setTitle(videoFile.getOriginalFileName());
+                detail.setSeconds(videoFile.getVideoSeconds());
+                detail.setFilePath(videoFile.getFilePath());
+                detail.setFileSize(videoFile.getFileSize());
+                response.setVideoDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生已提交的数据收集步骤详情
+     */
+    public com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse getStudentCompletedDataCollectionProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生已提交数据收集步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(2).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是数据收集");
+        }
+
+        // 查询学生提交记录
+        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
+        wrapper.eq("experimental_procedure_id", procedureId);
+        wrapper.eq("student_username", studentUsername);
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
+
+        if (studentProcedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "未找到提交记录");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+        response.setSubmissionTime(studentProcedure.getCreatedTime());
+        response.setScore(studentProcedure.getScore());
+        response.setTeacherComment(studentProcedure.getTeacherComment());
+
+        // 填充数据收集详情
+        if (procedure.getDataCollectionId() != null) {
+            DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
+            if (dataCollection != null) {
+                com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.DataCollectionDetail detail =
+                    new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.DataCollectionDetail();
+                detail.setId(dataCollection.getId());
+                detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
+                detail.setRemark(dataCollection.getRemark());
+                detail.setNeedPhoto(dataCollection.getNeedPhoto());
+                detail.setNeedDoc(dataCollection.getNeedDoc());
+
+                // 查询附件信息
+                QueryWrapper<StudentProcedureAttachment> attachmentWrapper = new QueryWrapper<>();
+                attachmentWrapper.eq("procedure_id", procedure.getId());
+                attachmentWrapper.eq("student_username", studentUsername);
+                List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
+
+                List<com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo> photos = new ArrayList<>();
+                List<com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo> documents = new ArrayList<>();
+
+                for (StudentProcedureAttachment attachment : attachments) {
+                    com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo info =
+                        new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo();
+                    info.setId(attachment.getId());
+                    info.setFileType(attachment.getFileType());
+                    info.setFileFormat(attachment.getFileFormat());
+                    info.setOriginalFileName(attachment.getOriginalFileName());
+                    info.setFileSize(attachment.getFileSize());
+                    info.setRemark(attachment.getRemark());
+                    info.setCreateTime(attachment.getCreateTime());
+
+                    // 生成文件下载密钥
+                    String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+                    if (currentUsername != null) {
+                        String downloadKey = downloadService.generateFileKey(
+                            DownloadService.TYPE_ATTACHMENT, attachment.getId(), currentUsername);
+                        info.setDownloadKey(downloadKey);
+                    }
+
+                    if (attachment.getFileType() == 1) {
+                        photos.add(info);
+                    } else if (attachment.getFileType() == 2) {
+                        documents.add(info);
+                    }
+                }
+
+                detail.setPhotos(photos);
+                detail.setDocuments(documents);
+
+                // 解析答案JSON
+                String answer = studentProcedure.getAnswer();
+                if (answer != null && !answer.isEmpty()) {
+                    try {
+                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        Map<String, Object> answerMap = mapper.readValue(answer,
+                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> fillBlankAnswers = (Map<String, String>) answerMap.get("fillBlankAnswers");
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
+
+                        detail.setFillBlankAnswers(fillBlankAnswers);
+                        detail.setTableCellAnswers(tableCellAnswers);
+                    } catch (Exception e) {
+                        log.warn("解析数据收集答案失败: {}", e.getMessage());
+                    }
+                }
+
+                // 正确答案
+                if (dataCollection.getCorrectAnswer() != null) {
+                    detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
+                }
+
+                response.setDataCollectionDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生未提交的数据收集步骤详情
+     */
+    public com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse getStudentUncompletedDataCollectionProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生未提交数据收集步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(2).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是数据收集");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+
+        // 填充数据收集详情（不含学生答案）
+        if (procedure.getDataCollectionId() != null) {
+            DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
+            if (dataCollection != null) {
+                com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.DataCollectionDetail detail =
+                    new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.DataCollectionDetail();
+                detail.setId(dataCollection.getId());
+                detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
+                detail.setRemark(dataCollection.getRemark());
+                detail.setNeedPhoto(dataCollection.getNeedPhoto());
+                detail.setNeedDoc(dataCollection.getNeedDoc());
+
+                // 正确答案
+                if (dataCollection.getCorrectAnswer() != null) {
+                    detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
+                }
+
+                response.setDataCollectionDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生已提交的题库答题步骤详情
+     */
+    public com.example.demo.pojo.response.StudentTopicProcedureDetailResponse getStudentCompletedTopicProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生已提交题库答题步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(3).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是题库答题");
+        }
+
+        // 查询学生提交记录
+        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
+        wrapper.eq("experimental_procedure_id", procedureId);
+        wrapper.eq("student_username", studentUsername);
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
+
+        if (studentProcedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "未找到提交记录");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentTopicProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentTopicProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+        response.setSubmissionTime(studentProcedure.getCreatedTime());
+        response.setScore(studentProcedure.getScore());
+        response.setTeacherComment(studentProcedure.getTeacherComment());
+
+        // 填充题库详情
+        if (procedure.getProcedureTopicId() != null) {
+            ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+            if (procedureTopic != null) {
+                com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicDetail detail =
+                    new com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicDetail();
+                detail.setId(procedureTopic.getId());
+                detail.setIsRandom(procedureTopic.getIsRandom());
+                detail.setNumber(procedureTopic.getNumber());
+                detail.setTags(procedureTopic.getTags());
+
+                // 查询题目列表
+                List<Topic> topics = getTopicsForProcedureTeacher(procedureTopic);
+                List<com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+
+                // 解析学生答案
+                Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+                for (Topic topic : topics) {
+                    com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem item =
+                        new com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(topic.getChoices());
+
+                    String studentAnswer = studentAnswers.get(topic.getId());
+                    item.setStudentAnswer(studentAnswer);
+
+                    // 教师始终可以查看正确答案和是否正确
+                    item.setCorrectAnswer(topic.getCorrectAnswer());
+
+                    if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                        item.setIsCorrect(true);
+                    } else {
+                        item.setIsCorrect(false);
+                    }
+
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTopicDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生未提交的题库答题步骤详情
+     */
+    public com.example.demo.pojo.response.StudentTopicProcedureDetailResponse getStudentUncompletedTopicProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生未提交题库答题步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(3).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是题库答题");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentTopicProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentTopicProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+
+        // 填充题库详情（不含答案）
+        if (procedure.getProcedureTopicId() != null) {
+            ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+            if (procedureTopic != null) {
+                com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicDetail detail =
+                    new com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicDetail();
+                detail.setId(procedureTopic.getId());
+                detail.setIsRandom(procedureTopic.getIsRandom());
+                detail.setNumber(procedureTopic.getNumber());
+                detail.setTags(procedureTopic.getTags());
+
+                // 查询题目列表（不含答案）
+                List<Topic> topics = getTopicsForProcedureTeacher(procedureTopic);
+                List<com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+
+                for (Topic topic : topics) {
+                    com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem item =
+                        new com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(topic.getChoices());
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTopicDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生已提交的限时答题步骤详情
+     */
+    public com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse getStudentCompletedTimedQuizProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生已提交限时答题步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(5).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是限时答题");
+        }
+
+        // 查询学生提交记录
+        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
+        wrapper.eq("experimental_procedure_id", procedureId);
+        wrapper.eq("student_username", studentUsername);
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
+
+        if (studentProcedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "未找到提交记录");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+        response.setSubmissionTime(studentProcedure.getCreatedTime());
+        response.setScore(studentProcedure.getScore());
+        response.setTeacherComment(studentProcedure.getTeacherComment());
+
+        // 填充限时答题详情
+        if (procedure.getTimedQuizId() != null) {
+            TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+            if (timedQuiz != null) {
+                com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TimedQuizDetail detail =
+                    new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TimedQuizDetail();
+                detail.setId(timedQuiz.getId());
+                detail.setIsRandom(timedQuiz.getIsRandom());
+                detail.setNumber(timedQuiz.getTopicNumber());
+                detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+                detail.setIsLocked(studentProcedure.getIsLocked());
+
+                // 查询题目列表
+                List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
+                List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+
+                // 解析学生答案
+                Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+                for (Topic topic : topics) {
+                    com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem item =
+                        new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(topic.getChoices());
+
+                    String studentAnswer = studentAnswers.get(topic.getId());
+                    item.setStudentAnswer(studentAnswer);
+
+                    // 教师始终可以查看正确答案和是否正确
+                    item.setCorrectAnswer(topic.getCorrectAnswer());
+
+                    if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                        item.setIsCorrect(true);
+                    } else {
+                        item.setIsCorrect(false);
+                    }
+
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTimedQuizDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 查询学生未提交的限时答题步骤详情
+     */
+    public com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse getStudentUncompletedTimedQuizProcedure(
+            String studentUsername, String courseId, Long experimentId, Long procedureId) {
+
+        log.info("教师查询学生未提交限时答题步骤详情，学生: {}, 步骤: {}", studentUsername, procedureId);
+
+        // 查询步骤基本信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        if (!Integer.valueOf(5).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不是限时答题");
+        }
+
+        // 构建响应
+        com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse response =
+            new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse();
+        response.setId(procedure.getId());
+        response.setNumber(procedure.getNumber());
+        response.setRemark(procedure.getRemark());
+        response.setProportion(procedure.getProportion());
+
+        // 填充限时答题详情（不含答案）
+        if (procedure.getTimedQuizId() != null) {
+            TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+            if (timedQuiz != null) {
+                com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TimedQuizDetail detail =
+                    new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TimedQuizDetail();
+                detail.setId(timedQuiz.getId());
+                detail.setIsRandom(timedQuiz.getIsRandom());
+                detail.setNumber(timedQuiz.getTopicNumber());
+                detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+
+                // 查询题目列表（不含答案）
+                List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
+                List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+
+                for (Topic topic : topics) {
+                    com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem item =
+                        new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(topic.getChoices());
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTimedQuizDetail(detail);
+            }
+        }
+
+        return response;
+    }
+
+    /**
+     * 获取限时答题的题目列表
+     */
+    private List<Topic> getTopicsForTimedQuizProcedure(ExperimentalProcedure procedure, TimedQuizProcedure timedQuiz) {
+        if (Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+            // 随机模式：使用现有的随机题目方法
+            if (timedQuiz.getTopicTags() != null && !timedQuiz.getTopicTags().isEmpty()) {
+                String[] tagIds = timedQuiz.getTopicTags().split(",");
+                List<Long> tagIdList = Arrays.stream(tagIds)
+                    .filter(s -> s != null && !s.isEmpty())
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+
+                if (!tagIdList.isEmpty()) {
+                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
+                    tagWrapper.in("tag_id", tagIdList);
+                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+
+                    if (!topicTagMaps.isEmpty()) {
+                        List<Long> topicIds = topicTagMaps.stream()
+                            .map(TopicTagMap::getTopicId)
+                            .distinct()
+                            .collect(Collectors.toList());
+
+                        if (!topicIds.isEmpty()) {
+                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
+                            topicWrapper.in("id", topicIds);
+
+                            // 添加题目类型过滤
+                            if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
+                                String[] typeArray = timedQuiz.getTopicTypes().split(",");
+                                List<Integer> types = Arrays.stream(typeArray)
+                                    .filter(s -> s != null && !s.isEmpty())
+                                    .map(Integer::parseInt)
+                                    .collect(Collectors.toList());
+                                if (!types.isEmpty()) {
+                                    topicWrapper.in("type", types);
+                                }
+                            }
+
+                            topicWrapper.orderByAsc("number");
+                            return topicMapper.selectList(topicWrapper);
+                        }
+                    }
+                }
+            }
+            return new ArrayList<>();
+        } else {
+            // 老师选定模式：从题库详情映射表查询
+            QueryWrapper<ProcedureTopicMap> mapWrapper = new QueryWrapper<>();
+            mapWrapper.eq("experimental_procedure_id", procedure.getId());
+            mapWrapper.orderByAsc("id");
+            List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(mapWrapper);
+
+            if (!topicMaps.isEmpty()) {
+                List<Long> topicIds = topicMaps.stream()
+                    .map(ProcedureTopicMap::getTopicId)
+                    .collect(Collectors.toList());
+
+                QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
+                topicWrapper.in("id", topicIds);
+                topicWrapper.orderByAsc("number");
+                return topicMapper.selectList(topicWrapper);
+            }
+            return new ArrayList<>();
         }
     }
 }

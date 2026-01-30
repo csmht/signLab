@@ -21,6 +21,10 @@ import com.example.demo.pojo.response.StudentProcedureCompletionResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailCompletionResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
+import com.example.demo.pojo.response.StudentVideoProcedureDetailResponse;
+import com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse;
+import com.example.demo.pojo.response.StudentTopicProcedureDetailResponse;
+import com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse;
 import com.example.demo.service.TeacherStudentProcedureQueryService;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import lombok.RequiredArgsConstructor;
@@ -352,6 +356,242 @@ public class TeacherStudentController {
             return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
             log.error("查询班级实验完成统计失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    // ============================================
+    // 按类型分化的专门查询接口
+    // ============================================
+
+    /**
+     * 查询学生已提交的视频观看步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 视频观看步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/video/{procedureId}/completed")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentVideoProcedureDetailResponse> getStudentCompletedVideoProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentVideoProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentCompletedVideoProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生已提交视频观看步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生未提交的视频观看步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 视频观看步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/video/{procedureId}/uncompleted")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentVideoProcedureDetailResponse> getStudentUncompletedVideoProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentVideoProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentUncompletedVideoProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生未提交视频观看步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生已提交的数据收集步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 数据收集步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/data-collection/{procedureId}/completed")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentDataCollectionProcedureDetailResponse> getStudentCompletedDataCollectionProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentDataCollectionProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentCompletedDataCollectionProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生已提交数据收集步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生未提交的数据收集步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 数据收集步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/data-collection/{procedureId}/uncompleted")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentDataCollectionProcedureDetailResponse> getStudentUncompletedDataCollectionProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentDataCollectionProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentUncompletedDataCollectionProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生未提交数据收集步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生已提交的题库答题步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 题库答题步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/topic/{procedureId}/completed")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentTopicProcedureDetailResponse> getStudentCompletedTopicProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentTopicProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentCompletedTopicProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生已提交题库答题步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生未提交的题库答题步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 题库答题步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/topic/{procedureId}/uncompleted")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentTopicProcedureDetailResponse> getStudentUncompletedTopicProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentTopicProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentUncompletedTopicProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生未提交题库答题步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生已提交的限时答题步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 限时答题步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/timed-quiz/{procedureId}/completed")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentTimedQuizProcedureDetailResponse> getStudentCompletedTimedQuizProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentTimedQuizProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentCompletedTimedQuizProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生已提交限时答题步骤详情失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询学生未提交的限时答题步骤详情
+     *
+     * @param studentUsername 学生用户名
+     * @param courseId 课程ID
+     * @param experimentId 实验ID
+     * @param procedureId 步骤ID
+     * @return 限时答题步骤详情
+     */
+    @GetMapping("/{studentUsername}/procedures/timed-quiz/{procedureId}/uncompleted")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentTimedQuizProcedureDetailResponse> getStudentUncompletedTimedQuizProcedure(
+            @PathVariable("studentUsername") String studentUsername,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("experimentId") Long experimentId,
+            @PathVariable("procedureId") Long procedureId) {
+        try {
+            StudentTimedQuizProcedureDetailResponse response =
+                    teacherStudentProcedureQueryService.getStudentUncompletedTimedQuizProcedure(
+                            studentUsername, courseId, experimentId, procedureId);
+            return ApiResponse.success(response, "查询成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("查询学生未提交限时答题步骤详情失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
