@@ -61,6 +61,16 @@ public class InsertTopicProcedureRequest {
      */
     private List<Long> teacherSelectedTopicIds;
 
+    /**
+     * 步骤开始时间偏移量(分钟),默认为0
+     */
+    private Integer offsetMinutes;
+
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
+
 
     /**
      * 转为String

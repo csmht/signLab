@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.enums.ProcedureAccessDeniedReason;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.StudentExperimentalProcedureMapper;
-import com.example.demo.pojo.entity.ClassExperimentProcedureTime;
+import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
+import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +28,7 @@ import java.util.List;
 public class StudentExperimentalProcedureService extends ServiceImpl<StudentExperimentalProcedureMapper, StudentExperimentalProcedure> {
 
     private final ExperimentalProcedureService experimentalProcedureService;
-    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
+    private final ClassExperimentMapper classExperimentMapper;
 
     /**
      * 查询学生在指定班级实验中的所有步骤答案
@@ -103,19 +105,27 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. 从 ClassExperimentProcedureTime 表查询时间配置
-        ClassExperimentProcedureTime procedureTime = classExperimentProcedureTimeService
-                .getByClassExperimentAndProcedure(classExperimentId, currentProcedure.getId());
-
-        if (procedureTime == null) {
-            // 如果未配置时间，抛出异常
-            throw new BusinessException(500, "步骤时间配置不存在，请联系教师");
+        // 1. 查询班级实验获取实验开始时间
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
         }
 
-        LocalDateTime startTime = procedureTime.getStartTime();
-        LocalDateTime endTime = procedureTime.getEndTime();
+        // 2. 计算步骤的开始和结束时间
+        LocalDateTime startTime = ProcedureTimeCalculator.calculateStartTime(
+                classExperiment.getStartTime(),
+                currentProcedure.getOffsetMinutes()
+        );
+        LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                startTime,
+                currentProcedure.getDurationMinutes()
+        );
 
-        // 2. 检查时间窗口
+        if (startTime == null || endTime == null) {
+            throw new BusinessException(500, "步骤时间配置不完整，请联系教师");
+        }
+
+        // 3. 检查时间窗口
         if (now.isBefore(startTime)) {
             return ProcedureAccessDeniedReason.NOT_STARTED;
         }
@@ -124,20 +134,20 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
             return ProcedureAccessDeniedReason.EXPIRED;
         }
 
-        // 3. 如果是第一个步骤，且时间窗口满足，则可访问
+        // 4. 如果是第一个步骤，且时间窗口满足，则可访问
         if (currentProcedure.getNumber() == 1) {
             return ProcedureAccessDeniedReason.ACCESSIBLE;
         }
 
-        // 4. 检查是否可跳过
+        // 5. 检查是否可跳过
         if (Boolean.TRUE.equals(currentProcedure.getIsSkip())) {
             return ProcedureAccessDeniedReason.ACCESSIBLE;
         }
 
-        // 5. 查询所有步骤，按序号排序
+        // 6. 查询所有步骤，按序号排序
         List<ExperimentalProcedure> allProcedures = experimentalProcedureService.getByExperimentId(experimentId);
 
-        // 6. 检查前置步骤是否完成或已过期
+        // 7. 检查前置步骤是否完成或已过期
         for (ExperimentalProcedure procedure : allProcedures) {
             // 只需要检查序号小于当前步骤的步骤
             if (procedure.getNumber() >= currentProcedure.getNumber()) {
@@ -151,15 +161,21 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
 
                 // 如果前置步骤未完成，检查是否已过期
                 if (!isCompleted) {
-                    // 查询该前置步骤的时间配置
-                    ClassExperimentProcedureTime prevProcedureTime = classExperimentProcedureTimeService
-                            .getByClassExperimentAndProcedure(classExperimentId, procedure.getId());
+                    // 计算前置步骤的结束时间
+                    LocalDateTime prevProcedureStartTime = ProcedureTimeCalculator.calculateStartTime(
+                            classExperiment.getStartTime(),
+                            procedure.getOffsetMinutes()
+                    );
+                    LocalDateTime prevProcedureEndTime = ProcedureTimeCalculator.calculateEndTime(
+                            prevProcedureStartTime,
+                            procedure.getDurationMinutes()
+                    );
 
-                    if (prevProcedureTime == null) {
-                        throw new BusinessException(500, "前置步骤时间配置不存在，请联系教师");
+                    if (prevProcedureEndTime == null) {
+                        throw new BusinessException(500, "前置步骤时间配置不完整，请联系教师");
                     }
 
-                    boolean isExpired = now.isAfter(prevProcedureTime.getEndTime());
+                    boolean isExpired = now.isAfter(prevProcedureEndTime);
                     if (!isExpired) {
                         return ProcedureAccessDeniedReason.PREVIOUS_NOT_COMPLETED;
                     }
@@ -213,6 +229,60 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
             throw new BusinessException(500, "标记视频观看失败");
         }
 
-        log.info("学生 {} 在班级 {} 标记视频 {} 已观看", studentUsername, classCode, experimentalProcedureId);
+        log.info("学生 {} 在班级 {} 标���视频 {} 已观看", studentUsername, classCode, experimentalProcedureId);
+    }
+
+    /**
+     * 判断学生步骤是否可修改
+     *
+     * @param studentUsername 学生用户名
+     * @param classCode       班级编号
+     * @param experimentalProcedureId 实验步骤ID
+     * @return 是否可修改
+     */
+    public boolean isProcedureModifiable(String studentUsername, String classCode, Long experimentalProcedureId) {
+        // 1. 查询提交记录
+        StudentExperimentalProcedure existing = getByStudentAndProcedure(
+                studentUsername, classCode, experimentalProcedureId);
+        if (existing == null) {
+            return false; // 未提交
+        }
+
+        // 2. 检查是否已教师评分
+        if (existing.getIsGraded() != null && existing.getIsGraded() == 1) {
+            return false; // 已教师评分
+        }
+
+        // 3. 查询步骤时间配置
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(experimentalProcedureId);
+        if (procedure == null || procedure.getIsDeleted()) {
+            return false;
+        }
+
+        // 4. 查询班级实验时间
+        QueryWrapper<ClassExperiment> wrapper = new QueryWrapper<>();
+        wrapper.eq("class_code", classCode);
+        wrapper.eq("experiment_id", procedure.getExperimentId());
+        ClassExperiment classExperiment = classExperimentMapper.selectOne(wrapper);
+
+        if (classExperiment == null) {
+            return false;
+        }
+
+        // 5. 计算步骤结束时间
+        LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                ProcedureTimeCalculator.calculateStartTime(
+                        classExperiment.getStartTime(),
+                        procedure.getOffsetMinutes()
+                ),
+                procedure.getDurationMinutes()
+        );
+
+        // 6. 检查是否在时间窗口内
+        if (endTime == null || LocalDateTime.now().isAfter(endTime)) {
+            return false; // 已过结束时间
+        }
+
+        return true;
     }
 }

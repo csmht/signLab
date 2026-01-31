@@ -7,12 +7,16 @@ import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.StudentProcedureAttachmentMapper;
+import com.example.demo.mapper.TimedQuizProcedureMapper;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
 import com.example.demo.pojo.entity.ProcedureTopicMap;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentProcedureAttachment;
+import com.example.demo.pojo.entity.TimedQuizProcedure;
+import com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest;
+import com.example.demo.util.TimedQuizKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,6 +48,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final DataCollectionMapper dataCollectionMapper;
+    private final TimedQuizProcedureMapper timedQuizProcedureMapper;
+    private final TimedQuizKeyGenerator timedQuizKeyGenerator;
 
     /** 步骤附件存储根路径 */
     private static final String ATTACHMENT_ROOT_PATH = "uploads" + File.separator + "procedure-attachments";
@@ -59,7 +65,14 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     @Transactional(rollbackFor = Exception.class)
     public void completeTopicProcedure(String studentUsername, String classCode,
                                        Long procedureId, Map<Long, String> answers) {
-        // 1. 查询并验证步骤信息
+        // 1. 检查是否已提交
+        StudentExperimentalProcedure existing = studentExperimentalProcedureService.getByStudentAndProcedure(
+                studentUsername, classCode, procedureId);
+        if (existing != null) {
+            throw new BusinessException(400, "该步骤已提交，如需修改请使用修改接口");
+        }
+
+        // 2. 查询并验证步骤信息
         ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
         if (procedure == null || procedure.getIsDeleted()) {
             throw new BusinessException(404, "实验步骤不存在");
@@ -69,7 +82,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是题库答题类型");
         }
 
-        // 2. 查询题库配置，判断是随机还是老师选定
+        // 3. 查询题库配置，判断是随机还是老师选定
         ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
         if (procedureTopic == null) {
             throw new BusinessException(404, "题库配置不存在");
@@ -131,7 +144,14 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                                                 java.util.Map<String, String> tableCellAnswers,
                                                 List<MultipartFile> photos,
                                                 List<MultipartFile> documents) {
-        // 1. 查询并验证步骤信息
+        // 1. 检查是否已提交
+        StudentExperimentalProcedure existing = studentExperimentalProcedureService.getByStudentAndProcedure(
+                studentUsername, classCode, procedureId);
+        if (existing != null) {
+            throw new BusinessException(400, "该步骤已提交，如需修改请使用修改接口");
+        }
+
+        // 2. 查询并验证步骤信息
         ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
         if (procedure == null || procedure.getIsDeleted()) {
             throw new BusinessException(404, "实验步骤不存在");
@@ -141,7 +161,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是数据收集类型");
         }
 
-        // 2. 将答案转换为JSON格式存储
+        // 3. 将答案转换为JSON格式存储
         String answerJson = convertAnswersToJson(fillBlankAnswers, tableCellAnswers);
 
         // 3. 创建学生步骤答案记录
@@ -406,5 +426,286 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             return filename.substring(lastDotIndex + 1).toLowerCase();
         }
         return "";
+    }
+
+    /**
+     * 修改题库练习答案（类型3）
+     *
+     * @param studentUsername 学生用户名
+     * @param classCode       班级编号
+     * @param procedureId     实验步骤ID
+     * @param answers         题目答案Map
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTopicProcedure(String studentUsername, String classCode,
+                                      Long procedureId, Map<Long, String> answers) {
+        // 1. 验证是否可修改
+        if (!studentExperimentalProcedureService.isProcedureModifiable(
+                studentUsername, classCode, procedureId)) {
+            throw new BusinessException(400, "当前不允许修改该步骤");
+        }
+
+        // 2. 查询并验证步骤信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null || procedure.getIsDeleted()) {
+            throw new BusinessException(404, "实验步骤不存在");
+        }
+
+        if (!Integer.valueOf(3).equals(procedure.getType())) {
+            throw new BusinessException(400, "该步骤不是题库答题类型");
+        }
+
+        // 3. 验证答案中的题目是否属于该步骤
+        ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+        if (procedureTopic == null) {
+            throw new BusinessException(404, "题库配置不存在");
+        }
+
+        if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
+            QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("experimental_procedure_id", procedureId);
+            long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
+
+            if (answers.size() != topicCount) {
+                throw new BusinessException(400,
+                    String.format("应提交%d道题目，实际提交%d道", topicCount, answers.size()));
+            }
+        }
+
+        // 4. 构建答案字符串
+        StringBuilder answerBuilder = new StringBuilder();
+        for (Map.Entry<Long, String> entry : answers.entrySet()) {
+            answerBuilder.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
+        }
+
+        // 5. 查询现有记录并更新
+        StudentExperimentalProcedure studentProcedure =
+                studentExperimentalProcedureService.getByStudentAndProcedure(
+                        studentUsername, classCode, procedureId);
+
+        studentProcedure.setAnswer(answerBuilder.toString());
+        studentProcedure.setScore(null); // 清除之前分数
+        studentProcedure.setIsGraded(0); // 重置为未评分
+        studentProcedure.setTeacherComment(null); // 清除评语
+
+        boolean updated = studentExperimentalProcedureService.updateById(studentProcedure);
+        if (!updated) {
+            throw new BusinessException(500, "修改题库答案失败");
+        }
+
+        log.info("学生 {} 在班级 {} 修改题库练习，步骤：{}，题目数：{}",
+                studentUsername, classCode, procedureId, answers.size());
+    }
+
+    /**
+     * 修改数据收集答案（类型2）
+     *
+     * @param studentUsername         学生用户名
+     * @param classCode               班级编号
+     * @param procedureId             实验步骤ID
+     * @param fillBlankAnswers        填空类型答案
+     * @param tableCellAnswers        表格类型答案
+     * @param photos                  新照片文件列表
+     * @param documents               新文档文件列表
+     * @param attachmentIdsToDelete   需要删除的附件ID列表
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateDataCollectionProcedure(String studentUsername, String classCode,
+                                              Long procedureId,
+                                              Map<String, String> fillBlankAnswers,
+                                              Map<String, String> tableCellAnswers,
+                                              List<MultipartFile> photos,
+                                              List<MultipartFile> documents,
+                                              List<Long> attachmentIdsToDelete) {
+        // 1. 验证是否可修改
+        if (!studentExperimentalProcedureService.isProcedureModifiable(
+                studentUsername, classCode, procedureId)) {
+            throw new BusinessException(400, "当前不允许修改该步骤");
+        }
+
+        // 2. 查询并验证步骤信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null || procedure.getIsDeleted()) {
+            throw new BusinessException(404, "实验步骤不存在");
+        }
+
+        if (!Integer.valueOf(2).equals(procedure.getType())) {
+            throw new BusinessException(400, "该步骤不是数据收集类型");
+        }
+
+        // 3. 将答案转换为JSON格式
+        String answerJson = convertAnswersToJson(fillBlankAnswers, tableCellAnswers);
+
+        // 4. 查询现有记录并更新
+        StudentExperimentalProcedure studentProcedure =
+                studentExperimentalProcedureService.getByStudentAndProcedure(
+                        studentUsername, classCode, procedureId);
+
+        studentProcedure.setAnswer(answerJson);
+        studentProcedure.setScore(null);
+        studentProcedure.setIsGraded(0);
+        studentProcedure.setTeacherComment(null);
+
+        boolean updated = studentExperimentalProcedureService.updateById(studentProcedure);
+        if (!updated) {
+            throw new BusinessException(500, "修改数据收集失败");
+        }
+
+        // 5. 删除指定的旧附件
+        if (attachmentIdsToDelete != null && !attachmentIdsToDelete.isEmpty()) {
+            for (Long attachmentId : attachmentIdsToDelete) {
+                deleteAttachment(attachmentId, studentUsername, classCode, procedureId);
+            }
+        }
+
+        // 6. 保存新照片文件
+        if (photos != null && !photos.isEmpty()) {
+            for (MultipartFile photo : photos) {
+                saveAttachment(procedureId, studentUsername, classCode, photo, 1);
+            }
+        }
+
+        // 7. 保存新文档文件
+        if (documents != null && !documents.isEmpty()) {
+            for (MultipartFile document : documents) {
+                saveAttachment(procedureId, studentUsername, classCode, document, 2);
+            }
+        }
+
+        // 8. 重新自动判分
+        autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
+                                         fillBlankAnswers, tableCellAnswers);
+
+        log.info("学生 {} 在班级 {} 修改数据收集，步骤：{}", studentUsername, classCode, procedureId);
+    }
+
+    /**
+     * 删除附件文件
+     *
+     * @param attachmentId     附件ID
+     * @param studentUsername  学生用户名
+     * @param classCode        班级编号
+     * @param procedureId      步骤ID
+     */
+    private void deleteAttachment(Long attachmentId, String studentUsername,
+                                  String classCode, Long procedureId) {
+        // 1. 查询附件记录
+        StudentProcedureAttachment attachment = baseMapper.selectById(attachmentId);
+        if (attachment == null) {
+            throw new BusinessException(404, "附件不存在");
+        }
+
+        // 2. 验证附件归属
+        if (!attachment.getStudentUsername().equals(studentUsername) ||
+            !attachment.getClassCode().equals(classCode) ||
+            !attachment.getProcedureId().equals(procedureId)) {
+            throw new BusinessException(403, "无权删除该附件");
+        }
+
+        // 3. 删除物理文件
+        try {
+            String fullPath = ATTACHMENT_ROOT_PATH + File.separator + attachment.getFilePath();
+            Files.deleteIfExists(Paths.get(fullPath));
+        } catch (IOException e) {
+            log.error("删除附件文件失败: {}", attachment.getFilePath(), e);
+        }
+
+        // 4. 删除数据库记录
+        boolean deleted = removeById(attachmentId);
+        if (!deleted) {
+            throw new BusinessException(500, "删除附件信息失败");
+        }
+    }
+
+    /**
+     * 完成限时答题（类型5）
+     *
+     * @param studentUsername 学生用户名
+     * @param classCode       班级编号
+     * @param request         提交限时答题请求
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void completeTimedQuizProcedure(String studentUsername, String classCode,
+                                           CompleteTimedQuizProcedureRequest request) {
+        log.info("学生 {} 在班级 {} 提交限时答题，步骤ID：{}", studentUsername, classCode, request.getProcedureId());
+
+        // 1. 查询并验证步骤信息
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(request.getProcedureId());
+        if (procedure == null || procedure.getIsDeleted()) {
+            throw new BusinessException(404, "实验步骤不存在");
+        }
+
+        if (!Integer.valueOf(5).equals(procedure.getType())) {
+            throw new BusinessException(400, "该步骤不是限时答题类型");
+        }
+
+        // 2. 查询限时答题配置
+        TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+        if (timedQuiz == null) {
+            throw new BusinessException(404, "限时答题配置不存在");
+        }
+
+        // 3. 验证密钥（不依赖数据库）
+        TimedQuizKeyGenerator.KeyValidationResult validationResult =
+                timedQuizKeyGenerator.validateKey(request.getSecretKey(), studentUsername, timedQuiz.getQuizTimeLimit());
+
+        if (!validationResult.isValid()) {
+            throw new BusinessException(400, validationResult.getMessage());
+        }
+
+        // 4. 检查是否已提交（直接查询学生答案表）
+        QueryWrapper<StudentExperimentalProcedure> existingWrapper = new QueryWrapper<>();
+        existingWrapper.eq("experimental_procedure_id", request.getProcedureId())
+                .eq("student_username", studentUsername)
+                .eq("class_code", classCode);
+        StudentExperimentalProcedure existing = studentExperimentalProcedureService.getOne(existingWrapper);
+
+        if (existing != null) {
+            throw new BusinessException(400, "该答题已提交，不可重复提交");
+        }
+
+        // 5. 验证答案数量
+        if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+            // 老师选定模式：验证题目ID是否在步骤的题目列表中
+            QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("experimental_procedure_id", request.getProcedureId());
+            long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
+
+            if (request.getAnswers().size() != topicCount) {
+                throw new BusinessException(400,
+                    String.format("应提交%d道题目，实际提交%d道", topicCount, request.getAnswers().size()));
+            }
+        } else {
+            // 随机模式：验证题目数量
+            if (request.getAnswers().size() != timedQuiz.getTopicNumber()) {
+                throw new BusinessException(400,
+                    String.format("应提交%d道题目，实际提交%d道", timedQuiz.getTopicNumber(), request.getAnswers().size()));
+            }
+        }
+
+        // 6. 构建答案字符串
+        StringBuilder answerBuilder = new StringBuilder();
+        for (Map.Entry<Long, String> entry : request.getAnswers().entrySet()) {
+            answerBuilder.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
+        }
+
+        // 7. 创建学生步骤答案记录（设置 isLocked = true）
+        StudentExperimentalProcedure studentProcedure = new StudentExperimentalProcedure();
+        studentProcedure.setExperimentId(procedure.getExperimentId());
+        studentProcedure.setStudentUsername(studentUsername);
+        studentProcedure.setClassCode(classCode);
+        studentProcedure.setExperimentalProcedureId(request.getProcedureId());
+        studentProcedure.setNumber(procedure.getNumber());
+        studentProcedure.setAnswer(answerBuilder.toString());
+        studentProcedure.setIsLocked(true);  // 锁定答案，不允许修改
+        studentProcedure.setCreatedTime(LocalDateTime.now());
+
+        boolean saved = studentExperimentalProcedureService.save(studentProcedure);
+        if (!saved) {
+            throw new BusinessException(500, "提交限时答题失败");
+        }
+
+        log.info("学生 {} 在班级 {} 完成限时答题，步骤：{}，题目数：{}",
+                studentUsername, classCode, request.getProcedureId(), request.getAnswers().size());
     }
 }

@@ -11,7 +11,6 @@ import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TopicMapper;
 import com.example.demo.mapper.VideoFileMapper;
 import com.example.demo.pojo.entity.ClassExperiment;
-import com.example.demo.pojo.entity.ClassExperimentProcedureTime;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.Experiment;
@@ -22,10 +21,12 @@ import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.response.StudentExperimentDetailResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailResponse;
+import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,7 +50,6 @@ public class StudentExperimentService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
-    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
 
     /**
      * 查询学生实验详情（包含步骤列表及可访问性）
@@ -160,13 +160,20 @@ public class StudentExperimentService {
         response.setDataCollectionId(procedure.getDataCollectionId());
         response.setProcedureTopicId(procedure.getProcedureTopicId());
 
-        // 2. 从 ClassExperimentProcedureTime 表查询步骤时间
-        ClassExperimentProcedureTime procedureTime = classExperimentProcedureTimeService
-                .getByClassExperimentAndProcedure(classExperimentId, procedure.getId());
+        // 2. 根据偏移量和持续时间计算步骤时间
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment != null && procedure.getOffsetMinutes() != null) {
+            LocalDateTime startTime = ProcedureTimeCalculator.calculateStartTime(
+                    classExperiment.getStartTime(),
+                    procedure.getOffsetMinutes()
+            );
+            LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                    startTime,
+                    procedure.getDurationMinutes()
+            );
 
-        if (procedureTime != null) {
-            response.setStartTime(procedureTime.getStartTime());
-            response.setEndTime(procedureTime.getEndTime());
+            response.setStartTime(startTime);
+            response.setEndTime(endTime);
         } else {
             // 如果未配置时间，设置为 null
             response.setStartTime(null);

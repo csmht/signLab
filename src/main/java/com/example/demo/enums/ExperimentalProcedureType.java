@@ -7,7 +7,8 @@ public enum ExperimentalProcedureType {
     WatchTheVideo("观看视频"),
     DataCollection("数据收集"),
     AnswerQuestions("题库答题"),
-    submitTheExperimentReport("提交实验报告");
+    SubmitTheExperimentReport("提交实验报告"),
+    TimedQuiz("限时答题");
 
     public final String type;
 

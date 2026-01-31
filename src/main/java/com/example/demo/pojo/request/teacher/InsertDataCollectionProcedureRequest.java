@@ -49,4 +49,14 @@ public class InsertDataCollectionProcedureRequest {
 
     /** 是否需要提交文档 */
     private Boolean needDoc;
+
+    /**
+     * 步骤开始时间偏移量(分钟),默认为0
+     */
+    private Integer offsetMinutes;
+
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
 }

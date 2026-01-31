@@ -60,6 +60,10 @@ public class StudentExperimentalProcedure {
     @Column(comment = "评分状态", type = "tinyint", defaultValue = "0")
     private Integer isGraded;
 
+    /** 是否已锁定(限时答题提交后不可修改) */
+    @Column(comment = "是否已锁定(限时答题提交后不可修改)", type = "bit", defaultValue = "0")
+    private Boolean isLocked;
+
     /** 教师评语 */
     @Column(comment = "教师评语", type = "text")
     private String teacherComment;

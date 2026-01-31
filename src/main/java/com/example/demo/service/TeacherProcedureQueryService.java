@@ -1,12 +1,13 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TopicMapper;
 import com.example.demo.mapper.VideoFileMapper;
-import com.example.demo.pojo.entity.ClassExperimentProcedureTime;
+import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
@@ -14,14 +15,14 @@ import com.example.demo.pojo.entity.ProcedureTopicMap;
 import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
+import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +40,7 @@ public class TeacherProcedureQueryService {
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
-    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
+    private final ClassExperimentMapper classExperimentMapper;
 
     /**
      * 查询步骤详情(包含类型特定的完整信息)
@@ -69,16 +70,34 @@ public class TeacherProcedureQueryService {
 
         // 3. 查询时间配置(如果提供了 classExperimentId)
         if (classExperimentId != null) {
-            ClassExperimentProcedureTime procedureTime = classExperimentProcedureTimeService
-                    .getByClassExperimentAndProcedure(classExperimentId, procedureId);
-            if (procedureTime != null) {
-                response.setStartTime(procedureTime.getStartTime());
-                response.setEndTime(procedureTime.getEndTime());
+            ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+            if (classExperiment != null) {
+                // 返回偏移量和持续时间
+                response.setOffsetMinutes(procedure.getOffsetMinutes());
+                response.setDurationMinutes(procedure.getDurationMinutes());
+
+                // 计算并返回实际时间
+                if (procedure.getOffsetMinutes() != null) {
+                    LocalDateTime startTime = ProcedureTimeCalculator.calculateStartTime(
+                            classExperiment.getStartTime(),
+                            procedure.getOffsetMinutes()
+                    );
+                    LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                            startTime,
+                            procedure.getDurationMinutes()
+                    );
+                    response.setStartTime(startTime);
+                    response.setEndTime(endTime);
+                }
             } else {
+                response.setOffsetMinutes(procedure.getOffsetMinutes());
+                response.setDurationMinutes(procedure.getDurationMinutes());
                 response.setStartTime(null);
                 response.setEndTime(null);
             }
         } else {
+            response.setOffsetMinutes(procedure.getOffsetMinutes());
+            response.setDurationMinutes(procedure.getDurationMinutes());
             response.setStartTime(null);
             response.setEndTime(null);
         }
@@ -102,16 +121,10 @@ public class TeacherProcedureQueryService {
         // 1. 查询实验的所有步骤
         List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
 
-        // 2. 如果提供了 classExperimentId,查询所有步骤的时间配置
-        Map<Long, ClassExperimentProcedureTime> procedureTimeMap = new HashMap<>();
+        // 2. 查询班级实验(如果提供了 classExperimentId)
+        ClassExperiment classExperiment = null;
         if (classExperimentId != null) {
-            List<ClassExperimentProcedureTime> procedureTimes =
-                    classExperimentProcedureTimeService.listByClassExperiment(classExperimentId);
-            procedureTimeMap = procedureTimes.stream()
-                    .collect(Collectors.toMap(
-                            ClassExperimentProcedureTime::getExperimentalProcedureId,
-                            t -> t,
-                            (existing, replacement) -> existing));
+            classExperiment = classExperimentMapper.selectById(classExperimentId);
         }
 
         // 3. 为每个步骤构建详情响应
@@ -126,11 +139,22 @@ public class TeacherProcedureQueryService {
             response.setIsSkip(procedure.getIsSkip());
             response.setProportion(procedure.getProportion());
 
-            // 查询时间配置
-            ClassExperimentProcedureTime procedureTime = procedureTimeMap.get(procedure.getId());
-            if (procedureTime != null) {
-                response.setStartTime(procedureTime.getStartTime());
-                response.setEndTime(procedureTime.getEndTime());
+            // 设置偏移量和持续时间
+            response.setOffsetMinutes(procedure.getOffsetMinutes());
+            response.setDurationMinutes(procedure.getDurationMinutes());
+
+            // 计算并返回实际时间
+            if (classExperiment != null && procedure.getOffsetMinutes() != null) {
+                LocalDateTime startTime = ProcedureTimeCalculator.calculateStartTime(
+                        classExperiment.getStartTime(),
+                        procedure.getOffsetMinutes()
+                );
+                LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                        startTime,
+                        procedure.getDurationMinutes()
+                );
+                response.setStartTime(startTime);
+                response.setEndTime(endTime);
             } else {
                 response.setStartTime(null);
                 response.setEndTime(null);

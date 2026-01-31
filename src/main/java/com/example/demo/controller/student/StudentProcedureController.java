@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 学生实验步骤提交控制器
@@ -314,6 +315,148 @@ public class StudentProcedureController {
             return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
             log.error("完成数据收集失败", e);
+            return ApiResponse.error(500, "提交失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 修改题库练习步骤
+     * 步骤类型：type=3（题库答题）
+     *
+     * @param request 修改题库练习请求
+     * @return 是否修改成功
+     */
+    @PutMapping("/topic/update")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<Void> updateTopicProcedure(
+            @RequestBody com.example.demo.pojo.request.student.UpdateTopicProcedureRequest request) {
+        try {
+            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            studentProcedureCompletionService.updateTopicProcedure(
+                    studentUsername,
+                    request.getClassCode(),
+                    request.getProcedureId(),
+                    request.getAnswers()
+            );
+
+            return ApiResponse.success(null, "修改成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("修改题库练习失败", e);
+            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 修改数据收集步骤
+     * 步骤类型：type=2（数据收集）
+     *
+     * @param procedureId           实验步骤ID
+     * @param classCode             班级编号
+     * @param fillBlankAnswersJson  填空类型答案（JSON字符串）
+     * @param tableCellAnswersJson  表格类型答案（JSON字符串）
+     * @param photos                新照片文件列表
+     * @param documents             新文档文件列表
+     * @param attachmentIdsToDeleteJson 需要删除的附件ID列表（JSON字符串）
+     * @return 是否修改成功
+     */
+    @PutMapping("/data-collection/update")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<Void> updateDataCollectionProcedure(
+            @RequestParam("procedureId") Long procedureId,
+            @RequestParam("classCode") String classCode,
+            @RequestParam(value = "fillBlankAnswers", required = false) String fillBlankAnswersJson,
+            @RequestParam(value = "tableCellAnswers", required = false) String tableCellAnswersJson,
+            @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
+            @RequestParam(value = "documents", required = false) List<MultipartFile> documents,
+            @RequestParam(value = "attachmentIdsToDelete", required = false) String attachmentIdsToDeleteJson) {
+        try {
+            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            // 解析JSON字符串为Map
+            Map<String, String> fillBlankAnswers = parseJsonToMap(fillBlankAnswersJson);
+            Map<String, String> tableCellAnswers = parseJsonToMap(tableCellAnswersJson);
+            List<Long> attachmentIdsToDelete = parseJsonToList(attachmentIdsToDeleteJson);
+
+            studentProcedureCompletionService.updateDataCollectionProcedure(
+                    studentUsername,
+                    classCode,
+                    procedureId,
+                    fillBlankAnswers,
+                    tableCellAnswers,
+                    photos,
+                    documents,
+                    attachmentIdsToDelete
+            );
+
+            return ApiResponse.success(null, "修改成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("修改数据收集失败", e);
+            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 将JSON字符串解析为Map
+     */
+    private Map<String, String> parseJsonToMap(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(json,
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {});
+        } catch (Exception e) {
+            throw new com.example.demo.exception.BusinessException(400, "JSON格式错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 将JSON字符串解析为List
+     */
+    private List<Long> parseJsonToList(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(json,
+                new com.fasterxml.jackson.core.type.TypeReference<List<Long>>() {});
+        } catch (Exception e) {
+            throw new com.example.demo.exception.BusinessException(400, "JSON格式错误: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 提交限时答题答案
+     * 步骤类型：type=5（限时答题）
+     *
+     * @param request 提交限时答题请求
+     * @return 是否提交成功
+     */
+    @PostMapping("/timed-quiz/complete")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<Void> completeTimedQuizProcedure(
+            @RequestBody com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest request) {
+        try {
+            String studentUsername = SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+
+            studentProcedureCompletionService.completeTimedQuizProcedure(
+                    studentUsername, request.getClassCode(), request);
+
+            return ApiResponse.success(null, "提交成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("提交限时答题失败", e);
             return ApiResponse.error(500, "提交失败: " + e.getMessage());
         }
     }

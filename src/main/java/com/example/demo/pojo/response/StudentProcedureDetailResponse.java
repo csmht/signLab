@@ -58,6 +58,31 @@ public class StudentProcedureDetailResponse {
     private Long procedureTopicId;
 
     /**
+     * 限时答题配置ID（类型5时有效）
+     */
+    private Long timedQuizId;
+
+    /**
+     * 答题时间限制（分钟）（类型5时有效）
+     */
+    private Integer quizTimeLimit;
+
+    /**
+     * 密钥（类型5时有效，用于后续提交验证）
+     */
+    private String secretKey;
+
+    /**
+     * 是否已锁定（类型5时有效，提交后不可修改）
+     */
+    private Boolean isLocked;
+
+    /**
+     * 剩余答题时间（秒）（类型5时有效）
+     */
+    private Long remainingTime;
+
+    /**
      * 步骤开始时间
      */
     private LocalDateTime startTime;
@@ -66,6 +91,16 @@ public class StudentProcedureDetailResponse {
      * 步骤结束时间
      */
     private LocalDateTime endTime;
+
+    /**
+     * 步骤开始时间偏移量(分钟)
+     */
+    private Integer offsetMinutes;
+
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
 
     // ===== 类型1：观看视频详细信息 =====
 
@@ -132,6 +167,11 @@ public class StudentProcedureDetailResponse {
      * 题目列表（类型3时有效）
      */
     private List<TopicDetail> topics;
+
+    /**
+     * 限时答题题目列表（类型5时有效）
+     */
+    private List<TopicDetail> timedQuizTopics;
 
     /**
      * 题目详情

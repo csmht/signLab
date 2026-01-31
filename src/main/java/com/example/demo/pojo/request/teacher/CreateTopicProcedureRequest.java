@@ -55,4 +55,14 @@ public class CreateTopicProcedureRequest {
      * 老师选定的题目ID列表（仅在非随机模式时有效）
      */
     private List<Long> teacherSelectedTopicIds;
+
+    /**
+     * 步骤开始时间偏移量(分钟),默认为0
+     */
+    private Integer offsetMinutes;
+
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
 }

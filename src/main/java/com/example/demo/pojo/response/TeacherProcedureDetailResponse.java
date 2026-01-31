@@ -56,6 +56,16 @@ public class TeacherProcedureDetailResponse {
      */
     private LocalDateTime endTime;
 
+    /**
+     * 步骤开始时间偏移量(分钟)
+     */
+    private Integer offsetMinutes;
+
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
+
     // ===== 类型1：观看视频详细信息 =====
 
     /**

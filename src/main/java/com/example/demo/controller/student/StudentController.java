@@ -27,34 +27,6 @@ public class StudentController {
     private final StudentClassRelationService studentClassRelationService;
 
     /**
-     * 绑定班级
-     * 学生通过班级验证码绑定到指定班级
-     *
-     * @param request 绑定班级请求
-     * @return 绑定结果
-     */
-    @PostMapping("/bind-class")
-    @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Class> bindClass(@RequestBody BindClassRequest request) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
-
-            if (request.getVerificationCode() == null || request.getVerificationCode().trim().isEmpty()) {
-                return ApiResponse.error(400, "验证码不能为空");
-            }
-
-            Class clazz = studentClassRelationService.bindClass(studentUsername, request.getVerificationCode());
-            return ApiResponse.success(clazz, "绑定班级成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("绑定班级失败", e);
-            return ApiResponse.error(500, "绑定失败: " + e.getMessage());
-        }
-    }
-
-    /**
      * 查询班级列表
      * 查询当前登录学生已绑定的所有班级
      *

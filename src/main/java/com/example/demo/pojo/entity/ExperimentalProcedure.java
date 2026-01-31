@@ -58,6 +58,18 @@ public class ExperimentalProcedure {
     @Column(comment = "题库详情ID(仅类型为3时有效)",type = "bigint")
     private Long procedureTopicId;
 
+    /** 限时答题配置ID(仅类型5时有效) */
+    @Column(comment = "限时答题配置ID(仅类型5时有效)", type = "bigint")
+    private Long timedQuizId;
+
+    /** 步骤开始时间偏移量(分钟),相对于实验开始时间,可为负数 */
+    @Column(comment = "步骤开始时间偏移量(分钟),相对于实验开始时间", type = "int", defaultValue = "0")
+    private Integer offsetMinutes;
+
+    /** 步骤持续时间(分钟),必须为正数 */
+    @Column(comment = "步骤持续时间(分钟)", type = "int", notNull = true, defaultValue = "60")
+    private Integer durationMinutes;
+
     /** 是否删除 */
     @Column(comment = "是否删除",type = "bit", notNull = true,defaultValue = "0")
     private Boolean isDeleted;

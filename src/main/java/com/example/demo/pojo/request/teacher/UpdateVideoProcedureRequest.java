@@ -2,8 +2,6 @@ package com.example.demo.pojo.request.teacher;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 /**
  * 修改视频观看步骤请求
  */
@@ -36,12 +34,12 @@ public class UpdateVideoProcedureRequest {
     private Long videoId;
 
     /**
-     * 步骤开始时间
+     * 步骤开始时间偏移量(分钟),默认为0
      */
-    private LocalDateTime startTime;
+    private Integer offsetMinutes;
 
     /**
-     * 步骤结束时间
+     * 步骤持续时间(分钟)
      */
-    private LocalDateTime endTime;
+    private Integer durationMinutes;
 }

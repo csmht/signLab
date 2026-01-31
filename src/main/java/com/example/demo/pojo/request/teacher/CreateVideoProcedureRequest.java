@@ -32,4 +32,14 @@ public class CreateVideoProcedureRequest {
      * 视频ID
      */
     private Long videoId;
+
+    /**
+     * 步骤开始时间偏移量(分钟),默认为0
+     */
+    private Integer offsetMinutes;
+
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
 }

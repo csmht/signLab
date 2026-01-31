@@ -2,7 +2,6 @@ package com.example.demo.pojo.request.teacher;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -48,9 +47,13 @@ public class UpdateDataCollectionProcedureRequest {
     /** 是否需要提交文档 */
     private Boolean needDoc;
 
-    /** 步骤开始时间 */
-    private LocalDateTime startTime;
+    /**
+     * 步骤开始时间偏移量(分钟),默认为0
+     */
+    private Integer offsetMinutes;
 
-    /** 步骤结束时间 */
-    private LocalDateTime endTime;
+    /**
+     * 步骤持续时间(分钟)
+     */
+    private Integer durationMinutes;
 }

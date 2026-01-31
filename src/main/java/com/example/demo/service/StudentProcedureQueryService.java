@@ -6,6 +6,8 @@ import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
+import com.example.demo.util.ProcedureTimeCalculator;
+import com.example.demo.util.TimedQuizKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,8 +36,9 @@ public class StudentProcedureQueryService {
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final DownloadService downloadService;
     private final ClassExperimentMapper classExperimentMapper;
-    private final ClassExperimentProcedureTimeService classExperimentProcedureTimeService;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
+    private final TimedQuizProcedureMapper timedQuizProcedureMapper;
+    private final TimedQuizKeyGenerator timedQuizKeyGenerator;
 
     /**
      * 查询已提交的步骤详情（带答案）
@@ -69,35 +72,32 @@ public class StudentProcedureQueryService {
             throw new BusinessException(404, "未找到提交记录");
         }
 
-        // 查询班级实验时间配置
+        // 查询班级实验并计算步骤时间
         boolean isAfterEndTime = false;
         try {
-            // 1. 通过用户名查询学生所属班级，获取 classCode
-            // 注意:这里需要通过学生信息获取班级,具体实现根据你的业务逻辑调整
-            // 暂时通过 courseId 和 username 查询
-
-            // 2. 查询该班级绑定的实验列表，找到匹配的 classExperimentId
+            // 查询班级实验
             QueryWrapper<com.example.demo.pojo.entity.ClassExperiment> classExperimentWrapper = new QueryWrapper<>();
             classExperimentWrapper.eq("course_id", courseId);
             classExperimentWrapper.eq("experiment_id", experimentId);
-            // 假设可以通过某种方式获取学生的 classCode
-            // 这里需要根据实际业务逻辑补充
             com.example.demo.pojo.entity.ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentWrapper);
 
-            if (classExperiment != null) {
-                // 3. 从 ClassExperimentProcedureTime 表查询步骤时间配置
-                com.example.demo.pojo.entity.ClassExperimentProcedureTime procedureTime =
-                    classExperimentProcedureTimeService.getByClassExperimentAndProcedure(
-                        classExperiment.getId(), procedureId);
+            if (classExperiment != null && procedure.getOffsetMinutes() != null) {
+                // 使用工具类计算步骤时间
+                LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                        ProcedureTimeCalculator.calculateStartTime(
+                                classExperiment.getStartTime(),
+                                procedure.getOffsetMinutes()
+                        ),
+                        procedure.getDurationMinutes()
+                );
 
-                // 4. 判断是否已过答题时间
-                if (procedureTime != null && procedureTime.getEndTime() != null) {
-                    isAfterEndTime = LocalDateTime.now().isAfter(procedureTime.getEndTime());
+                if (endTime != null) {
+                    isAfterEndTime = LocalDateTime.now().isAfter(endTime);
                 }
             }
         } catch (Exception e) {
-            log.error("查询步骤时间配置失败", e);
-            // 如果查询失败,默认不允许查看答案
+            log.error("计算步骤时间失败", e);
+            // 如果计算失败,默认不允许查看答案
             isAfterEndTime = false;
         }
 
@@ -184,6 +184,9 @@ public class StudentProcedureQueryService {
         } else if (type == 3) {
             // 题库答题
             fillTopicDetailForCompleted(response, procedure, studentProcedure, isAfterEndTime);
+        } else if (type == 5) {
+            // 限时答题
+            fillTimedQuizDetailForCompleted(response, procedure, studentProcedure, isAfterEndTime);
         }
     }
 
@@ -206,6 +209,9 @@ public class StudentProcedureQueryService {
         } else if (type == 3) {
             // 题库答题
             fillTopicDetailForUncompleted(response, procedure);
+        } else if (type == 5) {
+            // 限时答题
+            fillTimedQuizDetailForUncompleted(response, procedure, username);
         }
     }
 
@@ -402,7 +408,7 @@ public class StudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    item.setChoices(parseTopicChoices(topic.getChoices()));
 
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(studentAnswer);
@@ -455,7 +461,7 @@ public class StudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    item.setChoices(parseTopicChoices(topic.getChoices()));
                     topicItems.add(item);
                 }
 
@@ -479,35 +485,44 @@ public class StudentProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
-                    tagWrapper.in("tag_id", tagIdList);
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+                    // 查询包含所有指定标签的题目（AND逻辑）
+                    // 使用GROUP BY和HAVING确保题目包含所有标签
+                    String sql = "SELECT topic_id FROM topic_tag_map " +
+                                "WHERE tag_id IN (" + tagIdList.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") " +
+                                "GROUP BY topic_id " +
+                                "HAVING COUNT(DISTINCT tag_id) = " + tagIdList.size();
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                            .map(TopicTagMap::getTopicId)
-                            .distinct()
-                            .collect(Collectors.toList());
+                    // 使用原生SQL查询满足条件的题目ID
+                    List<Long> topicIds = topicTagMapMapper.selectList(
+                        new QueryWrapper<TopicTagMap>().apply(sql)
+                    ).stream()
+                    .map(TopicTagMap::getTopicId)
+                    .distinct()
+                    .collect(Collectors.toList());
 
-                        if (!topicIds.isEmpty()) {
-                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                            topicWrapper.in("id", topicIds);
+                    if (!topicIds.isEmpty()) {
+                        QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
+                        topicWrapper.in("id", topicIds);
 
-                            // 添加题目类型过滤
-                            if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
-                                String[] typeArray = procedureTopic.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                    .filter(s -> s != null && !s.isEmpty())
-                                    .map(Integer::parseInt)
-                                    .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in("type", types);
-                                }
+                        // 添加题目类型过滤
+                        if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
+                            String[] typeArray = procedureTopic.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                .filter(s -> s != null && !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in("type", types);
                             }
-
-                            topicWrapper.orderByAsc("number");
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        // 随机排序并限制数量
+                        if (procedureTopic.getNumber() != null && procedureTopic.getNumber() > 0) {
+                            topicWrapper.last("ORDER BY RAND() LIMIT " + procedureTopic.getNumber());
+                        } else {
+                            topicWrapper.last("ORDER BY RAND()");
+                        }
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }
@@ -549,5 +564,229 @@ public class StudentProcedureQueryService {
             log.error("解析题库答案失败", e);
             return new HashMap<>();
         }
+    }
+
+    /**
+     * 解析题目选项字符串为Map
+     * 格式：A:选项A内容$B:选项B内容$C:选项C内容$D:选项D内容
+     * @param choices 选项字符串
+     * @return 选项Map，key为选项字母(A、B、C、D)，value为选项内容
+     */
+    private Map<String, String> parseTopicChoices(String choices) {
+        if (choices == null || choices.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Map<String, String> choicesMap = new HashMap<>();
+        try {
+            // 按 $ 分割各个选项
+            String[] options = choices.split("\\$");
+            for (String option : options) {
+                // 每个选项格式为 "A:选项内容"
+                if (option.contains(":")) {
+                    String[] parts = option.split(":", 2);
+                    if (parts.length == 2) {
+                        String key = parts[0].trim();
+                        String value = parts[1].trim();
+                        choicesMap.put(key, value);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("解析题目选项失败, choices: {}", choices, e);
+            return new HashMap<>();
+        }
+
+        return choicesMap;
+    }
+
+    /**
+     * 填充限时答题详情（已提交）
+     */
+    private void fillTimedQuizDetailForCompleted(
+            StudentProcedureDetailWithAnswerResponse response,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure,
+            boolean isAfterEndTime) {
+
+        if (procedure.getTimedQuizId() != null) {
+            TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+            if (timedQuiz != null) {
+                StudentProcedureDetailWithAnswerResponse.TimedQuizDetail detail =
+                    new StudentProcedureDetailWithAnswerResponse.TimedQuizDetail();
+                detail.setId(timedQuiz.getId());
+                detail.setIsRandom(timedQuiz.getIsRandom());
+                detail.setNumber(timedQuiz.getTopicNumber());
+                detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+                detail.setIsLocked(studentProcedure.getIsLocked());
+
+                // 查询题目列表
+                List<Topic> topics = getTopicsForTimedQuiz(procedure, timedQuiz);
+                List<StudentProcedureDetailWithAnswerResponse.TopicItem> topicItems = new ArrayList<>();
+
+                // 解析学生答案
+                Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+                for (Topic topic : topics) {
+                    StudentProcedureDetailWithAnswerResponse.TopicItem item =
+                        new StudentProcedureDetailWithAnswerResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(parseTopicChoices(topic.getChoices()));
+
+                    String studentAnswer = studentAnswers.get(topic.getId());
+                    item.setStudentAnswer(studentAnswer);
+
+                    // 如果已过答题时间，才返回正确答案和是否正确
+                    if (isAfterEndTime) {
+                        item.setCorrectAnswer(topic.getCorrectAnswer());
+
+                        if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                            item.setIsCorrect(true);
+                        } else {
+                            item.setIsCorrect(false);
+                        }
+                    }
+
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+                response.setTimedQuizDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 填充限时答题详情（未提交）
+     */
+    private void fillTimedQuizDetailForUncompleted(
+            StudentProcedureDetailWithoutAnswerResponse response,
+            ExperimentalProcedure procedure,
+            String username) {
+
+        if (procedure.getTimedQuizId() != null) {
+            TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+            if (timedQuiz != null) {
+                StudentProcedureDetailWithoutAnswerResponse.TimedQuizDetail detail =
+                    new StudentProcedureDetailWithoutAnswerResponse.TimedQuizDetail();
+                detail.setId(timedQuiz.getId());
+                detail.setIsRandom(timedQuiz.getIsRandom());
+                detail.setNumber(timedQuiz.getTopicNumber());
+                detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+
+                // 查询题目列表（不含答案）
+                List<Topic> topics = getTopicsForTimedQuiz(procedure, timedQuiz);
+                List<StudentProcedureDetailWithoutAnswerResponse.TopicItem> topicItems = new ArrayList<>();
+
+                for (Topic topic : topics) {
+                    StudentProcedureDetailWithoutAnswerResponse.TopicItem item =
+                        new StudentProcedureDetailWithoutAnswerResponse.TopicItem();
+                    item.setId(topic.getId());
+                    item.setNumber(topic.getNumber());
+                    item.setType(topic.getType());
+                    item.setContent(topic.getContent());
+                    item.setChoices(parseTopicChoices(topic.getChoices()));
+                    topicItems.add(item);
+                }
+
+                detail.setTopics(topicItems);
+
+                // 生成密钥
+                String secretKey = timedQuizKeyGenerator.generateKey(username);
+                detail.setSecretKey(secretKey);
+
+                // 设置剩余时间为完整时间
+                detail.setRemainingTime((long) timedQuiz.getQuizTimeLimit() * 60);
+
+                response.setTimedQuizDetail(detail);
+            }
+        }
+    }
+
+    /**
+     * 获取限时答题的题目列表
+     */
+    private List<Topic> getTopicsForTimedQuiz(ExperimentalProcedure procedure, TimedQuizProcedure timedQuiz) {
+        if (Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+            // 随机模式：从题库中随机抽取
+            return getRandomTopicsForTimedQuiz(timedQuiz);
+        } else {
+            // 老师选定模式：查询映射的题目
+            QueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new QueryWrapper<>();
+            topicMapQueryWrapper.eq("experimental_procedure_id", procedure.getId());
+            List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(topicMapQueryWrapper);
+
+            if (topicMaps == null || topicMaps.isEmpty()) {
+                return new ArrayList<>();
+            }
+
+            List<Long> topicIds = topicMaps.stream()
+                    .map(ProcedureTopicMap::getTopicId)
+                    .collect(Collectors.toList());
+
+            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
+            topicQueryWrapper.in("id", topicIds)
+                    .eq("is_deleted", false)
+                    .orderByAsc("number");
+            return topicMapper.selectList(topicQueryWrapper);
+        }
+    }
+
+    /**
+     * 随机抽取题目（限时答题专用）
+     */
+    private List<Topic> getRandomTopicsForTimedQuiz(TimedQuizProcedure timedQuiz) {
+        // 根据标签过滤题目
+        if (timedQuiz.getTopicTags() != null && !timedQuiz.getTopicTags().isEmpty()) {
+            String[] tagIds = timedQuiz.getTopicTags().split(",");
+            List<Long> tagIdList = Arrays.stream(tagIds)
+                .filter(s -> s != null && !s.isEmpty())
+                .map(Long::parseLong)
+                .collect(Collectors.toList());
+
+            if (!tagIdList.isEmpty()) {
+                // 查询包含所有指定标签的题目（AND逻辑）
+                String sql = "SELECT topic_id FROM topic_tag_map " +
+                            "WHERE tag_id IN (" + tagIdList.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") " +
+                            "GROUP BY topic_id " +
+                            "HAVING COUNT(DISTINCT tag_id) = " + tagIdList.size();
+
+                List<Long> topicIds = topicTagMapMapper.selectList(
+                    new QueryWrapper<TopicTagMap>().apply(sql)
+                ).stream()
+                .map(TopicTagMap::getTopicId)
+                .distinct()
+                .collect(Collectors.toList());
+
+                if (!topicIds.isEmpty()) {
+                    QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
+                    topicWrapper.in("id", topicIds);
+
+                    // 添加题目类型过滤
+                    if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
+                        String[] typeArray = timedQuiz.getTopicTypes().split(",");
+                        List<Integer> types = Arrays.stream(typeArray)
+                            .filter(s -> s != null && !s.isEmpty())
+                            .map(Integer::parseInt)
+                            .collect(Collectors.toList());
+                        if (!types.isEmpty()) {
+                            topicWrapper.in("type", types);
+                        }
+                    }
+
+                    // 随机排序并限制数量
+                    if (timedQuiz.getTopicNumber() != null && timedQuiz.getTopicNumber() > 0) {
+                        topicWrapper.last("ORDER BY RAND() LIMIT " + timedQuiz.getTopicNumber());
+                    } else {
+                        topicWrapper.last("ORDER BY RAND()");
+                    }
+                    return topicMapper.selectList(topicWrapper);
+                }
+            }
+        }
+        return new ArrayList<>();
     }
 }

@@ -11,6 +11,9 @@ import com.example.demo.pojo.request.teacher.InsertVideoProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateVideoProcedureRequest;
+import com.example.demo.pojo.request.teacher.CreateTimedQuizProcedureRequest;
+import com.example.demo.pojo.request.teacher.UpdateTimedQuizProcedureRequest;
+import com.example.demo.pojo.request.teacher.InsertTimedQuizProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.service.TeacherProcedureCreationService;
@@ -220,6 +223,69 @@ public class TeacherProcedureCreationController {
             return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
             log.error("插入题库练习步骤失败", e);
+            return ApiResponse.error(500, "插入失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 创建限时答题步骤
+     * 步骤类型：type=5（限时答题）
+     *
+     * @param request 创建限时答题步骤请求
+     * @return 步骤ID
+     */
+    @PostMapping("/timed-quiz")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Long> createTimedQuizProcedure(@RequestBody CreateTimedQuizProcedureRequest request) {
+        try {
+            Long procedureId = teacherProcedureCreationService.createTimedQuizProcedure(request);
+            return ApiResponse.success(procedureId, "创建成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("创建限时答题步骤失败", e);
+            return ApiResponse.error(500, "创建失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 修改限时答题步骤
+     * 步骤类型：type=5（限时答题）
+     *
+     * @param request 修改限时答题步骤请求
+     * @return 是否修改成功
+     */
+    @PutMapping("/timed-quiz")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Void> updateTimedQuizProcedure(@RequestBody UpdateTimedQuizProcedureRequest request) {
+        try {
+            teacherProcedureCreationService.updateTimedQuizProcedure(request);
+            return ApiResponse.success(null, "修改成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("修改限时答题步骤失败", e);
+            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 插入限时答题步骤
+     * 步骤类型：type=5（限时答题）
+     *
+     * @param request 插入限时答题步骤请求
+     * @return 步骤ID
+     */
+    @PostMapping("/timed-quiz/insert")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Long> insertTimedQuizProcedure(@RequestBody InsertTimedQuizProcedureRequest request) {
+        try {
+            Long procedureId = teacherProcedureCreationService.insertTimedQuizProcedure(request);
+            return ApiResponse.success(procedureId, "插入成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("插入限时答题步骤失败", e);
             return ApiResponse.error(500, "插入失败: " + e.getMessage());
         }
     }

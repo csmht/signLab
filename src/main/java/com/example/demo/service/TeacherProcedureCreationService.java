@@ -5,19 +5,24 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
+import com.example.demo.mapper.TimedQuizProcedureMapper;
 import com.example.demo.mapper.TopicMapper;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
 import com.example.demo.pojo.entity.ProcedureTopicMap;
 import com.example.demo.pojo.entity.Topic;
+import com.example.demo.pojo.entity.TimedQuizProcedure;
 import com.example.demo.pojo.request.teacher.CreateDataCollectionProcedureRequest;
+import com.example.demo.pojo.request.teacher.CreateTimedQuizProcedureRequest;
 import com.example.demo.pojo.request.teacher.CreateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.CreateVideoProcedureRequest;
 import com.example.demo.pojo.request.teacher.InsertDataCollectionProcedureRequest;
+import com.example.demo.pojo.request.teacher.InsertTimedQuizProcedureRequest;
 import com.example.demo.pojo.request.teacher.InsertTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.InsertVideoProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateDataCollectionProcedureRequest;
+import com.example.demo.pojo.request.teacher.UpdateTimedQuizProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateTopicProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateVideoProcedureRequest;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +48,7 @@ public class TeacherProcedureCreationService {
     private final DataCollectionMapper dataCollectionMapper;
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
+    private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final TopicMapper topicMapper;
     private final ObjectMapper objectMapper;
 
@@ -69,7 +75,7 @@ public class TeacherProcedureCreationService {
      */
     @Transactional
     public Long createVideoProcedure(CreateVideoProcedureRequest request) {
-        log.info("创建视频观看步骤，实验ID: {}", request.getExperimentId());
+        log.info("创建视频观看步骤,实验ID: {}", request.getExperimentId());
 
         // 验证必填字段
         if (request.getExperimentId() == null) {
@@ -92,13 +98,16 @@ public class TeacherProcedureCreationService {
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
         procedure.setVideoId(request.getVideoId());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
         procedure.setIsDeleted(false);
 
         // 保存步骤
         experimentalProcedureService.save(procedure);
 
-        log.info("视频观看步骤创建成功，步骤ID: {}", procedure.getId());
+        log.info("视频观看步骤创建成功,步骤ID: {}", procedure.getId());
         return procedure.getId();
     }
 
@@ -151,7 +160,10 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
         procedure.setIsDeleted(false);
 
         // 保存步骤
@@ -218,7 +230,7 @@ public class TeacherProcedureCreationService {
         // 自动计算步骤号
         Integer newNumber = getMaxProcedureNumber(request.getExperimentId()) + 1;
 
-        // 1. 先创建步骤实体
+        // 1. 先创���步骤实体
         ExperimentalProcedure procedure = new ExperimentalProcedure();
         procedure.setExperimentId(request.getExperimentId());
         procedure.setNumber(newNumber);
@@ -226,7 +238,10 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
         procedure.setIsDeleted(false);
 
         // 保存步骤
@@ -308,7 +323,9 @@ public class TeacherProcedureCreationService {
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
         procedure.setVideoId(request.getVideoId());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
 
         experimentalProcedureService.updateById(procedure);
         log.info("视频观看步骤更新成功，步骤ID: {}", procedure.getId());
@@ -365,7 +382,9 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : procedure.getIsSkip());
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
 
         experimentalProcedureService.updateById(procedure);
         log.info("数据收集步骤更新成功，步骤ID: {}", procedure.getId());
@@ -437,7 +456,9 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : procedure.getIsSkip());
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
 
         experimentalProcedureService.updateById(procedure);
         log.info("题库练习步骤更新成功，步骤ID: {}", procedure.getId());
@@ -537,7 +558,10 @@ public class TeacherProcedureCreationService {
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
         procedure.setVideoId(request.getVideoId());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
         procedure.setIsDeleted(false);
 
         experimentalProcedureService.save(procedure);
@@ -611,7 +635,10 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
         procedure.setIsDeleted(false);
 
         experimentalProcedureService.save(procedure);
@@ -701,7 +728,10 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
-        // 时间配置已移至 ClassExperimentProcedureTime 表，不再在此设置
+
+        // 设置时��字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
         procedure.setIsDeleted(false);
 
         experimentalProcedureService.save(procedure);
@@ -847,6 +877,338 @@ public class TeacherProcedureCreationService {
         return topicTypes.stream()
                 .map(String::valueOf)
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    /**
+     * 验证并设置步骤时间字段
+     *
+     * @param procedure     步骤实体
+     * @param offsetMinutes 偏移时间(分钟)
+     * @param durationMinutes 持续时间(分钟)
+     */
+    private void validateAndSetTimeFields(ExperimentalProcedure procedure,
+                                          Integer offsetMinutes,
+                                          Integer durationMinutes) {
+        // 设置默认值并验证偏移时间
+        if (offsetMinutes == null) {
+            offsetMinutes = 0;
+        }
+        procedure.setOffsetMinutes(offsetMinutes);
+
+        // 验证持续时间
+        if (durationMinutes == null || durationMinutes <= 0) {
+            throw new com.example.demo.exception.BusinessException(400, "持续时间必须为正数");
+        }
+        procedure.setDurationMinutes(durationMinutes);
+    }
+
+    /**
+     * 创建限时答题步骤
+     *
+     * @param request 创建限时答题步骤请求
+     * @return 步骤ID
+     */
+    @Transactional
+    public Long createTimedQuizProcedure(CreateTimedQuizProcedureRequest request) {
+        log.info("创建限时答题步骤，实验ID: {}", request.getExperimentId());
+
+        // 1. 验证必填字段
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
+
+        if (request.getIsRandom() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "是否随机抽取不能为空");
+        }
+
+        if (request.getQuizTimeLimit() == null || request.getQuizTimeLimit() <= 0) {
+            throw new com.example.demo.exception.BusinessException(400, "答题时间限制必须大于0");
+        }
+
+        // 2. 验证题目配置
+        if (Boolean.TRUE.equals(request.getIsRandom())) {
+            if (request.getTopicNumber() == null || request.getTopicNumber() <= 0) {
+                throw new com.example.demo.exception.BusinessException(400, "随机模式下题目数量必须大于0");
+            }
+        } else {
+            if (request.getTeacherSelectedTopicIds() == null || request.getTeacherSelectedTopicIds().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "非随机模式下必须选择题目");
+            }
+        }
+
+        // 3. 自动计算步骤号
+        Integer newNumber = getMaxProcedureNumber(request.getExperimentId()) + 1;
+
+        // 4. 创建步骤实体
+        ExperimentalProcedure procedure = new ExperimentalProcedure();
+        procedure.setExperimentId(request.getExperimentId());
+        procedure.setNumber(newNumber);
+        procedure.setType(5); // 限时答题类型
+        procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
+        procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
+        procedure.setRemark(request.getRemark());
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
+        procedure.setIsDeleted(false);
+
+        // 保存步骤
+        experimentalProcedureService.save(procedure);
+        log.info("限时答题步骤创建成功，步骤ID: {}", procedure.getId());
+
+        // 5. 创建限时答题配置记录
+        TimedQuizProcedure timedQuizProcedure = new TimedQuizProcedure();
+        timedQuizProcedure.setExperimentalProcedureId(procedure.getId());
+        timedQuizProcedure.setIsRandom(request.getIsRandom());
+        timedQuizProcedure.setTopicNumber(request.getTopicNumber());
+        timedQuizProcedure.setTopicTags(joinTopicTags(request.getTopicTags()));
+        timedQuizProcedure.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
+        timedQuizProcedure.setQuizTimeLimit(request.getQuizTimeLimit());
+
+        timedQuizProcedureMapper.insert(timedQuizProcedure);
+        log.info("限时答题配置记录创建成功，记录ID: {}", timedQuizProcedure.getId());
+
+        // 6. 如果是老师选定模式，创建题目映射记录
+        if (!Boolean.TRUE.equals(request.getIsRandom())) {
+            List<Long> topicIds = request.getTeacherSelectedTopicIds();
+
+            // 验证题目是否存在
+            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
+            topicQueryWrapper.in("id", topicIds).eq("is_deleted", false);
+            long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
+
+            if (existingTopicCount != topicIds.size()) {
+                throw new com.example.demo.exception.BusinessException(400,
+                        String.format("有%d道题目不存在或已删除", topicIds.size() - existingTopicCount));
+            }
+
+            // 创建题目映射记录
+            for (Long topicId : topicIds) {
+                ProcedureTopicMap topicMap = new ProcedureTopicMap();
+                topicMap.setExperimentalProcedureId(procedure.getId());
+                topicMap.setTopicId(topicId);
+                topicMap.setProcedureTopicId(timedQuizProcedure.getId());
+                procedureTopicMapMapper.insert(topicMap);
+            }
+            log.info("创建了{}道题目的映射记录", topicIds.size());
+        }
+
+        // 7. 更新步骤的限时答题配置ID
+        procedure.setTimedQuizId(timedQuizProcedure.getId());
+        experimentalProcedureService.updateById(procedure);
+
+        return procedure.getId();
+    }
+
+    /**
+     * 更新限时答题步骤
+     *
+     * @param request 更新限时答题步骤请求
+     * @return 步骤ID
+     */
+    @Transactional
+    public Long updateTimedQuizProcedure(UpdateTimedQuizProcedureRequest request) {
+        log.info("更新限时答题步骤，步骤ID: {}", request.getId());
+
+        // 1. 验证步骤是否存在
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(request.getId());
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+
+        // 2. 验证步骤类型
+        if (!Integer.valueOf(5).equals(procedure.getType())) {
+            throw new com.example.demo.exception.BusinessException(400, "步骤类型不匹配");
+        }
+
+        // 3. 验证必填字段
+        if (request.getIsRandom() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "是否随机抽取不能为空");
+        }
+
+        if (request.getQuizTimeLimit() == null || request.getQuizTimeLimit() <= 0) {
+            throw new com.example.demo.exception.BusinessException(400, "答题时间限制必须大于0");
+        }
+
+        // 4. 更新步骤字段
+        if (request.getIsSkip() != null) {
+            procedure.setIsSkip(request.getIsSkip());
+        }
+        if (request.getProportion() != null) {
+            procedure.setProportion(request.getProportion());
+        }
+        if (request.getRemark() != null) {
+            procedure.setRemark(request.getRemark());
+        }
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
+        experimentalProcedureService.updateById(procedure);
+
+        // 5. 更新限时答题配置记录
+        if (procedure.getTimedQuizId() != null) {
+            TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+            if (timedQuiz != null) {
+                timedQuiz.setIsRandom(request.getIsRandom());
+                timedQuiz.setTopicNumber(request.getTopicNumber());
+                timedQuiz.setTopicTags(joinTopicTags(request.getTopicTags()));
+                timedQuiz.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
+                timedQuiz.setQuizTimeLimit(request.getQuizTimeLimit());
+
+                timedQuizProcedureMapper.updateById(timedQuiz);
+
+                // 如果是非随机模式，重新创建题目映射记录
+                if (!Boolean.TRUE.equals(request.getIsRandom())) {
+                    // 删除旧的映射记录
+                    QueryWrapper<ProcedureTopicMap> deleteWrapper = new QueryWrapper<>();
+                    deleteWrapper.eq("experimental_procedure_id", procedure.getId());
+                    procedureTopicMapMapper.delete(deleteWrapper);
+
+                    // 创建新的映射记录
+                    List<Long> topicIds = request.getTeacherSelectedTopicIds();
+
+                    if (topicIds != null && !topicIds.isEmpty()) {
+                        // 验证题目是否存在
+                        QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
+                        topicQueryWrapper.in("id", topicIds).eq("is_deleted", false);
+                        long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
+
+                        if (existingTopicCount != topicIds.size()) {
+                            throw new com.example.demo.exception.BusinessException(400,
+                                    String.format("有%d道题目不存在或已删除", topicIds.size() - existingTopicCount));
+                        }
+
+                        // 创建题目映射记录
+                        for (Long topicId : topicIds) {
+                            ProcedureTopicMap topicMap = new ProcedureTopicMap();
+                            topicMap.setExperimentalProcedureId(procedure.getId());
+                            topicMap.setTopicId(topicId);
+                            topicMap.setProcedureTopicId(timedQuiz.getId());
+                            procedureTopicMapMapper.insert(topicMap);
+                        }
+                    }
+                }
+            }
+        }
+
+        return procedure.getId();
+    }
+
+    /**
+     * 插入限时答题步骤
+     *
+     * @param request 插入限时答题步骤请求
+     * @return 步骤ID
+     */
+    @Transactional
+    public Long insertTimedQuizProcedure(InsertTimedQuizProcedureRequest request) {
+        log.info("插入限时答题步骤，实验ID: {}, 插入位置afterNumber: {}",
+                request.getExperimentId(), request.getAfterNumber());
+
+        // 1. 验证必填字段（与create相同）
+        if (request.getExperimentId() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "实验ID不能为空");
+        }
+
+        if (request.getIsRandom() == null) {
+            throw new com.example.demo.exception.BusinessException(400, "是否随机抽取不能为空");
+        }
+
+        if (request.getQuizTimeLimit() == null || request.getQuizTimeLimit() <= 0) {
+            throw new com.example.demo.exception.BusinessException(400, "答题时间限制必须大于0");
+        }
+
+        // 2. 验证题目配置
+        if (Boolean.TRUE.equals(request.getIsRandom())) {
+            if (request.getTopicNumber() == null || request.getTopicNumber() <= 0) {
+                throw new com.example.demo.exception.BusinessException(400, "随机模式下题目数量必须大于0");
+            }
+        } else {
+            if (request.getTeacherSelectedTopicIds() == null || request.getTeacherSelectedTopicIds().isEmpty()) {
+                throw new com.example.demo.exception.BusinessException(400, "非随机模式下必须选择题目");
+            }
+        }
+
+        // 3. 验证afterNumber是否存在
+        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("experiment_id", request.getExperimentId());
+        queryWrapper.eq("number", request.getAfterNumber());
+        ExperimentalProcedure afterProcedure = experimentalProcedureService.getOne(queryWrapper);
+        if (afterProcedure == null) {
+            throw new com.example.demo.exception.BusinessException(400, "插入位置的步骤不存在");
+        }
+
+        // 4. 新步骤的number = afterNumber + 1
+        Integer newNumber = request.getAfterNumber() + 1;
+
+        // 5. 更新所有 number > afterNumber 的步骤，将其 number + 1
+        com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ExperimentalProcedure> updateWrapper =
+            new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<>();
+        updateWrapper.eq("experiment_id", request.getExperimentId());
+        updateWrapper.gt("number", request.getAfterNumber());
+        updateWrapper.setSql("number = number + 1");
+        experimentalProcedureService.update(updateWrapper);
+
+        // 6. 创建新步骤
+        ExperimentalProcedure procedure = new ExperimentalProcedure();
+        procedure.setExperimentId(request.getExperimentId());
+        procedure.setNumber(newNumber);
+        procedure.setType(5); // 限时答题类型
+        procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
+        procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
+        procedure.setRemark(request.getRemark());
+
+        // 设置时间字段
+        validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
+
+        procedure.setIsDeleted(false);
+
+        experimentalProcedureService.save(procedure);
+
+        // 7. 创建限时答题配置记录
+        TimedQuizProcedure timedQuizProcedure = new TimedQuizProcedure();
+        timedQuizProcedure.setExperimentalProcedureId(procedure.getId());
+        timedQuizProcedure.setIsRandom(request.getIsRandom());
+        timedQuizProcedure.setTopicNumber(request.getTopicNumber());
+        timedQuizProcedure.setTopicTags(joinTopicTags(request.getTopicTags()));
+        timedQuizProcedure.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
+        timedQuizProcedure.setQuizTimeLimit(request.getQuizTimeLimit());
+
+        timedQuizProcedureMapper.insert(timedQuizProcedure);
+
+        // 8. 如果是老师选定模式，创建题目映射记录
+        if (!Boolean.TRUE.equals(request.getIsRandom())) {
+            List<Long> topicIds = request.getTeacherSelectedTopicIds();
+
+            if (topicIds != null && !topicIds.isEmpty()) {
+                // 验证题目是否存在
+                QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
+                topicQueryWrapper.in("id", topicIds).eq("is_deleted", false);
+                long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
+
+                if (existingTopicCount != topicIds.size()) {
+                    throw new com.example.demo.exception.BusinessException(400,
+                            String.format("有%d道题目不存在或已删除", topicIds.size() - existingTopicCount));
+                }
+
+                // 创建题目映射记录
+                for (Long topicId : topicIds) {
+                    ProcedureTopicMap topicMap = new ProcedureTopicMap();
+                    topicMap.setExperimentalProcedureId(procedure.getId());
+                    topicMap.setTopicId(topicId);
+                    topicMap.setProcedureTopicId(timedQuizProcedure.getId());
+                    procedureTopicMapMapper.insert(topicMap);
+                }
+            }
+        }
+
+        // 9. 更新步骤的限时答题配置ID
+        procedure.setTimedQuizId(timedQuizProcedure.getId());
+        experimentalProcedureService.updateById(procedure);
+
+        return procedure.getId();
     }
 
     /**
