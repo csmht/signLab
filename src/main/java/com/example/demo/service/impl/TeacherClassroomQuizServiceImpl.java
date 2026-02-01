@@ -138,7 +138,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         }
 
         // 查询所有参与班级
-        List<String> classCodes = classExperimentClassRelationService.getClassCodesByClassExperimentId(quiz.getClassExperimentId());
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(quiz.getClassExperimentId());
 
         // 统计总参与人数（所有班级的学生数总和）
         // TODO: 这里需要通过班级查询学生总数，暂时设为0
