@@ -1,8 +1,6 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.example.demo.mapper.UserMapper;
-import com.example.demo.pojo.entity.User;
 import com.example.demo.pojo.excel.StudentClassImportExcel;
 import com.example.demo.pojo.request.BatchAddClassRequest;
 import com.example.demo.pojo.request.BatchAddUserRequest;
@@ -16,14 +14,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * 学生班级导入服务
  * 提供学生和班级信息批量导入的业务逻辑处理
+ * 优化后的流程：
+ * 1. 提取所有唯一班级，自动生成班级编号
+ * 2. 构建班级编号 → 学生用户名列表的映射
+ * 3. 批量插入所有学生
+ * 4. 批量插入所有班级
+ * 5. 批量插入所有绑定关系
  */
 @Slf4j
 @Service
@@ -33,10 +35,9 @@ public class StudentClassImportService {
     private final AuthService authService;
     private final ClassService classService;
     private final StudentClassRelationService relationService;
-    private final UserMapper userMapper;
 
     /**
-     * 批量导入学生和班级信息
+     * 批量导入学生和班级信息（优化后的流程）
      *
      * @param dataList Excel数据列表
      * @return 导入结果统计
@@ -47,37 +48,220 @@ public class StudentClassImportService {
 
         BatchImportStudentClassResponse response = new BatchImportStudentClassResponse();
 
-        // 1. 按班级分组（使用班级编号+班级名称作为分组键）
-        Map<String, List<StudentClassImportExcel>> classGroupMap = dataList.stream()
-                .collect(Collectors.groupingBy(data -> {
-                    String classCode = (data.getClassCode() != null && !data.getClassCode().trim().isEmpty())
-                            ? data.getClassCode().trim() : "AUTO_GENERATE";
-                    return classCode + "|" + data.getClassName().trim();
-                }));
+        log.info("开始批量导入学生和班级，共 {} 条数据", dataList.size());
 
-        log.info("导入数据已按班级分组，共 {} 个班级", classGroupMap.size());
+        // ========== 第一步：提取所有唯一班级 ==========
+        Set<String> uniqueClassNames = dataList.stream()
+                .map(StudentClassImportExcel::getClassName)
+                .map(String::trim)
+                .collect(Collectors.toSet());
 
-        // 2. 处理每个班级及其学生
-        for (Map.Entry<String, List<StudentClassImportExcel>> entry : classGroupMap.entrySet()) {
-            String classKey = entry.getKey();
-            List<StudentClassImportExcel> studentList = entry.getValue();
+        log.info("提取到 {} 个唯一班级", uniqueClassNames.size());
 
-            // 解析班级信息
-            String[] parts = classKey.split("\\|");
-            String inputClassCode = "AUTO_GENERATE".equals(parts[0]) ? null : parts[0];
-            String className = parts[1];
+        // ========== 第二步：检查哪些班级已存在，生成班级编号映射 ==========
+        Map<String, String> classNameToCodeMap = new LinkedHashMap<>();
+        List<String> newClassNames = new ArrayList<>();
 
-            log.info("处理班级 [{}]，包含 {} 个学生", className, studentList.size());
+        // 先检查每个班级是否已存在
+        for (String className : uniqueClassNames) {
+            QueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("class_name", className);
+            com.example.demo.pojo.entity.Class existingClass = classService.getOne(queryWrapper);
 
-            // 3. 导入班级
-            String finalClassCode = importClass(inputClassCode, className, response);
+            if (existingClass != null) {
+                // 班级已存在，使用已有编号
+                classNameToCodeMap.put(className, existingClass.getClassCode());
+                log.info("班级 [{}] 已存在，使用编号: {}", className, existingClass.getClassCode());
+            } else {
+                // 班级不存在，记录下来稍后生成编号
+                newClassNames.add(className);
+            }
+        }
 
-            // 4. 导入学生
-            List<String> studentUsernames = importStudents(studentList, response, finalClassCode);
+        // 一次性生成所有新班级的编号（确保连续）
+        if (!newClassNames.isEmpty()) {
+            // 获取当前最大班级ID
+            QueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new QueryWrapper<>();
+            queryWrapper.orderByDesc("id");
+            queryWrapper.last("LIMIT 1");
+            com.example.demo.pojo.entity.Class lastClass = classService.getOne(queryWrapper);
 
-            // 5. 绑定学生到班级
-            if (finalClassCode != null && !studentUsernames.isEmpty()) {
-                bindStudentsToClass(finalClassCode, studentUsernames, response);
+            int nextNum = 1;
+            if (lastClass != null && lastClass.getId() != null) {
+                // 直接使用ID作为编号
+                nextNum = lastClass.getId().intValue() + 1;
+            }
+
+            // 为每个新班级生成连续编号
+            for (String className : newClassNames) {
+                String classCode = String.format("CLASS%06d", nextNum++);
+                classNameToCodeMap.put(className, classCode);
+                log.info("班级 [{}] 生成编号: {}", className, classCode);
+            }
+        }
+
+        // ========== 第三步：构建班级编号 → 学生信息列表的映射 ==========
+        Map<String, List<StudentClassImportExcel>> classToStudentsMap = dataList.stream()
+                .collect(Collectors.groupingBy(
+                        data -> data.getClassName().trim(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        // ========== 第四步：批量插入所有班级 ==========
+        List<BatchAddClassRequest.ClassInfo> newClasses = new ArrayList<>();
+        for (Map.Entry<String, String> entry : classNameToCodeMap.entrySet()) {
+            String className = entry.getKey();
+            String classCode = entry.getValue();
+
+            // 检查班级是否真的需要新建
+            QueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("class_code", classCode);
+            com.example.demo.pojo.entity.Class existing = classService.getOne(queryWrapper);
+
+            if (existing == null) {
+                BatchAddClassRequest.ClassInfo classInfo = new BatchAddClassRequest.ClassInfo();
+                classInfo.setClassCode(classCode);
+                classInfo.setClassName(className);
+                newClasses.add(classInfo);
+            } else {
+                response.setClassDuplicateCount(response.getClassDuplicateCount() + 1);
+                log.info("班级已存在，跳过: {}", classCode);
+            }
+        }
+
+        // 批量创建班级
+        if (!newClasses.isEmpty()) {
+            BatchAddClassRequest classRequest = new BatchAddClassRequest();
+            classRequest.setClasses(newClasses);
+
+            BatchAddClassResponse classResponse = classService.batchAddClasses(classRequest);
+            response.setClassSuccessCount(response.getClassSuccessCount() + classResponse.getSuccessCount());
+            response.setClassFailCount(response.getClassFailCount() + classResponse.getFailCount());
+
+            log.info("批量导入班级完成 - 成功:{} 失败:{}",
+                    classResponse.getSuccessCount(), classResponse.getFailCount());
+        }
+
+        // ========== 第五步：批量插入所有学生 ==========
+        // 定义批次大小
+        final int STUDENT_BATCH_SIZE = 100;
+
+        // 收集所有需要导入的学生信息
+        List<BatchAddUserRequest> allStudentRequests = new ArrayList<>();
+        // 用于记录学生所属的班级（用户名 -> 班级编号）
+        Map<String, String> studentToClassMap = new LinkedHashMap<>();
+
+        for (Map.Entry<String, List<StudentClassImportExcel>> entry : classToStudentsMap.entrySet()) {
+            String className = entry.getKey();
+            String classCode = classNameToCodeMap.get(className);
+            List<StudentClassImportExcel> students = entry.getValue();
+
+            for (StudentClassImportExcel excelData : students) {
+                // 转换为用户请求
+                BatchAddUserRequest userRequest = new BatchAddUserRequest();
+                userRequest.setUsername(excelData.getUsername().trim());
+                userRequest.setName(excelData.getName().trim());
+                userRequest.setRole("student");
+                userRequest.setDepartment(excelData.getDepartment() != null ?
+                        excelData.getDepartment().trim() : null);
+                userRequest.setMajor(excelData.getMajor() != null ?
+                        excelData.getMajor().trim() : null);
+
+                allStudentRequests.add(userRequest);
+                studentToClassMap.put(userRequest.getUsername(), classCode);
+            }
+        }
+
+        log.info("准备导入 {} 个学生，按批次处理（每批 {} 个）", allStudentRequests.size(), STUDENT_BATCH_SIZE);
+
+        // 按批次导入学生
+        List<List<BatchAddUserRequest>> studentBatches = partitionList(allStudentRequests, STUDENT_BATCH_SIZE);
+
+        for (List<BatchAddUserRequest> batch : studentBatches) {
+            try {
+                BatchAddUserResponse userResponse = authService.batchAddUsers(batch);
+
+                response.setStudentSuccessCount(response.getStudentSuccessCount() + userResponse.getSuccessCount());
+                response.setStudentDuplicateCount(response.getStudentDuplicateCount() + userResponse.getDuplicateCount());
+                response.setStudentFailCount(response.getStudentFailCount() + userResponse.getFailCount());
+
+                // 收集失败信息
+                if (userResponse.getFailedUsers() != null) {
+                    userResponse.getFailedUsers().forEach(fail -> {
+                        response.getErrorMessages().add(String.format(
+                                "学生导入失败 [用户名:%s] - %s",
+                                fail.getUsername(), fail.getReason()
+                        ));
+                    });
+                }
+
+                log.info("批次导入学生完成 - 成功:{} 重复:{} 失败:{}",
+                        userResponse.getSuccessCount(), userResponse.getDuplicateCount(), userResponse.getFailCount());
+
+            } catch (Exception e) {
+                log.error("批次导入学生异常", e);
+                response.setStudentFailCount(response.getStudentFailCount() + batch.size());
+                response.getErrorMessages().add("批次导入学生异常: " + e.getMessage());
+            }
+        }
+
+        // ========== 第六步：按班级收集学生用户名，准备批量绑定 ==========
+        Map<String, List<String>> classToStudentUsernamesMap = new LinkedHashMap<>();
+
+        for (Map.Entry<String, List<StudentClassImportExcel>> entry : classToStudentsMap.entrySet()) {
+            String className = entry.getKey();
+            String classCode = classNameToCodeMap.get(className);
+            List<StudentClassImportExcel> students = entry.getValue();
+
+            List<String> studentUsernames = new ArrayList<>();
+            for (StudentClassImportExcel excelData : students) {
+                studentUsernames.add(excelData.getUsername().trim());
+            }
+
+            classToStudentUsernamesMap.put(classCode, studentUsernames);
+        }
+
+        log.info("准备为 {} 个班级绑定学生关系", classToStudentUsernamesMap.size());
+
+        // ========== 第七步：批量插入所有绑定关系（按班级分批）==========
+        for (Map.Entry<String, List<String>> entry : classToStudentUsernamesMap.entrySet()) {
+            String classCode = entry.getKey();
+            List<String> studentUsernames = entry.getValue();
+
+            if (studentUsernames.isEmpty()) {
+                log.info("班级 [{}] 没有需要绑定的学生", classCode);
+                continue;
+            }
+
+            try {
+                BatchBindStudentsRequest bindRequest = new BatchBindStudentsRequest();
+                bindRequest.setClassCode(classCode);
+                bindRequest.setStudentUsernames(studentUsernames);
+
+                BatchBindStudentsResponse bindResponse =
+                        relationService.batchBindStudents(bindRequest);
+
+                response.setBindSuccessCount(response.getBindSuccessCount() + bindResponse.getSuccessCount());
+                response.setBindFailCount(response.getBindFailCount() + bindResponse.getFailCount());
+
+                // 收集绑定失败的错误信息
+                if (bindResponse.getFailList() != null) {
+                    bindResponse.getFailList().forEach(fail -> {
+                        response.getErrorMessages().add(String.format(
+                                "绑定失败 [用户名:%s, 班级:%s] - %s",
+                                fail.getStudentUsername(), classCode, fail.getMessage()
+                        ));
+                    });
+                }
+
+                log.info("班级 [{}] 绑定完成 - 成功:{} 失败:{}",
+                        classCode, bindResponse.getSuccessCount(), bindResponse.getFailCount());
+
+            } catch (Exception e) {
+                log.error("批量绑定学生到班级异常: {}", classCode, e);
+                response.setBindFailCount(response.getBindFailCount() + studentUsernames.size());
+                response.getErrorMessages().add("批量绑定异常 [班级:" + classCode + "] - " + e.getMessage());
             }
         }
 
@@ -90,171 +274,18 @@ public class StudentClassImportService {
     }
 
     /**
-     * 导入班级
+     * 将列表分割成指定大小的批次
      *
-     * @param classCode 班级编号（可能为null）
-     * @param className 班级名称
-     * @param response  响应对象
-     * @return 最终的班级编号（导入成功或已存在）
+     * @param list     原始列表
+     * @param batchSize 批次大小
+     * @param <T>      列表元素类型
+     * @return 批次列表
      */
-    private String importClass(String classCode, String className,
-                               BatchImportStudentClassResponse response) {
-        try {
-            // 如果班级编号为空，自动生成
-            if (classCode == null) {
-                classCode = classService.generateClassCode();
-                log.info("自动生成班级编号: {}", classCode);
-            }
-
-            // 检查班级是否已存在
-            com.example.demo.pojo.entity.Class existingClass = classService.getByClassCode(classCode);
-            if (existingClass != null) {
-                log.info("班级已存在，跳过导入: {}", classCode);
-                response.setClassDuplicateCount(response.getClassDuplicateCount() + 1);
-                return classCode; // 班级已存在，直接使用
-            }
-
-            // 创建班级
-            BatchAddClassRequest.ClassInfo classInfo = new BatchAddClassRequest.ClassInfo();
-            classInfo.setClassCode(classCode);
-            classInfo.setClassName(className);
-
-            BatchAddClassRequest classRequest = new BatchAddClassRequest();
-            classRequest.setClasses(List.of(classInfo));
-
-            BatchAddClassResponse classResponse = classService.batchAddClasses(classRequest);
-
-            if (classResponse.getSuccessCount() > 0) {
-                log.info("班级导入成功: {}", classCode);
-                response.setClassSuccessCount(response.getClassSuccessCount() + 1);
-                return classCode;
-            } else {
-                log.warn("班级导入失败: {}", className);
-                response.setClassFailCount(response.getClassFailCount() + 1);
-                response.getErrorMessages().add("班级创建失败: " + className);
-                return null;
-            }
-
-        } catch (Exception e) {
-            log.error("导入班级异常: {}", className, e);
-            response.setClassFailCount(response.getClassFailCount() + 1);
-            response.getErrorMessages().add("班级导入异常: " + className + " - " + e.getMessage());
-            return null;
+    private <T> List<List<T>> partitionList(List<T> list, int batchSize) {
+        List<List<T>> batches = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += batchSize) {
+            batches.add(list.subList(i, Math.min(i + batchSize, list.size())));
         }
-    }
-
-    /**
-     * 导入学生
-     *
-     * @param studentList 学生列表
-     * @param response    响应对象
-     * @param classCode   班级编号
-     * @return 成功导入或已存在的学生用户名列表
-     */
-    private List<String> importStudents(List<StudentClassImportExcel> studentList,
-                                       BatchImportStudentClassResponse response,
-                                       String classCode) {
-        List<String> successUsernames = new ArrayList<>();
-
-        for (StudentClassImportExcel excelData : studentList) {
-            try {
-                // 转换为用户请求
-                BatchAddUserRequest userRequest = new BatchAddUserRequest();
-                userRequest.setUsername(excelData.getUsername().trim());
-                userRequest.setName(excelData.getName().trim());
-                userRequest.setRole("student"); // 固定为学生角色
-                userRequest.setDepartment(excelData.getDepartment() != null ?
-                        excelData.getDepartment().trim() : null);
-                userRequest.setMajor(excelData.getMajor() != null ?
-                        excelData.getMajor().trim() : null);
-
-                // 检查学生是否已存在
-                User existingUser = getUserByUsername(userRequest.getUsername());
-                if (existingUser != null) {
-                    log.info("学生已存在，跳过导入: {}", userRequest.getUsername());
-                    response.setStudentDuplicateCount(response.getStudentDuplicateCount() + 1);
-                    // 学生已存在，仍可绑定班级
-                    successUsernames.add(userRequest.getUsername());
-                    continue;
-                }
-
-                // 导入学生
-                BatchAddUserResponse userResponse = authService.batchAddUsers(List.of(userRequest));
-
-                if (userResponse.getSuccessCount() > 0) {
-                    log.info("学生导入成功: {}", userRequest.getUsername());
-                    response.setStudentSuccessCount(response.getStudentSuccessCount() + 1);
-                    successUsernames.add(userRequest.getUsername());
-                } else {
-                    log.warn("学生导入失败: {}", excelData.getUsername());
-                    response.setStudentFailCount(response.getStudentFailCount() + 1);
-                    response.getErrorMessages().add(String.format(
-                            "学生导入失败 [用户名:%s, 姓名:%s]",
-                            excelData.getUsername(), excelData.getName()
-                    ));
-                }
-
-            } catch (Exception e) {
-                log.error("导入学生异常: {}", excelData.getUsername(), e);
-                response.setStudentFailCount(response.getStudentFailCount() + 1);
-                response.getErrorMessages().add(String.format(
-                        "学生导入异常 [用户名:%s, 姓名:%s] - %s",
-                        excelData.getUsername(), excelData.getName(), e.getMessage()
-                ));
-            }
-        }
-
-        return successUsernames;
-    }
-
-    /**
-     * 批量绑定学生到班级
-     *
-     * @param classCode        班级编号
-     * @param studentUsernames 学生用户名列表
-     * @param response         响应对象
-     */
-    private void bindStudentsToClass(String classCode, List<String> studentUsernames,
-                                    BatchImportStudentClassResponse response) {
-        try {
-            BatchBindStudentsRequest bindRequest = new BatchBindStudentsRequest();
-            bindRequest.setClassCode(classCode);
-            bindRequest.setStudentUsernames(studentUsernames);
-
-            BatchBindStudentsResponse bindResponse =
-                    relationService.batchBindStudents(bindRequest);
-
-            response.setBindSuccessCount(response.getBindSuccessCount() + bindResponse.getSuccessCount());
-            response.setBindFailCount(response.getBindFailCount() + bindResponse.getFailCount());
-
-            // 收集绑定失败的错误信息
-            if (bindResponse.getFailList() != null) {
-                bindResponse.getFailList().forEach(fail -> {
-                    response.getErrorMessages().add(String.format(
-                            "绑定失败 [用户名:%s, 班级:%s] - %s",
-                            fail.getStudentUsername(), classCode, fail.getMessage()
-                    ));
-                });
-            }
-
-            log.info("绑定完成 - 成功:{} 失败:{}", bindResponse.getSuccessCount(), bindResponse.getFailCount());
-
-        } catch (Exception e) {
-            log.error("批量绑定学生到班级异常: {}", classCode, e);
-            response.setBindFailCount(response.getBindFailCount() + studentUsernames.size());
-            response.getErrorMessages().add("批量绑定异常 [班级:" + classCode + "] - " + e.getMessage());
-        }
-    }
-
-    /**
-     * 根据用户名查询用户
-     *
-     * @param username 用户名
-     * @return 用户对象
-     */
-    private User getUserByUsername(String username) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
-        return userMapper.selectOne(queryWrapper);
+        return batches;
     }
 }

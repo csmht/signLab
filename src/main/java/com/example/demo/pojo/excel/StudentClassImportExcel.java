@@ -9,6 +9,7 @@ import lombok.Data;
 /**
  * 学生班级导入Excel实体类
  * 用于规范Excel导入格式，同时导入学生和班级信息
+ * 班级编号由系统自动生成，无需在Excel中填写
  */
 @Data
 @ContentRowHeight(20)
@@ -30,30 +31,23 @@ public class StudentClassImportExcel {
     private String name;
 
     /**
-     * 班级编号（可选，为空则自动生成）
-     */
-    @ExcelProperty(value = "班级编号", index = 2)
-    @ColumnWidth(20)
-    private String classCode;
-
-    /**
      * 班级名称
      */
-    @ExcelProperty(value = "班级名称", index = 3)
+    @ExcelProperty(value = "班级名称", index = 2)
     @ColumnWidth(25)
     private String className;
 
     /**
      * 院系
      */
-    @ExcelProperty(value = "院系", index = 4)
+    @ExcelProperty(value = "院系", index = 3)
     @ColumnWidth(20)
     private String department;
 
     /**
      * 专业
      */
-    @ExcelProperty(value = "专业", index = 5)
+    @ExcelProperty(value = "专业", index = 4)
     @ColumnWidth(20)
     private String major;
 }

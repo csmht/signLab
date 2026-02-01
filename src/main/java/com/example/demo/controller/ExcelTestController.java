@@ -215,6 +215,7 @@ public class ExcelTestController {
 
     /**
      * 获取学生班级导入模板
+     * 班级编号由系统自动生成，无需在Excel中填写
      *
      * @return Excel 文件
      */
@@ -231,21 +232,19 @@ public class ExcelTestController {
             // 创建示例数据
             List<StudentClassImportExcel> data = new ArrayList<>();
 
-            // 示例1：自动生成班级编号
+            // 示例1：第一个班级
             StudentClassImportExcel example1 = new StudentClassImportExcel();
             example1.setUsername("2021001");
             example1.setName("张三");
-            example1.setClassCode(""); // 空值，系统自动生成
             example1.setClassName("计算机科学与技术1班");
             example1.setDepartment("计算机学院");
             example1.setMajor("计算机科学与技术");
             data.add(example1);
 
-            // 示例2：指定班级编号（同一班级）
+            // 示例2：同一班级
             StudentClassImportExcel example2 = new StudentClassImportExcel();
             example2.setUsername("2021002");
             example2.setName("李四");
-            example2.setClassCode("CLASS000001"); // 指定班级编号
             example2.setClassName("计算机科学与技术1班"); // 与示例1同班
             example2.setDepartment("计算机学院");
             example2.setMajor("计算机科学与技术");
@@ -255,11 +254,19 @@ public class ExcelTestController {
             StudentClassImportExcel example3 = new StudentClassImportExcel();
             example3.setUsername("2021003");
             example3.setName("王五");
-            example3.setClassCode(""); // 空值，系统自动生成新班级
             example3.setClassName("软件工程1班"); // 不同班级
             example3.setDepartment("计算机学院");
             example3.setMajor("软件工程");
             data.add(example3);
+
+            // 示例4：同班级的第三个学生
+            StudentClassImportExcel example4 = new StudentClassImportExcel();
+            example4.setUsername("2021004");
+            example4.setName("赵六");
+            example4.setClassName("计算机科学与技术1班"); // 与示例1、2同班
+            example4.setDepartment("计算机学院");
+            example4.setMajor("计算机科学与技术");
+            data.add(example4);
 
             // 写入 Excel
             EasyExcel.write(response.getOutputStream(), StudentClassImportExcel.class)

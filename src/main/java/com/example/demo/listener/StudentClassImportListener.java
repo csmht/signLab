@@ -105,12 +105,6 @@ public class StudentClassImportListener extends AnalysisEventListener<StudentCla
         if (data.getClassName() == null || data.getClassName().trim().isEmpty()) {
             throw new BusinessException(400, "班级名称不能为空");
         }
-        // 如果提供了班级编号，验证格式
-        if (data.getClassCode() != null && !data.getClassCode().trim().isEmpty()) {
-            if (!data.getClassCode().matches("CLASS\\d{6}")) {
-                throw new BusinessException(400, "班级编号格式错误，应为 CLASS + 6位数字");
-            }
-        }
     }
 
     /**
