@@ -9,6 +9,7 @@ import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.request.VideoQueryRequest;
 import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.response.VideoUploadResponse;
+import com.example.demo.util.VideoMetadataUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +48,8 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
 
     @Value("${file.upload.path:uploads/}")
     private String uploadBasePath;
+
+    private final VideoMetadataUtil videoMetadataUtil;
 
     /**
      * 教师上传教学视频
@@ -113,20 +116,28 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
             Path targetPath = Paths.get(filePath);
             file.transferTo(targetPath);
 
-            // 9. 创建视频记录
+            // 9. 读取视频时长
+            File savedVideoFile = targetPath.toFile();
+            long videoSeconds = videoMetadataUtil.extractVideoDuration(savedVideoFile);
+
+            // 10. 创建视频记录
             VideoFile videoFile = new VideoFile();
             videoFile.setOriginalFileName(originalFilename);
             videoFile.setStoredFileName(uniqueFileName);
             videoFile.setFilePath(relativePath + File.separator + uniqueFileName);
             videoFile.setFileSize(file.getSize());
+            videoFile.setVideoSeconds(videoSeconds);
 
-            // 这里可以集成视频处理库来获取视频时长，暂时设置为0
-            videoFile.setVideoSeconds(0L);
-
-            // 保存到数据库
+            // 11. 保存到数据库
             save(videoFile);
 
-            log.info("教师 {} 上传视频成功: {}", teacherUsername, originalFilename);
+            // 12. 记录结果日志
+            if (videoSeconds > 0) {
+                log.info("教师 {} 上传视频成功: {}, 时长: {}秒", teacherUsername, originalFilename, videoSeconds);
+            } else {
+                log.warn("教师 {} 上传视频成功(但时长读取失败): {}", teacherUsername, originalFilename);
+            }
+
             return videoFile;
 
         } catch (BusinessException e) {
