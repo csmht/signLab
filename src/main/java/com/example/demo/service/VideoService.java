@@ -57,14 +57,12 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
      * @param teacherUsername 教师用户名
      * @param title 视频标题
      * @param description 视频描述（可选）
-     * @param courseId 课程ID（可选）
-     * @param experimentId 实验ID（可选）
      * @param file 视频文件
      * @return 上传后的视频信息
      */
     @Transactional(rollbackFor = Exception.class)
     public VideoFile uploadTeacherVideo(String teacherUsername, String title, String description,
-                                        String courseId, String experimentId, MultipartFile file) {
+                                         MultipartFile file) {
         // 1. 验证文件是否为空
         if (file == null || file.isEmpty()) {
             throw new BusinessException(400, "视频文件不能为空");
@@ -109,7 +107,7 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
             }
 
             // 7. 生成唯一文件名
-            String uniqueFileName = UUID.randomUUID().toString() + "." + extension;
+            String uniqueFileName =title +  UUID.randomUUID().toString() + "." + extension;
             String filePath = uploadDir + File.separator + uniqueFileName;
 
             // 8. 保存文件
@@ -127,6 +125,8 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
             videoFile.setFilePath(relativePath + File.separator + uniqueFileName);
             videoFile.setFileSize(file.getSize());
             videoFile.setVideoSeconds(videoSeconds);
+            videoFile.setTitle(title);
+            videoFile.setDescription(description);
 
             // 11. 保存到数据库
             save(videoFile);
@@ -209,6 +209,11 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
         // 按原始文件名模糊查询
         if (StringUtils.hasText(request.getOriginalFileName())) {
             queryWrapper.like("original_file_name", request.getOriginalFileName().trim());
+        }
+
+        // 按视频标题模糊查询
+        if (StringUtils.hasText(request.getTitle())) {
+            queryWrapper.like("title", request.getTitle().trim());
         }
 
         // 按回答ID精确查询

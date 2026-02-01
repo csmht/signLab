@@ -31,6 +31,13 @@ public class VideoFile {
     @Column(comment = "原始文件名", type = "varchar(255)")
     private String originalFileName;
 
+    /** 视频标题 */
+    @Column(comment = "视频标题", type = "varchar(255)")
+    private String title;
+
+    @Column(comment = "文件描述" , type = "text")
+    private String description;
+
     /** 存储文件名 */
     @Column(comment = "存储文件名", type = "varchar(255)")
     private String storedFileName;

@@ -13,6 +13,9 @@ public class VideoUploadResponse {
     /** 视频ID */
     private Long id;
 
+    /** 视频标题 */
+    private String title;
+
     /** 原始文件名 */
     private String originalFileName;
 
@@ -40,6 +43,7 @@ public class VideoUploadResponse {
     public static VideoUploadResponse fromEntity(com.example.demo.pojo.entity.VideoFile videoFile) {
         VideoUploadResponse response = new VideoUploadResponse();
         response.setId(videoFile.getId());
+        response.setTitle(videoFile.getTitle());
         response.setOriginalFileName(videoFile.getOriginalFileName());
         response.setStoredFileName(videoFile.getStoredFileName());
         response.setFileAccessPath("/api/videos/" + videoFile.getId());

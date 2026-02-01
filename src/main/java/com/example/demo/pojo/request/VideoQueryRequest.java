@@ -29,6 +29,11 @@ public class VideoQueryRequest {
     private String originalFileName;
 
     /**
+     * 视频标题（模糊查询）
+     */
+    private String title;
+
+    /**
      * 回答ID（精确查询）
      */
     private Long answerId;

@@ -32,8 +32,6 @@ public class TeacherVideoController {
      *
      * @param title 视频标题
      * @param description 视频描述（可选）
-     * @param courseId 课程ID（可选）
-     * @param experimentId 实验ID（可选）
      * @param file 视频文件
      * @return 上传结果
      */
@@ -42,8 +40,6 @@ public class TeacherVideoController {
     public ApiResponse<VideoUploadResponse> uploadVideo(
             @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
-            @RequestParam(value = "courseId", required = false) String courseId,
-            @RequestParam(value = "experimentId", required = false) String experimentId,
             @RequestParam("file") MultipartFile file) {
         try {
             // 获取当前登录教师用户名
@@ -52,7 +48,7 @@ public class TeacherVideoController {
 
             // 上传视频
             VideoFile videoFile = videoService.uploadTeacherVideo(
-                    teacherUsername, title, description, courseId, experimentId, file
+                    teacherUsername, title, description,  file
             );
 
             // 转换为响应对象
