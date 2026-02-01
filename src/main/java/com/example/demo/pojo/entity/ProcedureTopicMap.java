@@ -35,4 +35,8 @@ public class ProcedureTopicMap {
     @Column(comment = "实验步骤-题库答题表ID", type = "bigint" ,notNull = true )
     private Long procedureTopicId;
 
+    /** 是否删除：0-否，1-是 */
+    @Column(comment = "是否删除：0-否，1-是", type = "bit", defaultValue = "0")
+    private Boolean isDeleted;
+
 }

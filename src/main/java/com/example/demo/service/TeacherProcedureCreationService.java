@@ -1216,20 +1216,128 @@ public class TeacherProcedureCreationService {
      *
      * @param procedureId 步骤ID
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteProcedure(Long procedureId) {
-        log.info("删除步骤，步骤ID: {}", procedureId);
+        log.info("开始删除步骤，步骤ID: {}", procedureId);
 
-        // 验证步骤是否存在
+        // 第一步：验证步骤是否存在
         ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
         if (procedure == null) {
+            log.warn("步骤删除失败：步骤不存在, procedureId={}", procedureId);
             throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
         }
 
-        // 删除步骤（逻辑删除）
+        // 第二步：级联逻辑删除所有关联的子表数据
+        cascadeDeleteRelatedData(procedureId);
+
+        // 第三步：删除步骤主表（逻辑删除）
         procedure.setIsDeleted(true);
-        experimentalProcedureService.updateById(procedure);
+        boolean updated = experimentalProcedureService.updateById(procedure);
+
+        if (!updated) {
+            log.error("步骤主表删除失败: procedureId={}", procedureId);
+            throw new com.example.demo.exception.BusinessException(500, "步骤删除失败");
+        }
 
         log.info("步骤删除成功，步骤ID: {}", procedureId);
+    }
+
+    /**
+     * 级联删除步骤相关的所有子表数据
+     *
+     * @param procedureId 步骤ID
+     */
+    private void cascadeDeleteRelatedData(Long procedureId) {
+        log.info("开始级联删除子表数据，步骤ID: {}", procedureId);
+
+        // 1. 删除数据收集记录（通过 experimental_procedure_id 关联）
+        deleteDataCollections(procedureId);
+
+        // 2. 删除题库详情记录（通过 experimental_procedure_id 关联）
+        deleteProcedureTopics(procedureId);
+
+        // 3. 删除限时答题配置（通过 experimental_procedure_id 关联）
+        deleteTimedQuizProcedures(procedureId);
+
+        // 4. 删除题目映射关系（通过 experimental_procedure_id 关联）
+        deleteProcedureTopicMaps(procedureId);
+
+        log.info("子表数据级联删除完成，步骤ID: {}", procedureId);
+    }
+
+    /**
+     * 删除数据收集记录
+     *
+     * @param procedureId 步骤ID
+     */
+    private void deleteDataCollections(Long procedureId) {
+        QueryWrapper<DataCollection> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("experimental_procedure_id", procedureId);
+
+        List<DataCollection> records = dataCollectionMapper.selectList(queryWrapper);
+        if (!records.isEmpty()) {
+            for (DataCollection record : records) {
+                record.setIsDeleted(true);
+                dataCollectionMapper.updateById(record);
+            }
+            log.info("数据收集记录逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        }
+    }
+
+    /**
+     * 删除题库详情记录
+     *
+     * @param procedureId 步骤ID
+     */
+    private void deleteProcedureTopics(Long procedureId) {
+        QueryWrapper<ProcedureTopic> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("experimental_procedure_id", procedureId);
+
+        List<ProcedureTopic> records = procedureTopicMapper.selectList(queryWrapper);
+        if (!records.isEmpty()) {
+            for (ProcedureTopic record : records) {
+                record.setIsDeleted(true);
+                procedureTopicMapper.updateById(record);
+            }
+            log.info("题库详情记录逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        }
+    }
+
+    /**
+     * 删除限时答题配置
+     *
+     * @param procedureId 步骤ID
+     */
+    private void deleteTimedQuizProcedures(Long procedureId) {
+        QueryWrapper<TimedQuizProcedure> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("experimental_procedure_id", procedureId);
+
+        List<TimedQuizProcedure> records = timedQuizProcedureMapper.selectList(queryWrapper);
+        if (!records.isEmpty()) {
+            for (TimedQuizProcedure record : records) {
+                record.setIsDeleted(true);
+                timedQuizProcedureMapper.updateById(record);
+            }
+            log.info("限时答题配置逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        }
+    }
+
+    /**
+     * 删除题目映射关系
+     *
+     * @param procedureId 步骤ID
+     */
+    private void deleteProcedureTopicMaps(Long procedureId) {
+        QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("experimental_procedure_id", procedureId);
+
+        List<ProcedureTopicMap> records = procedureTopicMapMapper.selectList(queryWrapper);
+        if (!records.isEmpty()) {
+            for (ProcedureTopicMap record : records) {
+                record.setIsDeleted(true);
+                procedureTopicMapMapper.updateById(record);
+            }
+            log.info("题目映射关系逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        }
     }
 }

@@ -44,4 +44,8 @@ public class TimedQuizProcedure {
     /** 答题时间限制（分钟） */
     @Column(comment = "答题时间限制（分钟）", type = "int", notNull = true)
     private Integer quizTimeLimit;
+
+    /** 是否删除：0-否，1-是 */
+    @Column(comment = "是否删除：0-否，1-是", type = "bit", defaultValue = "0")
+    private Boolean isDeleted;
 }

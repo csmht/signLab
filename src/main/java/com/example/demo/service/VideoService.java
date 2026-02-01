@@ -171,27 +171,50 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteVideo(Long videoId) {
         try {
+            // 第一步：查询并验证
             VideoFile videoFile = getById(videoId);
             if (videoFile == null) {
+                log.warn("视频删除失败：视频不存在, videoId={}", videoId);
                 throw new BusinessException(404, "视频不存在");
             }
 
-            // 删除物理文件
-            String fullPath = uploadBasePath + videoFile.getFilePath();
+            String originalFileName = videoFile.getOriginalFileName();
+            String filePath = videoFile.getFilePath();
+            String fullPath = uploadBasePath + filePath;
+
+            log.info("开始删除视频: videoId={}, fileName={}, filePath={}",
+                    videoId, originalFileName, fullPath);
+
+            // 第二步：先删除物理文件（失败则整体回滚）
             Path path = Paths.get(fullPath);
             if (Files.exists(path)) {
-                Files.delete(path);
+                try {
+                    Files.delete(path);
+                    log.info("物理文件删除成功: videoId={}, path={}", videoId, fullPath);
+                } catch (java.io.IOException e) {
+                    log.error("物理文件删除失败，事务将回滚: videoId={}, path={}, error={}",
+                             videoId, fullPath, e.getMessage(), e);
+                    throw new BusinessException(500, "物理文件删除失败，可能原因：文件被占用或权限不足");
+                }
+            } else {
+                log.warn("物理文件不存在，跳过文件删除: videoId={}, path={}", videoId, fullPath);
             }
 
-            // 删除数据库记录
+            // 第三步：删除数据库记录
             boolean deleted = removeById(videoId);
-            log.info("删除视频成功: {}", videoFile.getOriginalFileName());
-            return deleted;
+            if (!deleted) {
+                log.error("数据库记录删除失败: videoId={}", videoId);
+                throw new BusinessException(500, "数据库记录删除失败");
+            }
+
+            log.info("视频删除成功: videoId={}, fileName={}", videoId, originalFileName);
+            return true;
 
         } catch (BusinessException e) {
+            // 业务异常直接抛出
             throw e;
         } catch (Exception e) {
-            log.error("删除视频失败", e);
+            log.error("视频删除失败（系统异常）: videoId={}", videoId, e);
             throw new BusinessException(500, "删除视频失败: " + e.getMessage());
         }
     }

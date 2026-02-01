@@ -56,4 +56,8 @@ public class DataCollection {
     /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createdTime;
+
+    /** 是否删除：0-否，1-是 */
+    @Column(comment = "是否删除：0-否，1-是", type = "bit", defaultValue = "0")
+    private Boolean isDeleted;
 }

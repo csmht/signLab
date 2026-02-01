@@ -3,10 +3,13 @@ package com.example.demo.controller;
 import com.alibaba.excel.EasyExcel;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.listener.StudentClassImportListener;
 import com.example.demo.listener.UserImportListener;
-import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.excel.StudentClassImportExcel;
 import com.example.demo.pojo.excel.UserImportExcel;
+import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.service.AuthService;
+import com.example.demo.service.StudentClassImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,7 @@ import java.util.List;
 public class ExcelTestController {
 
     private final AuthService authService;
+    private final StudentClassImportService studentClassImportService;
 
     /**
      * 批量导入用户
@@ -138,6 +142,132 @@ public class ExcelTestController {
 
         } catch (Exception e) {
             log.error("获取用户导入模板失败", e);
+            response.setStatus(500);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":500,\"message\":\"获取模板失败: " + e.getMessage() + "\"}");
+        }
+    }
+
+    /**
+     * 批量导入学生及班级信息
+     * 通过上传 Excel 文件一次性导入学生和对应的班级信息
+     * 导入顺序：1.导入学生 -> 2.导入班级 -> 3.绑定关系
+     *
+     * @param file Excel 文件
+     * @return 导入结果
+     */
+    @PostMapping("/import/students-with-classes")
+    @RequireRole(value = UserRole.ADMIN)
+    public ApiResponse<String> importStudentsWithClasses(@RequestParam("file") MultipartFile file) {
+        long startTime = System.currentTimeMillis();
+        try {
+            // 验证文件
+            if (file == null || file.isEmpty()) {
+                return ApiResponse.error(400, "请上传Excel文件");
+            }
+
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
+                return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
+            }
+
+            // 创建监听器
+            StudentClassImportListener listener = new StudentClassImportListener(studentClassImportService);
+
+            // 使用EasyExcel读取Excel文件
+            EasyExcel.read(file.getInputStream(), StudentClassImportExcel.class, listener)
+                    .sheet()
+                    .doRead();
+
+            // 获取导入结果
+            StudentClassImportListener.ImportResult result = listener.getResult();
+
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+
+            // 构建返回消息
+            StringBuilder message = new StringBuilder();
+            message.append("导入完成！耗时:").append(duration).append("ms\n");
+            message.append("【学生】成功:").append(result.getStudentSuccessCount())
+                   .append(" 重复:").append(result.getStudentDuplicateCount())
+                   .append(" 失败:").append(result.getStudentFailCount()).append("\n");
+            message.append("【班级】成功:").append(result.getClassSuccessCount())
+                   .append(" 重复:").append(result.getClassDuplicateCount())
+                   .append(" 失败:").append(result.getClassFailCount()).append("\n");
+            message.append("【绑定】成功:").append(result.getBindSuccessCount())
+                   .append(" 失败:").append(result.getBindFailCount());
+
+            // 如果有错误信息，添加到返回消息中
+            if (!result.getErrorMessages().isEmpty()) {
+                message.append("\n\n错误详情：\n");
+                result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
+            }
+
+            return ApiResponse.success(message.toString());
+
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("批量导入学生和班级失败", e);
+            return ApiResponse.error(500, "批量导入失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取学生班级导入模板
+     *
+     * @return Excel 文件
+     */
+    @GetMapping("/template/students-with-classes")
+    @RequireRole(value = UserRole.ADMIN)
+    public void getStudentClassImportTemplate(jakarta.servlet.http.HttpServletResponse response) throws IOException {
+        try {
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = java.net.URLEncoder.encode("学生班级导入模板", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            // 创建示例数据
+            List<StudentClassImportExcel> data = new ArrayList<>();
+
+            // 示例1：自动生成班级编号
+            StudentClassImportExcel example1 = new StudentClassImportExcel();
+            example1.setUsername("2021001");
+            example1.setName("张三");
+            example1.setClassCode(""); // 空值，系统自动生成
+            example1.setClassName("计算机科学与技术1班");
+            example1.setDepartment("计算机学院");
+            example1.setMajor("计算机科学与技术");
+            data.add(example1);
+
+            // 示例2：指定班级编号（同一班级）
+            StudentClassImportExcel example2 = new StudentClassImportExcel();
+            example2.setUsername("2021002");
+            example2.setName("李四");
+            example2.setClassCode("CLASS000001"); // 指定班级编号
+            example2.setClassName("计算机科学与技术1班"); // 与示例1同班
+            example2.setDepartment("计算机学院");
+            example2.setMajor("计算机科学与技术");
+            data.add(example2);
+
+            // 示例3：不同班级
+            StudentClassImportExcel example3 = new StudentClassImportExcel();
+            example3.setUsername("2021003");
+            example3.setName("王五");
+            example3.setClassCode(""); // 空值，系统自动生成新班级
+            example3.setClassName("软件工程1班"); // 不同班级
+            example3.setDepartment("计算机学院");
+            example3.setMajor("软件工程");
+            data.add(example3);
+
+            // 写入 Excel
+            EasyExcel.write(response.getOutputStream(), StudentClassImportExcel.class)
+                    .sheet("学生班级导入模板")
+                    .doWrite(data);
+
+        } catch (Exception e) {
+            log.error("获取学生班级导入模板失败", e);
             response.setStatus(500);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":500,\"message\":\"获取模板失败: " + e.getMessage() + "\"}");
