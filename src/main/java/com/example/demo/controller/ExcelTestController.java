@@ -23,7 +23,7 @@ import java.util.List;
  * Excel测试导入控制器
  * 提供Excel批量导入数据的测试接口
  */
-@RequestMapping("/api/test/excel")
+@RequestMapping("/api/excel")
 @RestController
 @RequiredArgsConstructor
 @Slf4j
