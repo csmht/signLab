@@ -7,6 +7,7 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.ExperimentMapper;
+import com.example.demo.mapper.StudentClassRelationMapper;
 import com.example.demo.pojo.request.BatchAddClassRequest;
 import com.example.demo.pojo.request.ClassQueryRequest;
 import com.example.demo.pojo.response.BatchAddClassResponse;
@@ -38,6 +39,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
     private final ClassExperimentMapper classExperimentMapper;
     private final ExperimentMapper experimentMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
+    private final StudentClassRelationMapper studentClassRelationMapper;
 
     /**
      * 根据班级代码查询班级
@@ -112,6 +114,16 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
     }
 
     /**
+     * 获取班级学生数量
+     *
+     * @param classCode 班级编号
+     * @return 学生数量
+     */
+    public int getStudentCount(String classCode) {
+        return studentClassRelationMapper.countStudentsByClassCode(classCode);
+    }
+
+    /**
      * 构建班级带实验信息响应
      *
      * @param clazz 班级实体
@@ -121,7 +133,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
         ClassWithExperimentsResponse response = new ClassWithExperimentsResponse();
         response.setClassCode(clazz.getClassCode());
         response.setClassName(clazz.getClassName());
-        response.setStudentCount(clazz.getStudentCount());
+        response.setStudentCount(getStudentCount(clazz.getClassCode()));
         response.setCreateTime(clazz.getCreateTime());
         response.setUpdateTime(clazz.getUpdateTime());
 
@@ -232,7 +244,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
         ClassResponse response = new ClassResponse();
         response.setClassCode(clazz.getClassCode());
         response.setClassName(clazz.getClassName());
-        response.setStudentCount(clazz.getStudentCount());
+        response.setStudentCount(getStudentCount(clazz.getClassCode()));
         response.setCreator(clazz.getCreator());
         response.setCreateTime(clazz.getCreateTime());
         response.setUpdateTime(clazz.getUpdateTime());
@@ -289,7 +301,6 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
                 Class clazz = new Class();
                 clazz.setClassCode(classCode);
                 clazz.setClassName(classInfo.getClassName());
-                clazz.setStudentCount(0);
                 clazz.setCreator(currentUsername);
 
                 boolean saved = save(clazz);
@@ -314,23 +325,5 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
         }
 
         return response;
-    }
-
-    /**
-     * 更新班级人数
-     *
-     * @param classCode 班级编号
-     * @param delta 人数变化量
-     */
-    public void updateStudentCount(String classCode, int delta) {
-        Class clazz = getByClassCode(classCode);
-        if (clazz != null) {
-            int newCount = clazz.getStudentCount() + delta;
-            if (newCount < 0) {
-                newCount = 0;
-            }
-            clazz.setStudentCount(newCount);
-            updateById(clazz);
-        }
     }
 }

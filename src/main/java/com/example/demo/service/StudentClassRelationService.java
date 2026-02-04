@@ -160,9 +160,6 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
                     response.getSuccessList().add(result);
                     response.setSuccessCount(response.getSuccessCount() + 1);
 
-                    // 更新班级人数
-                    updateStudentCount(request.getClassCode(), 1);
-
                     log.info("学生 {} 绑定到班级 {} 成功", studentUsername, request.getClassCode());
                 } else {
                     result.setSuccess(false);
@@ -203,8 +200,6 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
             boolean removed = remove(queryWrapper);
             if (removed) {
                 count++;
-                // 更新班级人数
-                updateStudentCount(classCode, -1);
                 log.info("学生 {} 从班级 {} 解绑成功", studentUsername, classCode);
             }
         }
@@ -256,9 +251,6 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
             throw new BusinessException(500, "绑定班级失败");
         }
 
-        // 更新班级人数
-        updateStudentCount(clazz.getClassCode(), 1);
-
         log.info("学生 {} 通过验证码绑定到班级 {} 成功", studentUsername, clazz.getClassCode());
 
         return clazz;
@@ -282,36 +274,11 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
             response.setBindTime(relation.getBindTime());
 
             // 查询班级详细信息
-            com.example.demo.pojo.entity.Class clazz = classMapper.selectOne(
-                    new QueryWrapper<com.example.demo.pojo.entity.Class>()
-                            .eq("class_code", relation.getClassCode())
-            );
-            if (clazz != null) {
-                response.setClassName(clazz.getClassName());
-                response.setStudentCount(clazz.getStudentCount());
-            }
+            // 使用StudentClassRelationMapper查询学生数量
+            int studentCount = baseMapper.countStudentsByClassCode(relation.getClassCode());
+            response.setStudentCount(studentCount);
 
             return response;
         }).collect(java.util.stream.Collectors.toList());
-    }
-
-    /**
-     * 更新班级人数
-     *
-     * @param classCode 班级编号
-     * @param delta 人数变化量
-     */
-    private void updateStudentCount(String classCode, int delta) {
-        QueryWrapper<Class> classQuery = new QueryWrapper<>();
-        classQuery.eq("class_code", classCode);
-        Class clazz = classMapper.selectOne(classQuery);
-        if (clazz != null) {
-            int newCount = clazz.getStudentCount() + delta;
-            if (newCount < 0) {
-                newCount = 0;
-            }
-            clazz.setStudentCount(newCount);
-            classMapper.updateById(clazz);
-        }
     }
 }

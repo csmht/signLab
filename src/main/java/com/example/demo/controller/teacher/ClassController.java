@@ -114,7 +114,6 @@ public class ClassController {
             Class clazz = new Class();
             clazz.setClassCode(classCode);
             clazz.setClassName(request.getClassName());
-            clazz.setStudentCount(0);
 
             // 设置创建者
             String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
