@@ -32,7 +32,7 @@ public class BatchBindClassesToExperimentRequest {
     private String courseTime;
 
     /**
-     * 实验开始填写时间
+     * 实验开始时间
      */
     private LocalDateTime startTime;
 

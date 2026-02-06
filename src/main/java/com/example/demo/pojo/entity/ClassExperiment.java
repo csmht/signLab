@@ -41,7 +41,7 @@ public class ClassExperiment {
     private String experimentId;
 
     /** 上课时间 例如：8:00-14:00 */
-    @Column(comment = "上课时间 例如：8:00-14:00", type = "varchar(20)", notNull = true)
+    @Column(comment = "上课时间 例如：8:00-14:00", type = "varchar(50)", notNull = true)
     private String courseTime;
 
     /** 实验开始时间 */

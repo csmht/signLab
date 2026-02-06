@@ -30,7 +30,6 @@ import java.util.Map;
  */
 @RequestMapping("/api/student/procedure-submissions")
 @RestController
-@RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "*")
 public class StudentProcedureController {
@@ -41,6 +40,21 @@ public class StudentProcedureController {
     private final StudentProcedureQueryService studentProcedureQueryService;
     private final ClassExperimentService classExperimentService;
     private final StudentClassRelationService studentClassRelationService;
+
+    public StudentProcedureController(ProcedureSubmissionService procedureSubmissionService,
+                                      StudentExperimentalProcedureService studentExperimentalProcedureService,
+                                      StudentProcedureCompletionService studentProcedureCompletionService,
+                                      StudentProcedureQueryService studentProcedureQueryService,
+                                      ClassExperimentService classExperimentService,
+                                      StudentClassRelationService studentClassRelationService){
+        this.procedureSubmissionService = procedureSubmissionService;
+        this.studentExperimentalProcedureService = studentExperimentalProcedureService;
+        this.studentProcedureCompletionService = studentProcedureCompletionService;
+        this.studentProcedureQueryService = studentProcedureQueryService;
+        this.classExperimentService = classExperimentService;
+        this.studentClassRelationService = studentClassRelationService;
+
+    }
 
     /**
      * 查询学生的课次列表（分页）
