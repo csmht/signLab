@@ -81,7 +81,15 @@ public class ExcelTestController {
                 result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
             }
 
-            return ApiResponse.success(message.toString());
+            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+            int totalProcessed = result.getSuccessCount() + result.getDuplicateCount() + result.getFailCount();
+            if (result.getSuccessCount() > 0 && result.getFailCount() > 0) {
+                return new ApiResponse<String>(201, message.toString(), null);
+            } else if (result.getSuccessCount() == 0 && totalProcessed > 0) {
+                return ApiResponse.error(400, message.toString());
+            } else {
+                return ApiResponse.success(message.toString());
+            }
 
         } catch (com.example.demo.exception.BusinessException e) {
             return ApiResponse.error(e.getCode(), e.getMessage());
@@ -203,7 +211,16 @@ public class ExcelTestController {
                 result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
             }
 
-            return ApiResponse.success(message.toString());
+            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+            int totalFailures = result.getStudentFailCount() + result.getClassFailCount() + result.getBindFailCount();
+            int totalSuccess = result.getStudentSuccessCount() + result.getClassSuccessCount() + result.getBindSuccessCount();
+            if (totalSuccess > 0 && totalFailures > 0) {
+                return new ApiResponse<String>(201, message.toString(), null);
+            } else if (totalSuccess == 0 && totalFailures > 0) {
+                return ApiResponse.error(400, message.toString());
+            } else {
+                return ApiResponse.success(message.toString());
+            }
 
         } catch (com.example.demo.exception.BusinessException e) {
             return ApiResponse.error(e.getCode(), e.getMessage());

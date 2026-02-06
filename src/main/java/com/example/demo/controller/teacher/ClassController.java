@@ -141,7 +141,14 @@ public class ClassController {
     public ApiResponse<BatchAddClassResponse> batchAddClasses(@RequestBody BatchAddClassRequest request) {
         try {
             BatchAddClassResponse response = classService.batchAddClasses(request);
-            return ApiResponse.success(response, "批量添加完成");
+            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+            if (response.getSuccessCount() > 0 && response.getFailCount() > 0) {
+                return new ApiResponse<BatchAddClassResponse>(201, "部分成功，成功: " + response.getSuccessCount() + "，失败: " + response.getFailCount(), response);
+            } else if (response.getSuccessCount() == 0) {
+                return ApiResponse.error(400, "批量添加失败，全部" + response.getFailCount() + "条记录失败");
+            } else {
+                return ApiResponse.success(response, "批量添加完成");
+            }
         } catch (Exception e) {
             log.error("批量添加班级失败", e);
             return ApiResponse.error(500, "批量添加失败: " + e.getMessage());
@@ -238,7 +245,14 @@ public class ClassController {
         try {
             request.setClassCode(classCode);
             BatchBindStudentsResponse response = studentClassRelationService.batchBindStudents(request);
-            return ApiResponse.success(response, "批量绑定完成");
+            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+            if (response.getSuccessCount() > 0 && response.getFailCount() > 0) {
+                return new ApiResponse<BatchBindStudentsResponse>(201, "部分成功，成功: " + response.getSuccessCount() + "，失败: " + response.getFailCount(), response);
+            } else if (response.getSuccessCount() == 0) {
+                return ApiResponse.error(400, "批量绑定失败，全部" + response.getFailCount() + "条记录失败");
+            } else {
+                return ApiResponse.success(response, "批量绑定完成");
+            }
         } catch (Exception e) {
             log.error("批量绑定学生失败", e);
             return ApiResponse.error(500, "批量绑定失败: " + e.getMessage());
