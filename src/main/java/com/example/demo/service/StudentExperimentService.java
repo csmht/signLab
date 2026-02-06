@@ -315,7 +315,6 @@ public class StudentExperimentService {
             // 查询题目详情
             QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
             topicQueryWrapper.in("id", topicIds)
-                    .eq("is_deleted", false)
                     .orderByAsc("number");
             List<Topic> topics = topicMapper.selectList(topicQueryWrapper);
 

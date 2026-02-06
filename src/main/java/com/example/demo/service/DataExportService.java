@@ -96,8 +96,7 @@ public class DataExportService {
      */
     public List<AttendanceRecordExportExcel> exportAttendanceRecords(String courseId, String startDate, String endDate) {
         QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId)
-                .eq("is_deleted", 0);
+        queryWrapper.eq("course_id", courseId);
 
         if (startDate != null && !startDate.trim().isEmpty()) {
             queryWrapper.ge("attendance_time", startDate);

@@ -134,9 +134,8 @@ public class TeacherExperimentController {
                 return ApiResponse.error(404, "实验不存在");
             }
 
-            // 软删除实验
-            experiment.setIsDeleted(true);
-            experimentService.updateById(experiment);
+            // 软删除实验（Mybatis-Plus自动处理is_deleted字段）
+            experimentService.removeById(experimentId);
 
             log.info("实验删除成功，实验ID: {}", experimentId);
             return ApiResponse.success(null, "删除成功");
@@ -183,7 +182,6 @@ public class TeacherExperimentController {
         try {
             QueryWrapper<Experiment> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("course_id", courseId);
-            queryWrapper.eq("is_deleted", false);
             queryWrapper.orderByDesc("created_time");
 
             List<Experiment> experiments = experimentService.list(queryWrapper);
@@ -210,7 +208,6 @@ public class TeacherExperimentController {
     public ApiResponse<List<ExperimentResponse>> getAllExperiments() {
         try {
             QueryWrapper<Experiment> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("is_deleted", false);
             queryWrapper.orderByDesc("created_time");
 
             List<Experiment> experiments = experimentService.list(queryWrapper);

@@ -269,7 +269,7 @@ public class WeChatService {
         }
         com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User> queryWrapper =
             new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
-        queryWrapper.eq("wx_openid", wxOpenid).eq("is_deleted", 0);
+        queryWrapper.eq("wx_openid", wxOpenid);
         return userMapper.selectOne(queryWrapper);
     }
 
@@ -289,7 +289,7 @@ public class WeChatService {
         // 1. 查询用户
         com.example.demo.pojo.entity.User user = userMapper.selectOne(
             new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
-                .eq("username", username).eq("is_deleted", 0)
+                .eq("username", username)
         );
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
@@ -331,7 +331,7 @@ public class WeChatService {
         // 1. 查询用户
         com.example.demo.pojo.entity.User user = userMapper.selectOne(
             new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
-                .eq("username", username).eq("is_deleted", 0)
+                .eq("username", username)
         );
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
@@ -367,7 +367,7 @@ public class WeChatService {
         // 1. 查询用户
         com.example.demo.pojo.entity.User user = userMapper.selectOne(
             new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
-                .eq("username", username).eq("is_deleted", 0)
+                .eq("username", username)
         );
         if (user == null) {
             throw new BusinessException(404, "用户不存在");

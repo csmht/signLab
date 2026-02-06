@@ -55,7 +55,7 @@ public class VideoMetadataUtil {
             grabber = new FFmpegFrameGrabber(videoFile);
 
             // 3. 设置超时(防止大文件长时间阻塞)
-            grabber.setOption("timeout", String.valueOf(READ_TIMEOUT_MS * 1000));
+            grabber.setOption("timeout", String.valueOf(READ_TIMEOUT_MS * 1000000));
 
             // 4. 启动抓取器
             long startTime = System.currentTimeMillis();
@@ -63,7 +63,7 @@ public class VideoMetadataUtil {
 
             // 5. 获取视频时长(毫秒 -> 秒)
             long durationMs = grabber.getLengthInTime();
-            long durationSeconds = durationMs / 1000;
+            long durationSeconds = durationMs / 1000000;
 
             long elapsedTime = System.currentTimeMillis() - startTime;
             log.info("成功读取视频时长: 文件={}, 时长={}秒, 耗时={}ms",

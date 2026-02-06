@@ -184,8 +184,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
      */
     public List<ProcedureSubmissionResponse> getStudentSubmissions(String studentUsername, String courseId, String experimentId) {
         QueryWrapper<ProcedureSubmission> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .eq("is_deleted", 0);
+        queryWrapper.eq("student_username", studentUsername);
 
         if (courseId != null && !courseId.trim().isEmpty()) {
             queryWrapper.eq("course_id", courseId);
@@ -212,8 +211,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
      */
     public List<ProcedureSubmissionResponse> getCourseSubmissions(String courseId, String experimentId, Integer submissionStatus) {
         QueryWrapper<ProcedureSubmission> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId)
-                .eq("is_deleted", 0);
+        queryWrapper.eq("course_id", courseId);
 
         if (experimentId != null && !experimentId.trim().isEmpty()) {
             queryWrapper.eq("experiment_id", experimentId);

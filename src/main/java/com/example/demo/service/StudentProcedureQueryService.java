@@ -729,7 +729,6 @@ public class StudentProcedureQueryService {
 
             QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
             topicQueryWrapper.in("id", topicIds)
-                    .eq("is_deleted", false)
                     .orderByAsc("number");
             return topicMapper.selectList(topicQueryWrapper);
         }

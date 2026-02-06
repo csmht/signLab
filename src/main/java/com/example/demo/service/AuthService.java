@@ -478,7 +478,6 @@ public class AuthService{
             com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<User> queryWrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
             queryWrapper.eq("wx_openid", openid);
-            queryWrapper.eq("is_deleted", 0);
 
             User user = userMapper.selectOne(queryWrapper);
 

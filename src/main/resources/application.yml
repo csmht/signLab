@@ -60,8 +60,10 @@ auto-table:
   index-prefix:
   model-package: com.example.demo.pojo.entity
   show-banner: true
-
 management:
   endpoints:
     jmx:
       domain: com.example.demo
+logging:
+  level:
+    org.apache.ibatis: DEBUG

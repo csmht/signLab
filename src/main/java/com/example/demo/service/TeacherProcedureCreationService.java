@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
@@ -265,8 +266,7 @@ public class TeacherProcedureCreationService {
 
             // 验证题目是否存在
             QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds)
-                    .eq("is_deleted", false);
+            topicQueryWrapper.in("id", topicIds);
             long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
             if (existingTopicCount != topicIds.size()) {
@@ -486,8 +486,7 @@ public class TeacherProcedureCreationService {
 
                     // 验证题目是否存在
                     QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-                    topicQueryWrapper.in("id", topicIds)
-                            .eq("is_deleted", false);
+                    topicQueryWrapper.in("id", topicIds);
                     long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
                     if (existingTopicCount != topicIds.size()) {
@@ -754,8 +753,7 @@ public class TeacherProcedureCreationService {
 
             // 验证题目是否存在
             QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds)
-                    .eq("is_deleted", false);
+            topicQueryWrapper.in("id", topicIds);
             long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
             if (existingTopicCount != topicIds.size()) {
@@ -975,7 +973,7 @@ public class TeacherProcedureCreationService {
 
             // 验证题目是否存在
             QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds).eq("is_deleted", false);
+            topicQueryWrapper.in("id", topicIds);
             long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
             if (existingTopicCount != topicIds.size()) {
@@ -1072,7 +1070,7 @@ public class TeacherProcedureCreationService {
                     if (topicIds != null && !topicIds.isEmpty()) {
                         // 验证题目是否存在
                         QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-                        topicQueryWrapper.in("id", topicIds).eq("is_deleted", false);
+                        topicQueryWrapper.in("id", topicIds);
                         long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
                         if (existingTopicCount != topicIds.size()) {
@@ -1185,7 +1183,7 @@ public class TeacherProcedureCreationService {
             if (topicIds != null && !topicIds.isEmpty()) {
                 // 验证题目是否存在
                 QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-                topicQueryWrapper.in("id", topicIds).eq("is_deleted", false);
+                topicQueryWrapper.in("id", topicIds);
                 long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
                 if (existingTopicCount != topicIds.size()) {
@@ -1230,11 +1228,10 @@ public class TeacherProcedureCreationService {
         // 第二步：级联逻辑删除所有关联的子表数据
         cascadeDeleteRelatedData(procedureId);
 
-        // 第三步：删除步骤主表（逻辑删除）
-        procedure.setIsDeleted(true);
-        boolean updated = experimentalProcedureService.updateById(procedure);
+        // 第三步：删除步骤主表（Mybatis-Plus自动处理is_deleted字段）
+        boolean removed = experimentalProcedureService.removeById(procedureId);
 
-        if (!updated) {
+        if (!removed) {
             log.error("步骤主表删除失败: procedureId={}", procedureId);
             throw new com.example.demo.exception.BusinessException(500, "步骤删除失败");
         }
@@ -1271,16 +1268,13 @@ public class TeacherProcedureCreationService {
      * @param procedureId 步骤ID
      */
     private void deleteDataCollections(Long procedureId) {
-        QueryWrapper<DataCollection> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experimental_procedure_id", procedureId);
-
-        List<DataCollection> records = dataCollectionMapper.selectList(queryWrapper);
-        if (!records.isEmpty()) {
-            for (DataCollection record : records) {
-                record.setIsDeleted(true);
-                dataCollectionMapper.updateById(record);
-            }
-            log.info("数据收集记录逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        // 使用UpdateWrapper批量更新is_deleted字段（Mybatis-Plus自动处理）
+        UpdateWrapper<DataCollection> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("experimental_procedure_id", procedureId)
+                   .set("is_deleted", 1);
+        int rows = dataCollectionMapper.update(null, updateWrapper);
+        if (rows > 0) {
+            log.info("数据收集记录逻辑删除成功: procedureId={}, count={}", procedureId, rows);
         }
     }
 
@@ -1290,16 +1284,13 @@ public class TeacherProcedureCreationService {
      * @param procedureId 步骤ID
      */
     private void deleteProcedureTopics(Long procedureId) {
-        QueryWrapper<ProcedureTopic> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experimental_procedure_id", procedureId);
-
-        List<ProcedureTopic> records = procedureTopicMapper.selectList(queryWrapper);
-        if (!records.isEmpty()) {
-            for (ProcedureTopic record : records) {
-                record.setIsDeleted(true);
-                procedureTopicMapper.updateById(record);
-            }
-            log.info("题库详情记录逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        // 使用UpdateWrapper批量更新is_deleted字段（Mybatis-Plus自动处理）
+        UpdateWrapper<ProcedureTopic> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("experimental_procedure_id", procedureId)
+                   .set("is_deleted", 1);
+        int rows = procedureTopicMapper.update(null, updateWrapper);
+        if (rows > 0) {
+            log.info("题库详情记录逻辑删除成功: procedureId={}, count={}", procedureId, rows);
         }
     }
 
@@ -1309,16 +1300,13 @@ public class TeacherProcedureCreationService {
      * @param procedureId 步骤ID
      */
     private void deleteTimedQuizProcedures(Long procedureId) {
-        QueryWrapper<TimedQuizProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experimental_procedure_id", procedureId);
-
-        List<TimedQuizProcedure> records = timedQuizProcedureMapper.selectList(queryWrapper);
-        if (!records.isEmpty()) {
-            for (TimedQuizProcedure record : records) {
-                record.setIsDeleted(true);
-                timedQuizProcedureMapper.updateById(record);
-            }
-            log.info("限时答题配置逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        // 使用UpdateWrapper批量更新is_deleted字段（Mybatis-Plus自动处理）
+        UpdateWrapper<TimedQuizProcedure> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("experimental_procedure_id", procedureId)
+                   .set("is_deleted", 1);
+        int rows = timedQuizProcedureMapper.update(null, updateWrapper);
+        if (rows > 0) {
+            log.info("限时答题配置逻辑删除成功: procedureId={}, count={}", procedureId, rows);
         }
     }
 
@@ -1328,16 +1316,13 @@ public class TeacherProcedureCreationService {
      * @param procedureId 步骤ID
      */
     private void deleteProcedureTopicMaps(Long procedureId) {
-        QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experimental_procedure_id", procedureId);
-
-        List<ProcedureTopicMap> records = procedureTopicMapMapper.selectList(queryWrapper);
-        if (!records.isEmpty()) {
-            for (ProcedureTopicMap record : records) {
-                record.setIsDeleted(true);
-                procedureTopicMapMapper.updateById(record);
-            }
-            log.info("题目映射关系逻辑删除成功: procedureId={}, count={}", procedureId, records.size());
+        // 使用UpdateWrapper批量更新is_deleted字段（Mybatis-Plus自动处理）
+        UpdateWrapper<ProcedureTopicMap> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("experimental_procedure_id", procedureId)
+                   .set("is_deleted", 1);
+        int rows = procedureTopicMapMapper.update(null, updateWrapper);
+        if (rows > 0) {
+            log.info("题目映射关系逻辑删除成功: procedureId={}, count={}", procedureId, rows);
         }
     }
 }

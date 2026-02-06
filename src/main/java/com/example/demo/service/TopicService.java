@@ -129,10 +129,8 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             throw new BusinessException(403, "只能删除自己创建的题目");
         }
 
-        // 软删除
-        topic.setIsDeleted(true);
-        topic.setUpdatedTime(LocalDateTime.now());
-        updateById(topic);
+        // 软删除（Mybatis-Plus自动处理is_deleted字段）
+        removeById(topicId);
 
         log.info("删除题目成功，题目ID：{}，操作者：{}", topicId, username);
     }
