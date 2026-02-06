@@ -8,6 +8,7 @@ import com.example.demo.pojo.request.teacher.CreateExperimentRequest;
 import com.example.demo.pojo.request.teacher.UpdateExperimentRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ExperimentResponse;
+import com.example.demo.service.CourseService;
 import com.example.demo.service.ExperimentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 public class TeacherExperimentController {
 
     private final ExperimentService experimentService;
+    private final CourseService courseService;
 
     /**
      * 创建实验
@@ -163,6 +165,14 @@ public class TeacherExperimentController {
             ExperimentResponse response = new ExperimentResponse();
             BeanUtils.copyProperties(experiment, response);
 
+            // 设置课程名称
+            if (experiment.getCourseId() != null) {
+                var course = courseService.getByCourseCode(experiment.getCourseId());
+                if (course != null) {
+                    response.setCourseName(course.getCourseName());
+                }
+            }
+
             return ApiResponse.success(response, "查询成功");
         } catch (Exception e) {
             log.error("查询实验详情失败", e);
@@ -185,9 +195,21 @@ public class TeacherExperimentController {
             queryWrapper.orderByDesc("created_time");
 
             List<Experiment> experiments = experimentService.list(queryWrapper);
+
+            // 只查询一次课程信息
+            String courseName = null;
+            if (!experiments.isEmpty() && experiments.get(0).getCourseId() != null) {
+                var course = courseService.getByCourseCode(experiments.get(0).getCourseId());
+                if (course != null) {
+                    courseName = course.getCourseName();
+                }
+            }
+
+            String finalCourseName = courseName;
             List<ExperimentResponse> responses = experiments.stream().map(experiment -> {
                 ExperimentResponse response = new ExperimentResponse();
                 BeanUtils.copyProperties(experiment, response);
+                response.setCourseName(finalCourseName);
                 return response;
             }).collect(Collectors.toList());
 
@@ -211,9 +233,29 @@ public class TeacherExperimentController {
             queryWrapper.orderByDesc("created_time");
 
             List<Experiment> experiments = experimentService.list(queryWrapper);
+
+            // 收集所有不同的 courseId
+            var distinctCourseIds = experiments.stream()
+                    .map(Experiment::getCourseId)
+                    .filter(id -> id != null)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // 批量查询所有课程信息
+            var courseMap = new java.util.HashMap<String, String>();
+            if (!distinctCourseIds.isEmpty()) {
+                QueryWrapper<com.example.demo.pojo.entity.Course> courseQuery = new QueryWrapper<>();
+                courseQuery.in("course_id", distinctCourseIds);
+                List<com.example.demo.pojo.entity.Course> courses = courseService.list(courseQuery);
+                courses.forEach(course -> courseMap.put(course.getCourseId(), course.getCourseName()));
+            }
+
+            // 构建响应，使用 Map 避免重复查询
+            java.util.Map<String, String> finalCourseMap = courseMap;
             List<ExperimentResponse> responses = experiments.stream().map(experiment -> {
                 ExperimentResponse response = new ExperimentResponse();
                 BeanUtils.copyProperties(experiment, response);
+                response.setCourseName(finalCourseMap.get(experiment.getCourseId()));
                 return response;
             }).collect(Collectors.toList());
 

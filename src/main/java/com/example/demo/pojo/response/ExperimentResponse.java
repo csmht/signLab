@@ -21,6 +21,11 @@ public class ExperimentResponse {
     private String courseId;
 
     /**
+     * 课程名称
+     */
+    private String courseName;
+
+    /**
      * 实验名称
      */
     private String experimentName;
