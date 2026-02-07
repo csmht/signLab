@@ -329,6 +329,100 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
     }
 
     /**
+     * 通过班级实验ID查询签到列表
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 签到列表响应
+     */
+    public AttendanceListResponse getAttendanceListByClassExperimentId(Long classExperimentId) {
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        // 2. 通过关联表获取班级编号
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new BusinessException(404, "班级实验关联不存在");
+        }
+        String classCode = classCodes.get(0);
+
+        String experimentId = classExperiment.getExperimentId();
+        String courseId = classExperiment.getCourseId();
+
+        // 2. 查询该班级的所有学生
+        QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+        studentClassQuery.eq("class_code", classCode);
+        List<StudentClassRelation> studentClassRelations =
+                studentClassRelationMapper.selectList(studentClassQuery);
+
+        // 3. 查询该课次的所有签到记录
+        QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+        attendanceQuery.eq("course_id", courseId)
+                .eq("experiment_id", experimentId);
+        List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
+
+        // 4. 构建签到信息映射（学生用户名 -> 签到记录）
+        java.util.Map<String, AttendanceRecord> attendanceMap = attendanceRecords.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        AttendanceRecord::getStudentUsername,
+                        record -> record
+                ));
+
+        // 5. 构建返回结果
+        AttendanceListResponse response = new AttendanceListResponse();
+        response.setNormalAttendanceList(new java.util.ArrayList<>());
+        response.setCrossClassAttendanceList(new java.util.ArrayList<>());
+        response.setNotAttendanceList(new java.util.ArrayList<>());
+
+        // 6. 遍历班级学生，分类处理
+        for (StudentClassRelation relation : studentClassRelations) {
+            String studentUsername = relation.getStudentUsername();
+            AttendanceRecord record = attendanceMap.get(studentUsername);
+
+            // 查询学生信息
+            User student = userMapper.selectOne(
+                    new QueryWrapper<User>()
+                            .eq("username", studentUsername)
+            );
+
+            // 查询班级信息
+            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+            classQuery.eq("class_code", classCode);
+            Class studentClass = classMapper.selectOne(classQuery);
+
+            AttendanceListResponse.StudentAttendanceInfo info =
+                    new AttendanceListResponse.StudentAttendanceInfo();
+            info.setStudentUsername(studentUsername);
+            info.setStudentName(student != null ? student.getName() : studentUsername);
+            info.setClassName(studentClass != null ? studentClass.getClassName() : classCode);
+
+            if (record == null) {
+                // 未签到
+                info.setAttendanceId(null);
+                info.setAttendanceStatus(null);
+                info.setAttendanceTime(null);
+                response.getNotAttendanceList().add(info);
+            } else if (AttendanceStatus.CROSS_CLASS.getCode().equals(record.getAttendanceStatus())) {
+                // 跨班签到
+                info.setAttendanceId(record.getId());
+                info.setAttendanceStatus(record.getAttendanceStatus());
+                info.setAttendanceTime(record.getAttendanceTime());
+                response.getCrossClassAttendanceList().add(info);
+            } else {
+                // 非跨班签到（正常、迟到、补签）
+                info.setAttendanceId(record.getId());
+                info.setAttendanceStatus(record.getAttendanceStatus());
+                info.setAttendanceTime(record.getAttendanceTime());
+                response.getNormalAttendanceList().add(info);
+            }
+        }
+
+        return response;
+    }
+
+    /**
      * 修改签到状态
      *
      * @param request 修改签到状态请求

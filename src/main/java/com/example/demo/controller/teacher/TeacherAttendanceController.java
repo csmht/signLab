@@ -134,4 +134,23 @@ public class TeacherAttendanceController {
         }
     }
 
+    /**
+     * 通过班级实验ID查询签到列表
+     * 返回分类后的签到列表：非跨班签到、跨班签到、未签到
+     *
+     * @param classExperimentId 班级实验ID（关联表ID）
+     * @return 签到列表响应
+     */
+    @GetMapping("/by-class-experiment/{classExperimentId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<AttendanceListResponse> getByClassExperimentId(@PathVariable Long classExperimentId) {
+        try {
+            AttendanceListResponse response = attendanceRecordService.getAttendanceListByClassExperimentId(classExperimentId);
+            return ApiResponse.success(response);
+        } catch (Exception e) {
+            log.error("查询签到列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
 }
