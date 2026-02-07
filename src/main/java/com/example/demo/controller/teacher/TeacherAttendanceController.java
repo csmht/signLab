@@ -30,17 +30,17 @@ public class TeacherAttendanceController {
      * 查询指定班级实验的签到情况
      * 返回分类后的签到列表：非跨班签到、跨班签到、未签到
      *
-     * @param classId 班级ID
+     * @param classCode 班级ID
      * @param experimentId 实验ID
      * @return 签到列表响应
      */
     @GetMapping("/list")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<AttendanceListResponse> getAttendanceList(
-            @RequestParam("classId") Long classId,
+            @RequestParam("classCode") String classCode,
             @RequestParam("experimentId") String experimentId) {
         try {
-            AttendanceListResponse response = attendanceRecordService.getAttendanceList(classId, experimentId);
+            AttendanceListResponse response = attendanceRecordService.getAttendanceList(classCode, experimentId);
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.error("查询签到列表失败", e);

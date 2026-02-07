@@ -233,18 +233,11 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
     /**
      * 查询指定班级实验的签到情况
      *
-     * @param classId 班级ID
+     * @param classCode 班级Code
      * @param experimentId 实验ID
      * @return 签到列表响应
      */
-    public AttendanceListResponse getAttendanceList(Long classId, String experimentId) {
-        // 1. 查询班级信息
-        Class clazz = classMapper.selectById(classId);
-        if (clazz == null) {
-            throw new BusinessException(404, "班级不存在");
-        }
-
-        String classCode = clazz.getClassCode();
+    public AttendanceListResponse getAttendanceList(String classCode, String experimentId) {
 
         // 2. 查询班级实验信息
         List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
