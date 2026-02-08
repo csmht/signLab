@@ -266,7 +266,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         // 3. 查询该课次的所有签到记录
         QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
         attendanceQuery.eq("course_id", courseId)
-                .eq("experiment_id", experimentId);
+                .eq("experiment_id", experimentId)
+                .eq("studentActualClassCode", classCode);
         List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
 
         // 4. 构建签到信息映射（学生用户名 -> 签到记录）
@@ -282,6 +283,10 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         response.setCrossClassAttendanceList(new java.util.ArrayList<>());
         response.setNotAttendanceList(new java.util.ArrayList<>());
 
+        QueryWrapper<Class> classQuery = new QueryWrapper<>();
+        classQuery.eq("class_code", classCode);
+        Class studentClass = classMapper.selectOne(classQuery);
+
         // 6. 遍历班级学生，分类处理
         for (StudentClassRelation relation : studentClassRelations) {
             String studentUsername = relation.getStudentUsername();
@@ -294,9 +299,6 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             );
 
             // 查询班级信息
-            QueryWrapper<Class> classQuery = new QueryWrapper<>();
-            classQuery.eq("class_code", classCode);
-            Class studentClass = classMapper.selectOne(classQuery);
 
             AttendanceListResponse.StudentAttendanceInfo info =
                     new AttendanceListResponse.StudentAttendanceInfo();
