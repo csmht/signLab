@@ -7,7 +7,6 @@ import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.request.*;
 import com.example.demo.pojo.response.*;
-import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.ClassExperimentService;
 import com.example.demo.service.ClassService;
 import com.example.demo.service.StudentClassRelationService;
@@ -31,7 +30,6 @@ public class ClassController {
     private final ClassService classService;
     private final StudentClassRelationService studentClassRelationService;
     private final ClassExperimentService classExperimentService;
-    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 查询班级列表（分页或列表）
@@ -357,7 +355,7 @@ public class ClassController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<Class>> getClassesByExperimentId(@PathVariable String experimentId) {
         try {
-            List<Class> classes = classExperimentClassRelationService.getClassesByExperimentId(experimentId);
+            List<Class> classes = classService.getClassesByExperimentId(experimentId);
             return ApiResponse.success(classes, "查询成功");
         } catch (Exception e) {
             log.error("查询实验班级列表失败", e);

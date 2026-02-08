@@ -3,9 +3,6 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.mapper.ClassExperimentClassRelationMapper;
-import com.example.demo.mapper.ClassExperimentMapper;
-import com.example.demo.pojo.entity.Class;
-import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.ClassExperimentClassRelation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +22,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ClassExperimentClassRelationService
     extends ServiceImpl<ClassExperimentClassRelationMapper, ClassExperimentClassRelation> {
-
-    private final ClassExperimentMapper classExperimentMapper;
-    private final ClassService classService;
 
     /**
      * 根据班级实验ID查询关联的班级列表
@@ -138,50 +132,20 @@ public class ClassExperimentClassRelationService
     }
 
     /**
-     * 根据实验ID查询所有参与的班级列表
+     * 根据班级实验ID列表查询关联的班级编号列表（去重）
      *
-     * @param experimentId 实验ID
-     * @return 班级详细信息列表
+     * @param classExperimentIds 班级实验ID列表
+     * @return 班级编号列表（去重）
      */
-    public List<Class> getClassesByExperimentId(String experimentId) {
-        // 1. 根据实验ID查询所有相关的班级实验ID
-        QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
-        classExperimentQuery.eq("experiment_id", experimentId);
-        List<ClassExperiment> classExperiments = classExperimentMapper.selectList(classExperimentQuery);
-
-        if (classExperiments == null || classExperiments.isEmpty()) {
+    public List<String> getClassCodesByExperimentIds(List<Long> classExperimentIds) {
+        if (classExperimentIds == null || classExperimentIds.isEmpty()) {
             return new ArrayList<>();
         }
-
-        // 2. 获取所有班级实验ID
-        List<Long> classExperimentIds = classExperiments.stream()
-                .map(ClassExperiment::getId)
-                .collect(Collectors.toList());
-
-        // 3. 根据班级实验ID查询所有班级编号
-        QueryWrapper<ClassExperimentClassRelation> relationQuery = new QueryWrapper<>();
-        relationQuery.in("class_experiment_id", classExperimentIds);
-        List<ClassExperimentClassRelation> relations = list(relationQuery);
-
-        if (relations == null || relations.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        // 4. 获取所有班级编号并去重
-        List<String> classCodes = relations.stream()
+        QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("class_experiment_id", classExperimentIds);
+        return list(queryWrapper).stream()
                 .map(ClassExperimentClassRelation::getClassCode)
                 .distinct()
                 .collect(Collectors.toList());
-
-        // 5. 查询所有班级详细信息
-        List<Class> classes = new ArrayList<>();
-        for (String classCode : classCodes) {
-            Class clazz = classService.getByClassCode(classCode);
-            if (clazz != null) {
-                classes.add(clazz);
-            }
-        }
-
-        return classes;
     }
 }

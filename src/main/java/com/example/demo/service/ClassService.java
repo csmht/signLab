@@ -326,4 +326,44 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
 
         return response;
     }
+
+    /**
+     * 根据实验ID查询所有参与的班级列表
+     *
+     * @param experimentId 实验ID
+     * @return 班级详细信息列表
+     */
+    public List<Class> getClassesByExperimentId(String experimentId) {
+        // 1. 根据实验ID查询所��相关的班级实验ID
+        QueryWrapper<ClassExperiment> classExperimentQuery = new QueryWrapper<>();
+        classExperimentQuery.eq("experiment_id", experimentId);
+        List<ClassExperiment> classExperiments = classExperimentMapper.selectList(classExperimentQuery);
+
+        if (classExperiments == null || classExperiments.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 获取所有班级实验ID
+        List<Long> classExperimentIds = classExperiments.stream()
+                .map(ClassExperiment::getId)
+                .collect(Collectors.toList());
+
+        // 3. 根据班级实验ID查询所有班级编号
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentIds(classExperimentIds);
+
+        if (classCodes == null || classCodes.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 4. 查询所有班级详细信息
+        List<Class> classes = new ArrayList<>();
+        for (String classCode : classCodes) {
+            Class clazz = getByClassCode(classCode);
+            if (clazz != null) {
+                classes.add(clazz);
+            }
+        }
+
+        return classes;
+    }
 }
