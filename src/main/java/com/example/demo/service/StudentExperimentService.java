@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.enums.ProcedureAccessDeniedReason;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
@@ -302,8 +302,8 @@ public class StudentExperimentService {
         }
 
         // 查询题目列表
-        QueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new QueryWrapper<>();
-        topicMapQueryWrapper.eq("experimental_procedure_id", procedure.getId());
+        LambdaQueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new LambdaQueryWrapper<>();
+        topicMapQueryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedure.getId());
         List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(topicMapQueryWrapper);
 
         if (topicMaps != null && !topicMaps.isEmpty()) {
@@ -313,9 +313,9 @@ public class StudentExperimentService {
                     .collect(Collectors.toList());
 
             // 查询题目详情
-            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds)
-                    .orderByAsc("number");
+            LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+            topicQueryWrapper.in(Topic::getId, topicIds)
+                    .orderByAsc(Topic::getNumber);
             List<Topic> topics = topicMapper.selectList(topicQueryWrapper);
 
             if (topics != null && !topics.isEmpty()) {

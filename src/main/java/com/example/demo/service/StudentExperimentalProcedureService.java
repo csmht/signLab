@@ -1,12 +1,16 @@
 package com.example.demo.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.enums.ProcedureAccessDeniedReason;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.ClassExperimentClassRelationMapper;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.StudentExperimentalProcedureMapper;
 import com.example.demo.pojo.entity.ClassExperiment;
+import com.example.demo.pojo.entity.ClassExperimentClassRelation;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
 import com.example.demo.util.ProcedureTimeCalculator;
@@ -29,6 +33,7 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
 
     private final ExperimentalProcedureService experimentalProcedureService;
     private final ClassExperimentMapper classExperimentMapper;
+    private final ClassExperimentClassRelationMapper classExperimentClassRelationMapper;
 
     /**
      * 查询学生在指定班级实验中的所有步骤答案
@@ -40,10 +45,10 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
      */
     public List<StudentExperimentalProcedure> getByStudentAndExperiment(
             String studentUsername, String classCode, Long experimentId) {
-        QueryWrapper<StudentExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .eq("class_code", classCode)
-                .eq("experiment_id", experimentId);
+        LambdaQueryWrapper<StudentExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername)
+                .eq(StudentExperimentalProcedure::getClassCode, classCode)
+                .eq(StudentExperimentalProcedure::getExperimentId, experimentId);
         return list(queryWrapper);
     }
 
@@ -57,10 +62,10 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
      */
     public StudentExperimentalProcedure getByStudentAndProcedure(
             String studentUsername, String classCode, Long experimentalProcedureId) {
-        QueryWrapper<StudentExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .eq("class_code", classCode)
-                .eq("experimental_procedure_id", experimentalProcedureId);
+        LambdaQueryWrapper<StudentExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername)
+                .eq(StudentExperimentalProcedure::getClassCode, classCode)
+                .eq(StudentExperimentalProcedure::getExperimentalProcedureId, experimentalProcedureId);
         return getOne(queryWrapper);
     }
 
@@ -260,9 +265,18 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
         }
 
         // 4. 查询班级实验时间
-        QueryWrapper<ClassExperiment> wrapper = new QueryWrapper<>();
-        wrapper.eq("class_code", classCode);
-        wrapper.eq("experiment_id", procedure.getExperimentId());
+        LambdaQueryWrapper<ClassExperiment> wrapper = new LambdaQueryWrapper<>();
+
+        List<Long> relationIds;
+
+        {
+            LambdaQueryWrapper<ClassExperimentClassRelation> a = new LambdaQueryWrapper<ClassExperimentClassRelation>();
+            a.eq(ClassExperimentClassRelation::getClassCode,classCode);
+            List<ClassExperimentClassRelation> classExperimentClassRelations = classExperimentClassRelationMapper.selectList(a);
+            relationIds = classExperimentClassRelations.stream().map(ClassExperimentClassRelation::getId).toList();
+        }
+        wrapper.eq(ClassExperiment::getId, relationIds);
+        wrapper.eq(ClassExperiment::getExperimentId, procedure.getExperimentId());
         ClassExperiment classExperiment = classExperimentMapper.selectOne(wrapper);
 
         if (classExperiment == null) {

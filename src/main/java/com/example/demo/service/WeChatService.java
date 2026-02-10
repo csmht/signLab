@@ -267,9 +267,9 @@ public class WeChatService {
         if (wxOpenid == null || wxOpenid.trim().isEmpty()) {
             return null;
         }
-        com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User> queryWrapper =
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
-        queryWrapper.eq("wx_openid", wxOpenid);
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.example.demo.pojo.entity.User> queryWrapper =
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        queryWrapper.eq(com.example.demo.pojo.entity.User::getWxOpenid, wxOpenid);
         return userMapper.selectOne(queryWrapper);
     }
 
@@ -288,8 +288,8 @@ public class WeChatService {
                                                                          String wxNickname, String wxAvatar) {
         // 1. 查询用户
         com.example.demo.pojo.entity.User user = userMapper.selectOne(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
-                .eq("username", username)
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.example.demo.pojo.entity.User>()
+                .eq(com.example.demo.pojo.entity.User::getUsername, username)
         );
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
@@ -330,8 +330,8 @@ public class WeChatService {
     public void unbindWeChat(String username) {
         // 1. 查询用户
         com.example.demo.pojo.entity.User user = userMapper.selectOne(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
-                .eq("username", username)
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.example.demo.pojo.entity.User>()
+                .eq(com.example.demo.pojo.entity.User::getUsername, username)
         );
         if (user == null) {
             throw new BusinessException(404, "用户不存在");
@@ -366,8 +366,8 @@ public class WeChatService {
     public com.example.demo.pojo.response.WeChatBindResponse getWeChatBindStatus(String username) {
         // 1. 查询用户
         com.example.demo.pojo.entity.User user = userMapper.selectOne(
-            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<com.example.demo.pojo.entity.User>()
-                .eq("username", username)
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.example.demo.pojo.entity.User>()
+                .eq(com.example.demo.pojo.entity.User::getUsername, username)
         );
         if (user == null) {
             throw new BusinessException(404, "用户不存在");

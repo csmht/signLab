@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.pojo.excel.StudentClassImportExcel;
 import com.example.demo.pojo.request.BatchAddClassRequest;
 import com.example.demo.pojo.request.BatchAddUserRequest;
@@ -64,8 +64,8 @@ public class StudentClassImportService {
 
         // 先检查每个班级是否已存在
         for (String className : uniqueClassNames) {
-            QueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("class_name", className);
+            LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(com.example.demo.pojo.entity.Class::getClassName, className);
             com.example.demo.pojo.entity.Class existingClass = classService.getOne(queryWrapper);
 
             if (existingClass != null) {
@@ -81,8 +81,8 @@ public class StudentClassImportService {
         // 一次性生成所有新班级的编号（确保连续）
         if (!newClassNames.isEmpty()) {
             // 获取当前最大班级ID
-            QueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new QueryWrapper<>();
-            queryWrapper.orderByDesc("id");
+            LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.orderByDesc(com.example.demo.pojo.entity.Class::getId);
             queryWrapper.last("LIMIT 1");
             com.example.demo.pojo.entity.Class lastClass = classService.getOne(queryWrapper);
 
@@ -115,8 +115,8 @@ public class StudentClassImportService {
             String classCode = entry.getValue();
 
             // 检查班级是否真的需要新建
-            QueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("class_code", classCode);
+            LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(com.example.demo.pojo.entity.Class::getClassCode, classCode);
             com.example.demo.pojo.entity.Class existing = classService.getOne(queryWrapper);
 
             if (existing == null) {

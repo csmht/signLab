@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.mapper.TopicTagMapMapper;
 import com.example.demo.pojo.entity.TopicTagMap;
@@ -23,8 +23,8 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
      * @return 标签映射列表
      */
     public List<TopicTagMap> getByTopicId(Long topicId) {
-        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", topicId);
+        LambdaQueryWrapper<TopicTagMap> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TopicTagMap::getTopicId, topicId);
         return list(queryWrapper);
     }
 
@@ -34,8 +34,8 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
      * @return 题目映射列表
      */
     public List<TopicTagMap> getByTagId(Long tagId) {
-        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("tag_id", tagId);
+        LambdaQueryWrapper<TopicTagMap> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TopicTagMap::getTagId, tagId);
         return list(queryWrapper);
     }
 
@@ -46,8 +46,8 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
      * @return 是否添加成功
      */
     public boolean addTagToTopic(Long topicId, Long tagId) {
-        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", topicId).eq("tag_id", tagId);
+        LambdaQueryWrapper<TopicTagMap> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TopicTagMap::getTopicId, topicId).eq(TopicTagMap::getTagId, tagId);
         if (getOne(queryWrapper) != null) {
             return true; // 已存在
         }
@@ -82,8 +82,8 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
      * @return 是否移除成功
      */
     public boolean removeTagFromTopic(Long topicId, Long tagId) {
-        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", topicId).eq("tag_id", tagId);
+        LambdaQueryWrapper<TopicTagMap> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TopicTagMap::getTopicId, topicId).eq(TopicTagMap::getTagId, tagId);
         return remove(queryWrapper);
     }
 
@@ -93,8 +93,8 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
      * @return 是否移除成功
      */
     public boolean removeAllTagsFromTopic(Long topicId) {
-        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("topic_id", topicId);
+        LambdaQueryWrapper<TopicTagMap> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TopicTagMap::getTopicId, topicId);
         return remove(queryWrapper);
     }
 
@@ -104,8 +104,8 @@ public class TopicTagMapService extends ServiceImpl<TopicTagMapMapper, TopicTagM
      * @return 是否移除成功
      */
     public boolean removeByTagId(Long tagId) {
-        QueryWrapper<TopicTagMap> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("tag_id", tagId);
+        LambdaQueryWrapper<TopicTagMap> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TopicTagMap::getTagId, tagId);
         return remove(queryWrapper);
     }
 }

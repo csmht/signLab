@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.mapper.ClassExperimentClassRelationMapper;
 import com.example.demo.pojo.entity.ClassExperimentClassRelation;
@@ -30,8 +30,8 @@ public class ClassExperimentClassRelationService
      * @return 班级编号列表
      */
     public List<String> getClassCodesByExperimentId(Long classExperimentId) {
-        QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_experiment_id", classExperimentId);
+        LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ClassExperimentClassRelation::getClassExperimentId, classExperimentId);
         return list(queryWrapper).stream()
                 .map(ClassExperimentClassRelation::getClassCode)
                 .collect(Collectors.toList());
@@ -44,8 +44,8 @@ public class ClassExperimentClassRelationService
      * @return 班级实验ID列表
      */
     public List<Long> getExperimentIdsByClassCode(String classCode) {
-        QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode);
+        LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ClassExperimentClassRelation::getClassCode, classCode);
         return list(queryWrapper).stream()
                 .map(ClassExperimentClassRelation::getClassExperimentId)
                 .collect(Collectors.toList());
@@ -61,8 +61,8 @@ public class ClassExperimentClassRelationService
         if (classCodes == null || classCodes.isEmpty()) {
             return new ArrayList<>();
         }
-        QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("class_code", classCodes);
+        LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(ClassExperimentClassRelation::getClassCode, classCodes);
         return list(queryWrapper).stream()
                 .map(ClassExperimentClassRelation::getClassExperimentId)
                 .distinct()
@@ -81,9 +81,9 @@ public class ClassExperimentClassRelationService
             return;
         }
         for (String classCode : classCodes) {
-            QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("class_experiment_id", classExperimentId)
-                    .eq("class_code", classCode);
+            LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ClassExperimentClassRelation::getClassExperimentId, classExperimentId)
+                    .eq(ClassExperimentClassRelation::getClassCode, classCode);
             if (getOne(queryWrapper) == null) {
                 ClassExperimentClassRelation relation = new ClassExperimentClassRelation();
                 relation.setClassExperimentId(classExperimentId);
@@ -108,9 +108,9 @@ public class ClassExperimentClassRelationService
         }
         int count = 0;
         for (String classCode : classCodes) {
-            QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("class_experiment_id", classExperimentId)
-                    .eq("class_code", classCode);
+            LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ClassExperimentClassRelation::getClassExperimentId, classExperimentId)
+                    .eq(ClassExperimentClassRelation::getClassCode, classCode);
             if (remove(queryWrapper)) {
                 count++;
                 log.info("班级 {} 从班级实验 {} 解绑成功", classCode, classExperimentId);
@@ -126,8 +126,8 @@ public class ClassExperimentClassRelationService
      */
     @Transactional(rollbackFor = Exception.class)
     public void removeAllByExperimentId(Long classExperimentId) {
-        QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_experiment_id", classExperimentId);
+        LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ClassExperimentClassRelation::getClassExperimentId, classExperimentId);
         remove(queryWrapper);
     }
 
@@ -141,8 +141,8 @@ public class ClassExperimentClassRelationService
         if (classExperimentIds == null || classExperimentIds.isEmpty()) {
             return new ArrayList<>();
         }
-        QueryWrapper<ClassExperimentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("class_experiment_id", classExperimentIds);
+        LambdaQueryWrapper<ClassExperimentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(ClassExperimentClassRelation::getClassExperimentId, classExperimentIds);
         return list(queryWrapper).stream()
                 .map(ClassExperimentClassRelation::getClassCode)
                 .distinct()

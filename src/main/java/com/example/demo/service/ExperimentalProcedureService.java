@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.mapper.ExperimentalProcedureMapper;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
@@ -19,9 +19,9 @@ public class ExperimentalProcedureService extends ServiceImpl<ExperimentalProced
      * 根据实验ID查询实验步骤列表
      */
     public java.util.List<ExperimentalProcedure> getByExperimentId(Long experimentId) {
-        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experiment_id", experimentId);
-        queryWrapper.orderByAsc("number");
+        LambdaQueryWrapper<ExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ExperimentalProcedure::getExperimentId, experimentId);
+        queryWrapper.orderByAsc(ExperimentalProcedure::getNumber);
         return list(queryWrapper);
     }
 }

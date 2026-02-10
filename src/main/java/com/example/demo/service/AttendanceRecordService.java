@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.enums.AttendanceStatus;
 import com.example.demo.exception.BusinessException;
@@ -51,8 +51,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * 根据学生用户名查询签到记录
      */
     public AttendanceRecord getByStudentUsername(String studentUsername) {
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getStudentUsername, studentUsername);
         return getOne(queryWrapper);
     }
 
@@ -102,8 +102,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             }
 
             // 5. 查询学生所在班级
-            QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
-            studentClassQuery.eq("student_username", studentUsername);
+            LambdaQueryWrapper<StudentClassRelation> studentClassQuery = new LambdaQueryWrapper<>();
+            studentClassQuery.eq(StudentClassRelation::getStudentUsername, studentUsername);
             List<StudentClassRelation> studentClasses = studentClassRelationMapper.selectList(studentClassQuery);
             if (studentClasses.isEmpty()) {
                 response.setSuccess(false);
@@ -137,10 +137,10 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             }
 
             // 8. 检查是否已经签到该课次
-            QueryWrapper<AttendanceRecord> existingQuery = new QueryWrapper<>();
-            existingQuery.eq("course_id", classExperiment.getCourseId())
-                    .eq("experiment_id", experimentId)
-                    .eq("student_username", studentUsername);
+            LambdaQueryWrapper<AttendanceRecord> existingQuery = new LambdaQueryWrapper<>();
+            existingQuery.eq(AttendanceRecord::getCourseId, classExperiment.getCourseId())
+                    .eq(AttendanceRecord::getExperimentId, experimentId)
+                    .eq(AttendanceRecord::getStudentUsername, studentUsername);
             AttendanceRecord existingRecord = getOne(existingQuery);
             if (existingRecord != null) {
                 response.setSuccess(false);
@@ -214,9 +214,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * 根据课程ID和实验ID查询签到记录
      */
     public List<AttendanceRecord> getByCourseAndExperiment(String courseId, String experimentId) {
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId)
-                .eq("experiment_id", experimentId);
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getCourseId, courseId)
+                .eq(AttendanceRecord::getExperimentId, experimentId);
         return list(queryWrapper);
     }
 
@@ -224,9 +224,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * 根据课程ID和实验ID查询已签到学生数量
      */
     public Long countByCourseAndExperiment(String courseId, String experimentId) {
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId)
-                .eq("experiment_id", experimentId);
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getCourseId, courseId)
+                .eq(AttendanceRecord::getExperimentId, experimentId);
         return count(queryWrapper);
     }
 
@@ -258,16 +258,16 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         String courseId = classExperiment.getCourseId();
 
         // 2. 查询该班级的所有学生
-        QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
-        studentClassQuery.eq("class_code", classCode);
+        LambdaQueryWrapper<StudentClassRelation> studentClassQuery = new LambdaQueryWrapper<>();
+        studentClassQuery.eq(StudentClassRelation::getClassCode, classCode);
         List<StudentClassRelation> studentClassRelations =
                 studentClassRelationMapper.selectList(studentClassQuery);
 
         // 3. 查询该课次的所有签到记录
-        QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
-        attendanceQuery.eq("course_id", courseId)
-                .eq("experiment_id", experimentId)
-                .eq("studentActualClassCode", classCode);
+        LambdaQueryWrapper<AttendanceRecord> attendanceQuery = new LambdaQueryWrapper<>();
+        attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
+                .eq(AttendanceRecord::getExperimentId, experimentId)
+                .eq(AttendanceRecord::getStudentActualClassCode, classCode);
         List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
 
         // 4. 构建签到信息映射（学生用户名 -> 签到记录）
@@ -283,8 +283,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         response.setCrossClassAttendanceList(new java.util.ArrayList<>());
         response.setNotAttendanceList(new java.util.ArrayList<>());
 
-        QueryWrapper<Class> classQuery = new QueryWrapper<>();
-        classQuery.eq("class_code", classCode);
+        LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
+        classQuery.eq(Class::getClassCode, classCode);
         Class studentClass = classMapper.selectOne(classQuery);
 
         // 6. 遍历班级学生，分类处理
@@ -294,8 +294,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
 
             // 查询学生信息
             User student = userMapper.selectOne(
-                    new QueryWrapper<User>()
-                            .eq("username", studentUsername)
+                    new LambdaQueryWrapper<User>()
+                            .eq(User::getUsername, studentUsername)
             );
 
             // 查询班级信息
@@ -353,16 +353,16 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         String experimentId = classExperiment.getExperimentId();
         String courseId = classExperiment.getCourseId();
 
-        // 2. 查询该班级的所有学生
-        QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
-        studentClassQuery.eq("class_code", classCode);
+        // 2. 查询���班级的所有学生
+        LambdaQueryWrapper<StudentClassRelation> studentClassQuery = new LambdaQueryWrapper<>();
+        studentClassQuery.eq(StudentClassRelation::getClassCode, classCode);
         List<StudentClassRelation> studentClassRelations =
                 studentClassRelationMapper.selectList(studentClassQuery);
 
         // 3. 查询该课次的所有签到记录
-        QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
-        attendanceQuery.eq("course_id", courseId)
-                .eq("experiment_id", experimentId);
+        LambdaQueryWrapper<AttendanceRecord> attendanceQuery = new LambdaQueryWrapper<>();
+        attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
+                .eq(AttendanceRecord::getExperimentId, experimentId);
         List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
 
         // 4. 构建签到信息映射（学生用户名 -> 签到记录）
@@ -385,13 +385,13 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
 
             // 查询学生信息
             User student = userMapper.selectOne(
-                    new QueryWrapper<User>()
-                            .eq("username", studentUsername)
+                    new LambdaQueryWrapper<User>()
+                            .eq(User::getUsername, studentUsername)
             );
 
             // 查询班级信息
-            QueryWrapper<Class> classQuery = new QueryWrapper<>();
-            classQuery.eq("class_code", classCode);
+            LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
+            classQuery.eq(Class::getClassCode, classCode);
             Class studentClass = classMapper.selectOne(classQuery);
 
             AttendanceListResponse.StudentAttendanceInfo info =
@@ -442,10 +442,10 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         String studentUsername = request.getStudentUsername();
 
         // 2. 查询学生是否已签到
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId)
-                .eq("experiment_id", experimentId)
-                .eq("student_username", studentUsername);
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getCourseId, courseId)
+                .eq(AttendanceRecord::getExperimentId, experimentId)
+                .eq(AttendanceRecord::getStudentUsername, studentUsername);
         AttendanceRecord record = getOne(queryWrapper);
 
         // 3. 验证签到状态是否有效
@@ -456,8 +456,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         }
 
         // 4. 查询学生实际所在班级
-        QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
-        studentClassQuery.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentClassRelation> studentClassQuery = new LambdaQueryWrapper<>();
+        studentClassQuery.eq(StudentClassRelation::getStudentUsername, studentUsername);
         List<StudentClassRelation> studentClasses = studentClassRelationMapper.selectList(studentClassQuery);
         if (studentClasses.isEmpty()) {
             throw new BusinessException(404, "未找到学生班级信息");
@@ -496,9 +496,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * @return 签到记录列表
      */
     public List<AttendanceRecord> getStudentAttendanceRecords(String studentUsername) {
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .orderByDesc("attendance_time");
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getStudentUsername, studentUsername)
+                .orderByDesc(AttendanceRecord::getAttendanceTime);
         return list(queryWrapper);
     }
 
@@ -509,8 +509,8 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * @return 统计信息
      */
     public java.util.Map<String, Object> getStudentAttendanceStats(String studentUsername) {
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getStudentUsername, studentUsername);
         List<AttendanceRecord> records = list(queryWrapper);
 
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
@@ -571,10 +571,10 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         String experimentId = classExperiment.getExperimentId();
 
         // 2. 查询该课次的所有签到记录
-        QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
-        attendanceQuery.eq("course_id", courseId)
-                .eq("experiment_id", experimentId)
-                .eq("attendance_status", AttendanceStatus.CROSS_CLASS.getCode());
+        LambdaQueryWrapper<AttendanceRecord> attendanceQuery = new LambdaQueryWrapper<>();
+        attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
+                .eq(AttendanceRecord::getExperimentId, experimentId)
+                .eq(AttendanceRecord::getAttendanceStatus, AttendanceStatus.CROSS_CLASS.getCode());
         java.util.List<AttendanceRecord> crossClassRecords = list(attendanceQuery);
 
         // 3. 构建返回结果
@@ -587,14 +587,14 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
 
             // 查询学生姓名
             User student = userMapper.selectOne(
-                    new QueryWrapper<User>().eq("username", record.getStudentUsername())
+                    new LambdaQueryWrapper<User>().eq(User::getUsername, record.getStudentUsername())
             );
             info.put("studentName", student != null ? student.getName() : record.getStudentUsername());
 
             // 查询学生实际班级名称
             com.example.demo.pojo.entity.Class studentClass = classMapper.selectOne(
-                    new QueryWrapper<com.example.demo.pojo.entity.Class>()
-                            .eq("class_code", record.getStudentActualClassCode())
+                    new LambdaQueryWrapper<com.example.demo.pojo.entity.Class>()
+                            .eq(Class::getClassCode, record.getStudentActualClassCode())
             );
             info.put("className", studentClass != null ? studentClass.getClassName() : record.getStudentActualClassCode());
             info.put("studentType", "CROSS_CLASS_ATTENDEE");

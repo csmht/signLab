@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
@@ -31,8 +31,8 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
      * 根据课程代码查询课程
      */
     public Course getByCourseCode(String courseCode) {
-        QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseCode);
+        LambdaQueryWrapper<Course> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Course::getCourseId, courseCode);
         return getOne(queryWrapper);
     }
 
@@ -44,8 +44,8 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
      */
     public String generateCourseId() {
         // 查询最大的课程ID
-        QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
-        queryWrapper.orderByDesc("id");
+        LambdaQueryWrapper<Course> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.orderByDesc(Course::getId);
         queryWrapper.last("LIMIT 1");
         Course lastCourse = getOne(queryWrapper);
 
@@ -74,20 +74,20 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
      * @return 分页结果
      */
     public PageResponse<CourseResponse> queryCourses(CourseQueryRequest request) {
-        QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
+        LambdaQueryWrapper<Course> queryWrapper = new LambdaQueryWrapper<>();
 
         // 支持按课程ID精确查询
         if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
-            queryWrapper.eq("course_id", request.getCourseId().trim());
+            queryWrapper.eq(Course::getCourseId, request.getCourseId().trim());
         }
 
         // 支持按课程名称模糊查询
         if (request.getCourseName() != null && !request.getCourseName().trim().isEmpty()) {
-            queryWrapper.like("course_name", request.getCourseName().trim());
+            queryWrapper.like(Course::getCourseName, request.getCourseName().trim());
         }
 
         // 按创建时间倒序排序
-        queryWrapper.orderByDesc("create_time");
+        queryWrapper.orderByDesc(Course::getCreateTime);
 
         // 分页查询
         if (request.getPageable() != null && request.getPageable()) {
@@ -126,21 +126,21 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
     public PageResponse<CourseResponse> queryMyCourses(
             String teacherUsername, CourseQueryRequest request) {
 
-        QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("teacher_username", teacherUsername);
+        LambdaQueryWrapper<Course> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Course::getTeacherUsername, teacherUsername);
 
         // 支持按课程ID精确查询
         if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
-            queryWrapper.eq("course_id", request.getCourseId().trim());
+            queryWrapper.eq(Course::getCourseId, request.getCourseId().trim());
         }
 
         // 支持按课程名称模糊查询
         if (request.getCourseName() != null && !request.getCourseName().trim().isEmpty()) {
-            queryWrapper.like("course_name", request.getCourseName().trim());
+            queryWrapper.like(Course::getCourseName, request.getCourseName().trim());
         }
 
         // 按创建时间倒序排序
-        queryWrapper.orderByDesc("create_time");
+        queryWrapper.orderByDesc(Course::getCreateTime);
 
         // 分页查询
         if (request.getPageable() != null && request.getPageable()) {

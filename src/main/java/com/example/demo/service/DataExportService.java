@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.AttendanceRecordMapper;
 import com.example.demo.mapper.UserMapper;
@@ -40,14 +40,14 @@ public class DataExportService {
      * @return 成绩导出数据列表
      */
     public List<CourseGradeExportExcel> exportCourseGrades(String courseId, String semester) {
-        QueryWrapper<CourseGrade> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId);
+        LambdaQueryWrapper<CourseGrade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseGrade::getCourseId, courseId);
 
         if (semester != null && !semester.trim().isEmpty()) {
-            queryWrapper.eq("semester", semester);
+            queryWrapper.eq(CourseGrade::getSemester, semester);
         }
 
-        queryWrapper.orderByDesc("grade_time");
+        queryWrapper.orderByDesc(CourseGrade::getGradeTime);
 
         List<CourseGrade> grades = courseGradeService.list(queryWrapper);
 
@@ -69,13 +69,13 @@ public class DataExportService {
 
             // 查询学生姓名
             User student = userMapper.selectOne(
-                    new QueryWrapper<User>().eq("username", grade.getStudentUsername())
+                    new LambdaQueryWrapper<User>().eq(User::getUsername, grade.getStudentUsername())
             );
             excel.setStudentName(student != null ? student.getName() : grade.getStudentUsername());
 
             // 查询教师姓名
             User teacher = userMapper.selectOne(
-                    new QueryWrapper<User>().eq("username", grade.getTeacherUsername())
+                    new LambdaQueryWrapper<User>().eq(User::getUsername, grade.getTeacherUsername())
             );
             excel.setTeacherName(teacher != null ? teacher.getName() : grade.getTeacherUsername());
 
@@ -95,18 +95,18 @@ public class DataExportService {
      * @return 考勤记录导出数据列表
      */
     public List<AttendanceRecordExportExcel> exportAttendanceRecords(String courseId, String startDate, String endDate) {
-        QueryWrapper<AttendanceRecord> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId);
+        LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AttendanceRecord::getCourseId, courseId);
 
         if (startDate != null && !startDate.trim().isEmpty()) {
-            queryWrapper.ge("attendance_time", startDate);
+            queryWrapper.ge(AttendanceRecord::getAttendanceTime, startDate);
         }
 
         if (endDate != null && !endDate.trim().isEmpty()) {
-            queryWrapper.le("attendance_time", endDate);
+            queryWrapper.le(AttendanceRecord::getAttendanceTime, endDate);
         }
 
-        queryWrapper.orderByDesc("attendance_time");
+        queryWrapper.orderByDesc(AttendanceRecord::getAttendanceTime);
 
         List<AttendanceRecord> records = attendanceRecordService.list(queryWrapper);
 
@@ -125,7 +125,7 @@ public class DataExportService {
 
             // 查询学生姓名
             User student = userMapper.selectOne(
-                    new QueryWrapper<User>().eq("username", record.getStudentUsername())
+                    new LambdaQueryWrapper<User>().eq(User::getUsername, record.getStudentUsername())
             );
             excel.setStudentName(student != null ? student.getName() : record.getStudentUsername());
 

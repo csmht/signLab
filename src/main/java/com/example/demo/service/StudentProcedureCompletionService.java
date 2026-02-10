@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.DataCollectionMapper;
@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -91,8 +92,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         // 3. 验证答案中的题目是否属于该步骤
         if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
             // 老师选定模式：验证题目ID是否在步骤的题目列表中
-            QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("experimental_procedure_id", procedureId);
+            LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedureId);
             long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
 
             if (answers.size() != topicCount) {
@@ -313,8 +314,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                                                   java.util.Map<String, String> tableCellAnswers) {
         try {
             // 1. 查询数据收集配置
-            QueryWrapper<DataCollection> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("experimental_procedure_id", procedureId);
+            LambdaQueryWrapper<DataCollection> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(DataCollection::getExperimentalProcedureId, procedureId);
             DataCollection dataCollection = dataCollectionMapper.selectOne(queryWrapper);
 
             if (dataCollection == null || dataCollection.getCorrectAnswer() == null
@@ -360,10 +361,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
 
             // 4. 计算得分（百分比制）
-            java.math.BigDecimal score = totalQuestions > 0
-                    ? new java.math.BigDecimal(correctCount * 100.0 / totalQuestions)
-                        .setScale(2, java.math.BigDecimal.ROUND_HALF_UP)
-                    : java.math.BigDecimal.ZERO;
+            java.math.BigDecimal score = new java.math.BigDecimal(correctCount * 100.0 / totalQuestions)
+                .setScale(2, RoundingMode.HALF_UP);
 
             // 5. 更新学生答案记录
             StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getById(studentAnswerId);
@@ -462,8 +461,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         }
 
         if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
-            QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("experimental_procedure_id", procedureId);
+            LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedureId);
             long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
 
             if (answers.size() != topicCount) {
@@ -654,10 +653,10 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         }
 
         // 4. 检查是否已提交（直接查询学生答案表）
-        QueryWrapper<StudentExperimentalProcedure> existingWrapper = new QueryWrapper<>();
-        existingWrapper.eq("experimental_procedure_id", request.getProcedureId())
-                .eq("student_username", studentUsername)
-                .eq("class_code", classCode);
+        LambdaQueryWrapper<StudentExperimentalProcedure> existingWrapper = new LambdaQueryWrapper<>();
+        existingWrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, request.getProcedureId())
+                .eq(StudentExperimentalProcedure::getStudentUsername, studentUsername)
+                .eq(StudentExperimentalProcedure::getClassCode, classCode);
         StudentExperimentalProcedure existing = studentExperimentalProcedureService.getOne(existingWrapper);
 
         if (existing != null) {
@@ -667,8 +666,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         // 5. 验证答案数量
         if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
             // 老师选定模式：验证题目ID是否在步骤的题目列表中
-            QueryWrapper<ProcedureTopicMap> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("experimental_procedure_id", request.getProcedureId());
+            LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, request.getProcedureId());
             long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
 
             if (request.getAnswers().size() != topicCount) {

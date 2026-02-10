@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.CourseGradeMapper;
@@ -36,8 +36,8 @@ public class CourseGradeService extends ServiceImpl<CourseGradeMapper, CourseGra
      * 根据学生用户名查询课程成绩
      */
     public CourseGrade getByStudentUsername(String studentUsername) {
-        QueryWrapper<CourseGrade> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<CourseGrade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseGrade::getStudentUsername, studentUsername);
         return getOne(queryWrapper);
     }
 
@@ -49,14 +49,14 @@ public class CourseGradeService extends ServiceImpl<CourseGradeMapper, CourseGra
      * @return 成绩列表
      */
     public List<CourseGradeResponse> getStudentGrades(String studentUsername, String semester) {
-        QueryWrapper<CourseGrade> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<CourseGrade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseGrade::getStudentUsername, studentUsername);
 
         if (semester != null && !semester.trim().isEmpty()) {
-            queryWrapper.eq("semester", semester);
+            queryWrapper.eq(CourseGrade::getSemester, semester);
         }
 
-        queryWrapper.orderByDesc("grade_time");
+        queryWrapper.orderByDesc(CourseGrade::getGradeTime);
 
         List<CourseGrade> grades = list(queryWrapper);
         return grades.stream().map(this::buildResponse).collect(Collectors.toList());
@@ -70,14 +70,14 @@ public class CourseGradeService extends ServiceImpl<CourseGradeMapper, CourseGra
      * @return 成绩列表
      */
     public List<CourseGradeResponse> getCourseGrades(String courseId, String semester) {
-        QueryWrapper<CourseGrade> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId);
+        LambdaQueryWrapper<CourseGrade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseGrade::getCourseId, courseId);
 
         if (semester != null && !semester.trim().isEmpty()) {
-            queryWrapper.eq("semester", semester);
+            queryWrapper.eq(CourseGrade::getSemester, semester);
         }
 
-        queryWrapper.orderByDesc("grade_time");
+        queryWrapper.orderByDesc(CourseGrade::getGradeTime);
 
         List<CourseGrade> grades = list(queryWrapper);
         return grades.stream().map(this::buildResponse).collect(Collectors.toList());
@@ -116,7 +116,7 @@ public class CourseGradeService extends ServiceImpl<CourseGradeMapper, CourseGra
                                          String teacherComment, String semester) {
         // 1. 验证学生是否存在
         User student = userMapper.selectOne(
-                new QueryWrapper<User>().eq("username", studentUsername)
+                new LambdaQueryWrapper<User>().eq(User::getUsername, studentUsername)
         );
         if (student == null) {
             throw new BusinessException(404, "学生不存在");
@@ -124,16 +124,16 @@ public class CourseGradeService extends ServiceImpl<CourseGradeMapper, CourseGra
 
         // 2. 验证课程是否存在
         Course course = courseMapper.selectOne(
-                new QueryWrapper<Course>().eq("id", courseId)
+                new LambdaQueryWrapper<Course>().eq(Course::getId, courseId)
         );
         if (course == null) {
             throw new BusinessException(404, "课程不存在");
         }
 
         // 3. 查询是否已有成绩记录
-        QueryWrapper<CourseGrade> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .eq("course_id", courseId);
+        LambdaQueryWrapper<CourseGrade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CourseGrade::getStudentUsername, studentUsername)
+                .eq(CourseGrade::getCourseId, courseId);
         CourseGrade existingGrade = getOne(queryWrapper);
 
         CourseGrade gradeEntity;
@@ -240,19 +240,19 @@ public class CourseGradeService extends ServiceImpl<CourseGradeMapper, CourseGra
 
         // 查询学生姓名
         User student = userMapper.selectOne(
-                new QueryWrapper<User>().eq("username", grade.getStudentUsername())
+                new LambdaQueryWrapper<User>().eq(User::getUsername, grade.getStudentUsername())
         );
         response.setStudentName(student != null ? student.getName() : grade.getStudentUsername());
 
         // 查询教师姓名
         User teacher = userMapper.selectOne(
-                new QueryWrapper<User>().eq("username", grade.getTeacherUsername())
+                new LambdaQueryWrapper<User>().eq(User::getUsername, grade.getTeacherUsername())
         );
         response.setTeacherName(teacher != null ? teacher.getName() : grade.getTeacherUsername());
 
         // 查询课程名称
         Course course = courseMapper.selectOne(
-                new QueryWrapper<Course>().eq("id", grade.getCourseId())
+                new LambdaQueryWrapper<Course>().eq(Course::getId, grade.getCourseId())
         );
         response.setCourseName(course != null ? course.getCourseName() : grade.getCourseId());
 

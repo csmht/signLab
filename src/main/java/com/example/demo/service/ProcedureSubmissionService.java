@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ProcedureSubmissionMapper;
@@ -57,7 +57,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
                                                               MultipartFile file) {
         // 1. 验证学生是否存在
         User student = userMapper.selectOne(
-                new QueryWrapper<User>().eq("username", studentUsername)
+                new LambdaQueryWrapper<User>().eq(User::getUsername, studentUsername)
         );
         if (student == null) {
             throw new BusinessException(404, "学生不存在");
@@ -183,18 +183,18 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
      * @return 步骤列表
      */
     public List<ProcedureSubmissionResponse> getStudentSubmissions(String studentUsername, String courseId, String experimentId) {
-        QueryWrapper<ProcedureSubmission> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<ProcedureSubmission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProcedureSubmission::getStudentUsername, studentUsername);
 
         if (courseId != null && !courseId.trim().isEmpty()) {
-            queryWrapper.eq("course_id", courseId);
+            queryWrapper.eq(ProcedureSubmission::getCourseId, courseId);
         }
 
         if (experimentId != null && !experimentId.trim().isEmpty()) {
-            queryWrapper.eq("experiment_id", experimentId);
+            queryWrapper.eq(ProcedureSubmission::getExperimentId, experimentId);
         }
 
-        queryWrapper.orderByDesc("create_time");
+        queryWrapper.orderByDesc(ProcedureSubmission::getCreateTime);
 
         List<ProcedureSubmission> submissions = list(queryWrapper);
 
@@ -210,18 +210,18 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
      * @return 步骤列表
      */
     public List<ProcedureSubmissionResponse> getCourseSubmissions(String courseId, String experimentId, Integer submissionStatus) {
-        QueryWrapper<ProcedureSubmission> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("course_id", courseId);
+        LambdaQueryWrapper<ProcedureSubmission> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ProcedureSubmission::getCourseId, courseId);
 
         if (experimentId != null && !experimentId.trim().isEmpty()) {
-            queryWrapper.eq("experiment_id", experimentId);
+            queryWrapper.eq(ProcedureSubmission::getExperimentId, experimentId);
         }
 
         if (submissionStatus != null) {
-            queryWrapper.eq("submission_status", submissionStatus);
+            queryWrapper.eq(ProcedureSubmission::getSubmissionStatus, submissionStatus);
         }
 
-        queryWrapper.orderByDesc("create_time");
+        queryWrapper.orderByDesc(ProcedureSubmission::getCreateTime);
 
         List<ProcedureSubmission> submissions = list(queryWrapper);
 
@@ -295,7 +295,7 @@ public class ProcedureSubmissionService extends ServiceImpl<ProcedureSubmissionM
 
         // 查询学生姓名
         User student = userMapper.selectOne(
-                new QueryWrapper<User>().eq("username", submission.getStudentUsername())
+                new LambdaQueryWrapper<User>().eq(User::getUsername, submission.getStudentUsername())
         );
         response.setStudentName(student != null ? student.getName() : submission.getStudentUsername());
 

@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
@@ -227,25 +227,25 @@ public class VideoService extends ServiceImpl<VideoFileMapper, VideoFile> {
      */
     public PageResponse<VideoUploadResponse> queryVideos(VideoQueryRequest request) {
         // 构建查询条件
-        QueryWrapper<VideoFile> queryWrapper = new QueryWrapper<>();
+        LambdaQueryWrapper<VideoFile> queryWrapper = new LambdaQueryWrapper<>();
 
         // 按原始文件名模糊查询
         if (StringUtils.hasText(request.getOriginalFileName())) {
-            queryWrapper.like("original_file_name", request.getOriginalFileName().trim());
+            queryWrapper.like(VideoFile::getOriginalFileName, request.getOriginalFileName().trim());
         }
 
         // 按视频标题模糊查询
         if (StringUtils.hasText(request.getTitle())) {
-            queryWrapper.like("title", request.getTitle().trim());
+            queryWrapper.like(VideoFile::getTitle, request.getTitle().trim());
         }
 
         // 按回答ID精确查询
         if (request.getAnswerId() != null) {
-            queryWrapper.eq("answer_id", request.getAnswerId());
+            queryWrapper.eq(VideoFile::getAnswerId, request.getAnswerId());
         }
 
         // 按ID倒序排序
-        queryWrapper.orderByDesc("id");
+        queryWrapper.orderByDesc(VideoFile::getId);
 
         // 判断是否分页查询
         if (Boolean.TRUE.equals(request.getPageable())) {

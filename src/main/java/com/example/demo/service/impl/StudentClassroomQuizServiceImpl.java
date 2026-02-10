@@ -1,6 +1,6 @@
 package com.example.demo.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
@@ -40,10 +40,10 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         log.info("查询当前进行中的小测，班级实验ID: {}", classExperimentId);
 
         // 查询进行中的小测
-        QueryWrapper<ClassroomQuiz> quizWrapper = new QueryWrapper<>();
-        quizWrapper.eq("class_experiment_id", classExperimentId);
-        quizWrapper.eq("status", 1); // 进行中
-        quizWrapper.orderByDesc("created_time");
+        LambdaQueryWrapper<ClassroomQuiz> quizWrapper = new LambdaQueryWrapper<>();
+        quizWrapper.eq(ClassroomQuiz::getClassExperimentId, classExperimentId);
+        quizWrapper.eq(ClassroomQuiz::getStatus, 1); // 进行中
+        quizWrapper.orderByDesc(ClassroomQuiz::getCreatedTime);
         quizWrapper.last("LIMIT 1");
 
         ClassroomQuiz quiz = classroomQuizMapper.selectOne(quizWrapper);
@@ -121,9 +121,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         }
 
         // 检查是否已提交
-        QueryWrapper<ClassroomQuizAnswer> existWrapper = new QueryWrapper<>();
-        existWrapper.eq("classroom_quiz_id", request.getQuizId());
-        existWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<ClassroomQuizAnswer> existWrapper = new LambdaQueryWrapper<>();
+        existWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, request.getQuizId());
+        existWrapper.eq(ClassroomQuizAnswer::getStudentUsername, studentUsername);
         ClassroomQuizAnswer existAnswer = classroomQuizAnswerMapper.selectOne(existWrapper);
         if (existAnswer != null) {
             throw new BusinessException(400, "您已提交答案，不能重复提交");
@@ -189,9 +189,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         }
 
         // 查询学生答案
-        QueryWrapper<ClassroomQuizAnswer> answerWrapper = new QueryWrapper<>();
-        answerWrapper.eq("classroom_quiz_id", quizId);
-        answerWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<ClassroomQuizAnswer> answerWrapper = new LambdaQueryWrapper<>();
+        answerWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, quizId);
+        answerWrapper.eq(ClassroomQuizAnswer::getStudentUsername, studentUsername);
         ClassroomQuizAnswer answer = classroomQuizAnswerMapper.selectOne(answerWrapper);
 
         // 查询题目列表
@@ -246,10 +246,10 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         log.info("查询历史小测列表，学生: {}, 班级实验ID: {}", studentUsername, classExperimentId);
 
         // 查询该班级实验的所有已结束小测
-        QueryWrapper<ClassroomQuiz> quizWrapper = new QueryWrapper<>();
-        quizWrapper.eq("class_experiment_id", classExperimentId);
-        quizWrapper.eq("status", 2); // 已结束
-        quizWrapper.orderByDesc("created_time");
+        LambdaQueryWrapper<ClassroomQuiz> quizWrapper = new LambdaQueryWrapper<>();
+        quizWrapper.eq(ClassroomQuiz::getClassExperimentId, classExperimentId);
+        quizWrapper.eq(ClassroomQuiz::getStatus, 2); // 已结束
+        quizWrapper.orderByDesc(ClassroomQuiz::getCreatedTime);
 
         List<ClassroomQuiz> quizzes = classroomQuizMapper.selectList(quizWrapper);
 
@@ -257,9 +257,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         return quizzes.stream()
                 .map(quiz -> {
                     // 查询学生答案
-                    QueryWrapper<ClassroomQuizAnswer> answerWrapper = new QueryWrapper<>();
-                    answerWrapper.eq("classroom_quiz_id", quiz.getId());
-                    answerWrapper.eq("student_username", studentUsername);
+                    LambdaQueryWrapper<ClassroomQuizAnswer> answerWrapper = new LambdaQueryWrapper<>();
+                    answerWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, quiz.getId());
+                    answerWrapper.eq(ClassroomQuizAnswer::getStudentUsername, studentUsername);
                     ClassroomQuizAnswer answer = classroomQuizAnswerMapper.selectOne(answerWrapper);
 
                     StudentClassroomQuizDetailResponse response = new StudentClassroomQuizDetailResponse();
@@ -294,8 +294,8 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                         .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
-                    tagWrapper.in("tag_id", tagIdList);
+                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
+                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
@@ -305,8 +305,8 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                                 .collect(Collectors.toList());
 
                         if (!topicIds.isEmpty()) {
-                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                            topicWrapper.in("id", topicIds);
+                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                            topicWrapper.in(Topic::getId, topicIds);
 
                             if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
                                 String[] typeArray = procedureTopic.getTopicTypes().split(",");
@@ -315,11 +315,11 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                                         .map(Integer::parseInt)
                                         .collect(Collectors.toList());
                                 if (!types.isEmpty()) {
-                                    topicWrapper.in("type", types);
+                                    topicWrapper.in(Topic::getType, types);
                                 }
                             }
 
-                            topicWrapper.orderByAsc("number");
+                            topicWrapper.orderByAsc(Topic::getNumber);
                             return topicMapper.selectList(topicWrapper);
                         }
                     }
@@ -328,9 +328,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
             return new ArrayList<>();
         } else {
             // 固定题目
-            QueryWrapper<ProcedureTopicMap> mapWrapper = new QueryWrapper<>();
-            mapWrapper.eq("procedure_topic_id", procedureTopic.getId());
-            mapWrapper.orderByAsc("id");
+            LambdaQueryWrapper<ProcedureTopicMap> mapWrapper = new LambdaQueryWrapper<>();
+            mapWrapper.eq(ProcedureTopicMap::getProcedureTopicId, procedureTopic.getId());
+            mapWrapper.orderByAsc(ProcedureTopicMap::getId);
             List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(mapWrapper);
 
             if (!topicMaps.isEmpty()) {
@@ -338,9 +338,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                         .map(ProcedureTopicMap::getTopicId)
                         .collect(Collectors.toList());
 
-                QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                topicWrapper.in("id", topicIds);
-                topicWrapper.orderByAsc("number");
+                LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                topicWrapper.in(Topic::getId, topicIds);
+                topicWrapper.orderByAsc(Topic::getNumber);
                 return topicMapper.selectList(topicWrapper);
             }
             return new ArrayList<>();

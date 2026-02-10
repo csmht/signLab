@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
@@ -38,8 +38,8 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
      * 根据学生用户名查询班级关系列表
      */
     public List<StudentClassRelation> getByStudentUsername(String studentUsername) {
-        QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentClassRelation::getStudentUsername, studentUsername);
         return list(queryWrapper);
     }
 
@@ -47,8 +47,8 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
      * 根据班级代码查询学生列表
      */
     public List<StudentClassRelation> getByClassCode(String classCode) {
-        QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode);
+        LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentClassRelation::getClassCode, classCode);
         return list(queryWrapper);
     }
 
@@ -62,16 +62,16 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
     public PageResponse<StudentClassRelation> getStudentsByClassCodePage(
             String classCode, StudentQueryRequest request) {
 
-        QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("class_code", classCode);
+        LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentClassRelation::getClassCode, classCode);
 
         // 支持按学生用户名模糊查询
         if (request.getStudentUsername() != null && !request.getStudentUsername().trim().isEmpty()) {
-            queryWrapper.like("student_username", request.getStudentUsername().trim());
+            queryWrapper.like(StudentClassRelation::getStudentUsername, request.getStudentUsername().trim());
         }
 
         // 按绑定时间倒序排序
-        queryWrapper.orderByDesc("bind_time");
+        queryWrapper.orderByDesc(StudentClassRelation::getBindTime);
 
         // 分页查询
         if (request.getPageable() != null && request.getPageable()) {
@@ -106,8 +106,8 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
         response.setFailList(new ArrayList<>());
 
         // 查询班级信息
-        QueryWrapper<Class> classQuery = new QueryWrapper<>();
-        classQuery.eq("class_code", request.getClassCode());
+        LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
+        classQuery.eq(Class::getClassCode, request.getClassCode());
         com.example.demo.pojo.entity.Class clazz = classMapper.selectOne(classQuery);
         if (clazz == null) {
             throw new BusinessException(404, "班级不存在");
@@ -125,7 +125,7 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
             try {
                 // 检查学生是否存在
                 User student = userMapper.selectOne(
-                        new QueryWrapper<User>().eq("username", studentUsername)
+                        new LambdaQueryWrapper<User>().eq(User::getUsername, studentUsername)
                 );
                 if (student == null) {
                     result.setSuccess(false);
@@ -137,9 +137,9 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
                 result.setStudentName(student.getName());
 
                 // 检查学生是否已绑定到该班级
-                QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
-                queryWrapper.eq("student_username", studentUsername)
-                        .eq("class_code", request.getClassCode());
+                LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+                queryWrapper.eq(StudentClassRelation::getStudentUsername, studentUsername)
+                        .eq(StudentClassRelation::getClassCode, request.getClassCode());
                 StudentClassRelation existingRelation = getOne(queryWrapper);
                 if (existingRelation != null) {
                     result.setSuccess(false);
@@ -194,9 +194,9 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
 
         int count = 0;
         for (String studentUsername : studentUsernames) {
-            QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("student_username", studentUsername)
-                    .eq("class_code", classCode);
+            LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(StudentClassRelation::getStudentUsername, studentUsername)
+                    .eq(StudentClassRelation::getClassCode, classCode);
             boolean removed = remove(queryWrapper);
             if (removed) {
                 count++;
@@ -218,24 +218,24 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
     public com.example.demo.pojo.entity.Class bindClass(String studentUsername, String verificationCode) {
         // 验证学生是否存在
         User student = userMapper.selectOne(
-                new QueryWrapper<User>().eq("username", studentUsername)
+                new LambdaQueryWrapper<User>().eq(User::getUsername, studentUsername)
         );
         if (student == null) {
             throw new BusinessException(400, "学生不存在");
         }
 
         // 根据验证码查询班级
-        QueryWrapper<com.example.demo.pojo.entity.Class> classQuery = new QueryWrapper<>();
-        classQuery.eq("verification_code", verificationCode);
+        LambdaQueryWrapper<com.example.demo.pojo.entity.Class> classQuery = new LambdaQueryWrapper<>();
+        classQuery.apply("verification_code = {0}", verificationCode);
         com.example.demo.pojo.entity.Class clazz = classMapper.selectOne(classQuery);
         if (clazz == null) {
             throw new BusinessException(400, "班级验证码无效");
         }
 
         // 检查是否已绑定过该班级
-        QueryWrapper<StudentClassRelation> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .eq("class_code", clazz.getClassCode());
+        LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentClassRelation::getStudentUsername, studentUsername)
+                .eq(StudentClassRelation::getClassCode, clazz.getClassCode());
         StudentClassRelation existingRelation = getOne(queryWrapper);
         if (existingRelation != null) {
             throw new BusinessException(400, "已绑定过该班级");

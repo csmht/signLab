@@ -1,6 +1,6 @@
 package com.example.demo.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
@@ -145,8 +145,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         Integer totalParticipants = 0;
 
         // 查询所有答案记录
-        QueryWrapper<ClassroomQuizAnswer> answerWrapper = new QueryWrapper<>();
-        answerWrapper.eq("classroom_quiz_id", quizId);
+        LambdaQueryWrapper<ClassroomQuizAnswer> answerWrapper = new LambdaQueryWrapper<>();
+        answerWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, quizId);
         List<ClassroomQuizAnswer> answers = classroomQuizAnswerMapper.selectList(answerWrapper);
 
         Integer submittedCount = answers.size();
@@ -231,9 +231,9 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         }
 
         // 查询学生答案
-        QueryWrapper<ClassroomQuizAnswer> answerWrapper = new QueryWrapper<>();
-        answerWrapper.eq("classroom_quiz_id", quizId);
-        answerWrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<ClassroomQuizAnswer> answerWrapper = new LambdaQueryWrapper<>();
+        answerWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, quizId);
+        answerWrapper.eq(ClassroomQuizAnswer::getStudentUsername, studentUsername);
         ClassroomQuizAnswer answer = classroomQuizAnswerMapper.selectOne(answerWrapper);
 
         // 查询题目列表
@@ -297,8 +297,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                         .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
-                    tagWrapper.in("tag_id", tagIdList);
+                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
+                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
@@ -308,8 +308,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                                 .collect(Collectors.toList());
 
                         if (!topicIds.isEmpty()) {
-                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                            topicWrapper.in("id", topicIds);
+                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                            topicWrapper.in(Topic::getId, topicIds);
 
                             // 添加题目类型过滤
                             if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
@@ -319,11 +319,11 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                                         .map(Integer::parseInt)
                                         .collect(Collectors.toList());
                                 if (!types.isEmpty()) {
-                                    topicWrapper.in("type", types);
+                                    topicWrapper.in(Topic::getType, types);
                                 }
                             }
 
-                            topicWrapper.orderByAsc("number");
+                            topicWrapper.orderByAsc(Topic::getNumber);
                             return topicMapper.selectList(topicWrapper);
                         }
                     }
@@ -332,9 +332,9 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             return new ArrayList<>();
         } else {
             // 固定题目：从题库详情映射表查询
-            QueryWrapper<ProcedureTopicMap> mapWrapper = new QueryWrapper<>();
-            mapWrapper.eq("procedure_topic_id", procedureTopic.getId());
-            mapWrapper.orderByAsc("id");
+            LambdaQueryWrapper<ProcedureTopicMap> mapWrapper = new LambdaQueryWrapper<>();
+            mapWrapper.eq(ProcedureTopicMap::getProcedureTopicId, procedureTopic.getId());
+            mapWrapper.orderByAsc(ProcedureTopicMap::getId);
             List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(mapWrapper);
 
             if (!topicMaps.isEmpty()) {
@@ -342,9 +342,9 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                         .map(ProcedureTopicMap::getTopicId)
                         .collect(Collectors.toList());
 
-                QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                topicWrapper.in("id", topicIds);
-                topicWrapper.orderByAsc("number");
+                LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                topicWrapper.in(Topic::getId, topicIds);
+                topicWrapper.orderByAsc(Topic::getNumber);
                 return topicMapper.selectList(topicWrapper);
             }
             return new ArrayList<>();
@@ -425,16 +425,16 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         String currentUsername = getCurrentUsername();
 
         // 构建查询条件
-        QueryWrapper<ClassroomQuiz> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("created_by", currentUsername);
+        LambdaQueryWrapper<ClassroomQuiz> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ClassroomQuiz::getCreatedBy, currentUsername);
 
         // 如果指定了班级实验ID，则只查询该课次的小测
         if (classExperimentId != null) {
-            queryWrapper.eq("class_experiment_id", classExperimentId);
+            queryWrapper.eq(ClassroomQuiz::getClassExperimentId, classExperimentId);
         }
 
         // 按创建时间倒序排列
-        queryWrapper.orderByDesc("created_time");
+        queryWrapper.orderByDesc(ClassroomQuiz::getCreatedTime);
 
         return classroomQuizMapper.selectList(queryWrapper);
     }

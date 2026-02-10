@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.request.*;
 import com.example.demo.pojo.response.*;
@@ -42,8 +42,8 @@ public class AuthService{
      * @throws BusinessException 用户不存在或密码错误时抛出
      */
     public LoginResponse login(LoginRequest request) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", request.getUsername());
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, request.getUsername());
         User user = userMapper.selectOne(queryWrapper);
 
         if (user == null) {
@@ -117,9 +117,9 @@ public class AuthService{
 
             log.info("获取到微信OpenID: {}, UnionID: {}", openid, unionid);
 
-            QueryWrapper<User> openidQuery = new QueryWrapper<>();
-            openidQuery.eq("wx_openid", openid);
-            openidQuery.ne("id", user.getId());
+            LambdaQueryWrapper<User> openidQuery = new LambdaQueryWrapper<>();
+            openidQuery.eq(User::getWxOpenid, openid);
+            openidQuery.ne(User::getId, user.getId());
             Long existCount = userMapper.selectCount(openidQuery);
 
             if (existCount > 0) {
@@ -183,8 +183,8 @@ public class AuthService{
             throw new BusinessException(400, "两次输入的密码不一致");
         }
 
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", currentUsername);
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, currentUsername);
         User user = userMapper.selectOne(queryWrapper);
 
         if (user == null) {
@@ -209,8 +209,8 @@ public class AuthService{
      * @return 用户对象，不存在时返回null
      */
     public User getUserByUsername(String username) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, username);
         return userMapper.selectOne(queryWrapper);
     }
     /**
@@ -220,8 +220,8 @@ public class AuthService{
      * @return 用户是否存在
      */
     public boolean checkUserExists(String username) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username", username);
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, username);
         return userMapper.selectCount(queryWrapper) > 0;
     }
     /**
@@ -321,9 +321,9 @@ public class AuthService{
      * @return 已绑定微信的用户列表
      */
     public List<User> getAllUsersWithWeChat() {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.isNotNull("wx_openid")
-                   .ne("wx_openid", "");
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.isNotNull(User::getWxOpenid)
+                   .ne(User::getWxOpenid, "");
         return userMapper.selectList(queryWrapper);
     }
     /**
@@ -341,8 +341,8 @@ public class AuthService{
                 return "错误: userMapper为空";
             }
 
-            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("username", username);
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getUsername, username);
 
             log.info("执行数据库查询，用户名 {}", username);
             User user = userMapper.selectOne(queryWrapper);
@@ -475,9 +475,9 @@ public class AuthService{
         try {
             log.info("根据openid查找用户，openid: {}", openid);
 
-            com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<User> queryWrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<>();
-            queryWrapper.eq("wx_openid", openid);
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<User> queryWrapper =
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getWxOpenid, openid);
 
             User user = userMapper.selectOne(queryWrapper);
 
@@ -512,7 +512,7 @@ public class AuthService{
         // 只有管理员可以重置密码
         if (UserRole.ADMIN.equals(currentUserRole)) {
             for(String username : usernames) {
-                QueryWrapper<User> queryWrapper = new QueryWrapper<User>().eq("username", username);
+                LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>().eq(User::getUsername, username);
                 User user = userMapper.selectOne(queryWrapper);
                 if (user == null) {
                     throw new BusinessException(404, "用户不存在，用户名: " + username + "重置失败");
@@ -573,8 +573,8 @@ public class AuthService{
                 }
 
                 // 检查用户是否已存在
-                QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-                queryWrapper.eq("username", userRequest.getUsername().trim());
+                LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+                queryWrapper.eq(User::getUsername, userRequest.getUsername().trim());
                 User existingUser = userMapper.selectOne(queryWrapper);
                 if (existingUser != null) {
                     response.setDuplicateCount(response.getDuplicateCount() + 1);

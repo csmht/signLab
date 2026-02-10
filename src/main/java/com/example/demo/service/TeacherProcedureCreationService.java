@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.demo.mapper.DataCollectionMapper;
@@ -60,9 +60,9 @@ public class TeacherProcedureCreationService {
      * @return 最大步骤号，如果没有步骤则返回0
      */
     private Integer getMaxProcedureNumber(Long experimentId) {
-        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experiment_id", experimentId);
-        queryWrapper.orderByDesc("number");
+        LambdaQueryWrapper<ExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ExperimentalProcedure::getExperimentId, experimentId);
+        queryWrapper.orderByDesc(ExperimentalProcedure::getNumber);
         queryWrapper.last("LIMIT 1");
         ExperimentalProcedure procedure = experimentalProcedureService.getOne(queryWrapper);
         return procedure != null ? procedure.getNumber() : 0;
@@ -265,8 +265,8 @@ public class TeacherProcedureCreationService {
             List<Long> topicIds = request.getTeacherSelectedTopicIds();
 
             // 验证题目是否存在
-            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds);
+            LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+            topicQueryWrapper.in(Topic::getId, topicIds);
             long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
             if (existingTopicCount != topicIds.size()) {
@@ -477,16 +477,16 @@ public class TeacherProcedureCreationService {
                 // 如果是非随机模式，重新创建题目映射记录
                 if (!Boolean.TRUE.equals(request.getIsRandom())) {
                     // 删除旧的映射记录
-                    QueryWrapper<ProcedureTopicMap> deleteWrapper = new QueryWrapper<>();
-                    deleteWrapper.eq("experimental_procedure_id", procedure.getId());
+                    LambdaQueryWrapper<ProcedureTopicMap> deleteWrapper = new LambdaQueryWrapper<>();
+                    deleteWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedure.getId());
                     procedureTopicMapMapper.delete(deleteWrapper);
 
                     // 创建新的映射记录
                     List<Long> topicIds = request.getTeacherSelectedTopicIds();
 
                     // 验证题目是否存在
-                    QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-                    topicQueryWrapper.in("id", topicIds);
+                    LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+                    topicQueryWrapper.in(Topic::getId, topicIds);
                     long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
                     if (existingTopicCount != topicIds.size()) {
@@ -530,9 +530,9 @@ public class TeacherProcedureCreationService {
         }
 
         // 验证afterNumber是否存在
-        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experiment_id", request.getExperimentId());
-        queryWrapper.eq("number", request.getAfterNumber());
+        LambdaQueryWrapper<ExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        queryWrapper.eq(ExperimentalProcedure::getNumber, request.getAfterNumber());
         ExperimentalProcedure afterProcedure = experimentalProcedureService.getOne(queryWrapper);
         if (afterProcedure == null) {
             throw new com.example.demo.exception.BusinessException(400, "插入位置的步骤不存在");
@@ -541,10 +541,10 @@ public class TeacherProcedureCreationService {
         // 新步骤的number = afterNumber + 1
         Integer newNumber = request.getAfterNumber() + 1;
 
-        // 更新所有 number > afterNumber 的步骤，将其 number + 1
-        UpdateWrapper<ExperimentalProcedure> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("experiment_id", request.getExperimentId());
-        updateWrapper.gt("number", request.getAfterNumber());
+        // 更新所有 number > afterNumber 的步骤,将其 number + 1
+        LambdaUpdateWrapper<ExperimentalProcedure> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        updateWrapper.gt(ExperimentalProcedure::getNumber, request.getAfterNumber());
         updateWrapper.setSql("number = number + 1");
         experimentalProcedureService.update(updateWrapper);
 
@@ -608,9 +608,9 @@ public class TeacherProcedureCreationService {
         }
 
         // 验证afterNumber是否存在
-        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experiment_id", request.getExperimentId());
-        queryWrapper.eq("number", request.getAfterNumber());
+        LambdaQueryWrapper<ExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        queryWrapper.eq(ExperimentalProcedure::getNumber, request.getAfterNumber());
         ExperimentalProcedure afterProcedure = experimentalProcedureService.getOne(queryWrapper);
         if (afterProcedure == null) {
             throw new com.example.demo.exception.BusinessException(400, "插入位置的步骤不存在");
@@ -619,10 +619,10 @@ public class TeacherProcedureCreationService {
         // 新步骤的number = afterNumber + 1
         Integer newNumber = request.getAfterNumber() + 1;
 
-        // 更新所有 number > afterNumber 的步骤，将其 number + 1
-        UpdateWrapper<ExperimentalProcedure> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("experiment_id", request.getExperimentId());
-        updateWrapper.gt("number", request.getAfterNumber());
+        // 更新所有 number > afterNumber 的步骤,将其 number + 1
+        LambdaUpdateWrapper<ExperimentalProcedure> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        updateWrapper.gt(ExperimentalProcedure::getNumber, request.getAfterNumber());
         updateWrapper.setSql("number = number + 1");
         experimentalProcedureService.update(updateWrapper);
 
@@ -701,9 +701,9 @@ public class TeacherProcedureCreationService {
         }
 
         // 验证afterNumber是否存在
-        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experiment_id", request.getExperimentId());
-        queryWrapper.eq("number", request.getAfterNumber());
+        LambdaQueryWrapper<ExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        queryWrapper.eq(ExperimentalProcedure::getNumber, request.getAfterNumber());
         ExperimentalProcedure afterProcedure = experimentalProcedureService.getOne(queryWrapper);
         if (afterProcedure == null) {
             throw new com.example.demo.exception.BusinessException(400, "插入位置的步骤不存在");
@@ -712,10 +712,10 @@ public class TeacherProcedureCreationService {
         // 新步骤的number = afterNumber + 1
         Integer newNumber = request.getAfterNumber() + 1;
 
-        // 更新所有 number > afterNumber 的步骤，将其 number + 1
-        UpdateWrapper<ExperimentalProcedure> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("experiment_id", request.getExperimentId());
-        updateWrapper.gt("number", request.getAfterNumber());
+        // 更新所有 number > afterNumber 的步骤,将其 number + 1
+        LambdaUpdateWrapper<ExperimentalProcedure> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        updateWrapper.gt(ExperimentalProcedure::getNumber, request.getAfterNumber());
         updateWrapper.setSql("number = number + 1");
         experimentalProcedureService.update(updateWrapper);
 
@@ -752,8 +752,8 @@ public class TeacherProcedureCreationService {
             List<Long> topicIds = request.getTeacherSelectedTopicIds();
 
             // 验证题目是否存在
-            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds);
+            LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+            topicQueryWrapper.in(Topic::getId, topicIds);
             long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
             if (existingTopicCount != topicIds.size()) {
@@ -972,8 +972,8 @@ public class TeacherProcedureCreationService {
             List<Long> topicIds = request.getTeacherSelectedTopicIds();
 
             // 验证题目是否存在
-            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds);
+            LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+            topicQueryWrapper.in(Topic::getId, topicIds);
             long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
             if (existingTopicCount != topicIds.size()) {
@@ -1060,8 +1060,8 @@ public class TeacherProcedureCreationService {
                 // 如果是非随机模式，重新创建题目映射记录
                 if (!Boolean.TRUE.equals(request.getIsRandom())) {
                     // 删除旧的映射记录
-                    QueryWrapper<ProcedureTopicMap> deleteWrapper = new QueryWrapper<>();
-                    deleteWrapper.eq("experimental_procedure_id", procedure.getId());
+                    LambdaQueryWrapper<ProcedureTopicMap> deleteWrapper = new LambdaQueryWrapper<>();
+                    deleteWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedure.getId());
                     procedureTopicMapMapper.delete(deleteWrapper);
 
                     // 创建新的映射记录
@@ -1069,8 +1069,8 @@ public class TeacherProcedureCreationService {
 
                     if (topicIds != null && !topicIds.isEmpty()) {
                         // 验证题目是否存在
-                        QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-                        topicQueryWrapper.in("id", topicIds);
+                        LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+                        topicQueryWrapper.in(Topic::getId, topicIds);
                         long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
                         if (existingTopicCount != topicIds.size()) {
@@ -1130,9 +1130,9 @@ public class TeacherProcedureCreationService {
         }
 
         // 3. 验证afterNumber是否存在
-        QueryWrapper<ExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("experiment_id", request.getExperimentId());
-        queryWrapper.eq("number", request.getAfterNumber());
+        LambdaQueryWrapper<ExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        queryWrapper.eq(ExperimentalProcedure::getNumber, request.getAfterNumber());
         ExperimentalProcedure afterProcedure = experimentalProcedureService.getOne(queryWrapper);
         if (afterProcedure == null) {
             throw new com.example.demo.exception.BusinessException(400, "插入位置的步骤不存在");
@@ -1141,11 +1141,11 @@ public class TeacherProcedureCreationService {
         // 4. 新步骤的number = afterNumber + 1
         Integer newNumber = request.getAfterNumber() + 1;
 
-        // 5. 更新所有 number > afterNumber 的步骤，将其 number + 1
-        com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<ExperimentalProcedure> updateWrapper =
-            new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<>();
-        updateWrapper.eq("experiment_id", request.getExperimentId());
-        updateWrapper.gt("number", request.getAfterNumber());
+        // 5. 更新所有 number > afterNumber 的步骤,将其 number + 1
+        com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<ExperimentalProcedure> updateWrapper =
+            new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+        updateWrapper.eq(ExperimentalProcedure::getExperimentId, request.getExperimentId());
+        updateWrapper.gt(ExperimentalProcedure::getNumber, request.getAfterNumber());
         updateWrapper.setSql("number = number + 1");
         experimentalProcedureService.update(updateWrapper);
 
@@ -1182,8 +1182,8 @@ public class TeacherProcedureCreationService {
 
             if (topicIds != null && !topicIds.isEmpty()) {
                 // 验证题目是否存在
-                QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-                topicQueryWrapper.in("id", topicIds);
+                LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+                topicQueryWrapper.in(Topic::getId, topicIds);
                 long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
 
                 if (existingTopicCount != topicIds.size()) {
@@ -1268,10 +1268,10 @@ public class TeacherProcedureCreationService {
      * @param procedureId 步骤ID
      */
     private void deleteDataCollections(Long procedureId) {
-        // 使用UpdateWrapper批量更新is_deleted字段（Mybatis-Plus自动处理）
-        UpdateWrapper<DataCollection> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("experimental_procedure_id", procedureId)
-                   .set("is_deleted", 1);
+        // 使用UpdateWrapper批量更新is_deleted字段(Mybatis-Plus自动处理)
+        LambdaUpdateWrapper<DataCollection> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(DataCollection::getExperimentalProcedureId, procedureId)
+                   .set(DataCollection::getIsDeleted, 1);
         int rows = dataCollectionMapper.update(null, updateWrapper);
         if (rows > 0) {
             log.info("数据收集记录逻辑删除成功: procedureId={}, count={}", procedureId, rows);
@@ -1284,10 +1284,10 @@ public class TeacherProcedureCreationService {
      * @param procedureId 步骤ID
      */
     private void deleteProcedureTopics(Long procedureId) {
-        // 使用UpdateWrapper批量更新is_deleted字段（Mybatis-Plus自动处理）
-        UpdateWrapper<ProcedureTopic> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("experimental_procedure_id", procedureId)
-                   .set("is_deleted", 1);
+        // 使用UpdateWrapper批量更新is_deleted字段(Mybatis-Plus自动处理)
+        LambdaUpdateWrapper<ProcedureTopic> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ProcedureTopic::getExperimentalProcedureId, procedureId)
+                   .set(ProcedureTopic::getIsDeleted, 1);
         int rows = procedureTopicMapper.update(null, updateWrapper);
         if (rows > 0) {
             log.info("题库详情记录逻辑删除成功: procedureId={}, count={}", procedureId, rows);

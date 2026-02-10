@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
@@ -141,9 +142,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 2. 查询学生的步骤完成记录
-        QueryWrapper<StudentExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("student_username", studentUsername)
-                .eq("experimental_procedure_id", procedureId);
+        LambdaQueryWrapper<StudentExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername)
+                .eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
         List<StudentExperimentalProcedure> studentProcedures = studentExperimentalProcedureService.list(queryWrapper);
 
         // 从多条记录中找到匹配班级的记录
@@ -220,11 +221,11 @@ public class TeacherStudentProcedureQueryService {
             ExperimentalProcedure procedure,
             StudentExperimentalProcedure studentProcedure) {
 
-        QueryWrapper<StudentProcedureAttachment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("procedure_id", procedure.getId())
-                .eq("student_username", response.getStudentUsername())
-                .eq("class_experiment_id", studentProcedure.getClassExperimentId())
-                .orderByDesc("create_time");
+        LambdaQueryWrapper<StudentProcedureAttachment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentProcedureAttachment::getProcedureId, procedure.getId())
+                .eq(StudentProcedureAttachment::getStudentUsername, response.getStudentUsername())
+                .eq(StudentProcedureAttachment::getClassExperimentId, studentProcedure.getClassExperimentId())
+                .orderByDesc(StudentProcedureAttachment::getCreateTime);
 
         List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(queryWrapper);
         if (attachments == null || attachments.isEmpty()) {
@@ -358,9 +359,9 @@ public class TeacherStudentProcedureQueryService {
         List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
 
         // 4. 查询班级中所有学生提交记录
-        // 使用已查询的班级实验ID列表
-        QueryWrapper<StudentExperimentalProcedure> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("class_experiment_id", experimentIds);
+        // ���用已查询的班级实验ID列表
+        LambdaQueryWrapper<StudentExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(StudentExperimentalProcedure::getClassExperimentId, experimentIds);
         List<StudentExperimentalProcedure> allStudentProcedures = studentExperimentalProcedureService.list(queryWrapper);
 
         // 4. 获取唯一学生列表
@@ -519,9 +520,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 查询学生提交记录
-        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
-        wrapper.eq("experimental_procedure_id", procedureId);
-        wrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
 
         if (studentProcedure == null) {
@@ -574,9 +575,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 检查是否已提交
-        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
-        wrapper.eq("experimental_procedure_id", procedureId);
-        wrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
 
         if (studentProcedure != null) {
@@ -684,9 +685,9 @@ public class TeacherStudentProcedureQueryService {
                 detail.setNeedDoc(dataCollection.getNeedDoc());
 
                 // 查询附件信息
-                QueryWrapper<StudentProcedureAttachment> attachmentWrapper = new QueryWrapper<>();
-                attachmentWrapper.eq("procedure_id", procedure.getId());
-                attachmentWrapper.eq("student_username", username);
+                LambdaQueryWrapper<StudentProcedureAttachment> attachmentWrapper = new LambdaQueryWrapper<>();
+                attachmentWrapper.eq(StudentProcedureAttachment::getProcedureId, procedure.getId());
+                attachmentWrapper.eq(StudentProcedureAttachment::getStudentUsername, username);
                 List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
 
                 List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> photos = new ArrayList<>();
@@ -723,9 +724,9 @@ public class TeacherStudentProcedureQueryService {
 
                 // 解析答案JSON
                 String answer = studentExperimentalProcedureService.getOne(
-                    new QueryWrapper<StudentExperimentalProcedure>()
-                        .eq("experimental_procedure_id", procedure.getId())
-                        .eq("student_username", username)
+                    new LambdaQueryWrapper<StudentExperimentalProcedure>()
+                        .eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedure.getId())
+                        .eq(StudentExperimentalProcedure::getStudentUsername, username)
                 ).getAnswer();
 
                 if (answer != null && !answer.isEmpty()) {
@@ -906,8 +907,8 @@ public class TeacherStudentProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
-                    tagWrapper.in("tag_id", tagIdList);
+                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
+                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
@@ -917,8 +918,8 @@ public class TeacherStudentProcedureQueryService {
                             .collect(Collectors.toList());
 
                         if (!topicIds.isEmpty()) {
-                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                            topicWrapper.in("id", topicIds);
+                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                            topicWrapper.in(Topic::getId, topicIds);
 
                             // 添加题目类型过滤
                             if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
@@ -928,11 +929,11 @@ public class TeacherStudentProcedureQueryService {
                                     .map(Integer::parseInt)
                                     .collect(Collectors.toList());
                                 if (!types.isEmpty()) {
-                                    topicWrapper.in("type", types);
+                                    topicWrapper.in(Topic::getType, types);
                                 }
                             }
 
-                            topicWrapper.orderByAsc("number");
+                            topicWrapper.orderByAsc(Topic::getNumber);
                             return topicMapper.selectList(topicWrapper);
                         }
                     }
@@ -941,9 +942,9 @@ public class TeacherStudentProcedureQueryService {
             return new ArrayList<>();
         } else {
             // 固定题目：从题库详情映射表查询
-            QueryWrapper<ProcedureTopicMap> mapWrapper = new QueryWrapper<>();
-            mapWrapper.eq("procedure_topic_id", procedureTopic.getId());
-            mapWrapper.orderByAsc("id");
+            LambdaQueryWrapper<ProcedureTopicMap> mapWrapper = new LambdaQueryWrapper<>();
+            mapWrapper.eq(ProcedureTopicMap::getProcedureTopicId, procedureTopic.getId());
+            mapWrapper.orderByAsc(ProcedureTopicMap::getId);
             List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(mapWrapper);
 
             if (!topicMaps.isEmpty()) {
@@ -951,9 +952,9 @@ public class TeacherStudentProcedureQueryService {
                     .map(ProcedureTopicMap::getTopicId)
                     .collect(Collectors.toList());
 
-                QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                topicWrapper.in("id", topicIds);
-                topicWrapper.orderByAsc("number");
+                LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                topicWrapper.in(Topic::getId, topicIds);
+                topicWrapper.orderByAsc(Topic::getNumber);
                 return topicMapper.selectList(topicWrapper);
             }
             return new ArrayList<>();
@@ -1001,9 +1002,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 查询学生提交记录
-        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
-        wrapper.eq("experimental_procedure_id", procedureId);
-        wrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
 
         if (studentProcedure == null) {
@@ -1102,9 +1103,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 查询学生提交记录
-        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
-        wrapper.eq("experimental_procedure_id", procedureId);
-        wrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
 
         if (studentProcedure == null) {
@@ -1135,9 +1136,9 @@ public class TeacherStudentProcedureQueryService {
                 detail.setNeedDoc(dataCollection.getNeedDoc());
 
                 // 查询附件信息
-                QueryWrapper<StudentProcedureAttachment> attachmentWrapper = new QueryWrapper<>();
-                attachmentWrapper.eq("procedure_id", procedure.getId());
-                attachmentWrapper.eq("student_username", studentUsername);
+                LambdaQueryWrapper<StudentProcedureAttachment> attachmentWrapper = new LambdaQueryWrapper<>();
+                attachmentWrapper.eq(StudentProcedureAttachment::getProcedureId, procedure.getId());
+                attachmentWrapper.eq(StudentProcedureAttachment::getStudentUsername, studentUsername);
                 List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
 
                 List<com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo> photos = new ArrayList<>();
@@ -1273,9 +1274,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 查询学生提交记录
-        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
-        wrapper.eq("experimental_procedure_id", procedureId);
-        wrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
 
         if (studentProcedure == null) {
@@ -1422,9 +1423,9 @@ public class TeacherStudentProcedureQueryService {
         }
 
         // 查询学生提交记录
-        QueryWrapper<StudentExperimentalProcedure> wrapper = new QueryWrapper<>();
-        wrapper.eq("experimental_procedure_id", procedureId);
-        wrapper.eq("student_username", studentUsername);
+        LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, studentUsername);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getOne(wrapper);
 
         if (studentProcedure == null) {
@@ -1567,8 +1568,8 @@ public class TeacherStudentProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    QueryWrapper<TopicTagMap> tagWrapper = new QueryWrapper<>();
-                    tagWrapper.in("tag_id", tagIdList);
+                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
+                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
@@ -1578,8 +1579,8 @@ public class TeacherStudentProcedureQueryService {
                             .collect(Collectors.toList());
 
                         if (!topicIds.isEmpty()) {
-                            QueryWrapper<Topic> topicWrapper = new QueryWrapper<>();
-                            topicWrapper.in("id", topicIds);
+                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                            topicWrapper.in(Topic::getId, topicIds);
 
                             // 添加题目类型过滤
                             if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
@@ -1589,11 +1590,11 @@ public class TeacherStudentProcedureQueryService {
                                     .map(Integer::parseInt)
                                     .collect(Collectors.toList());
                                 if (!types.isEmpty()) {
-                                    topicWrapper.in("type", types);
+                                    topicWrapper.in(Topic::getType, types);
                                 }
                             }
 
-                            topicWrapper.orderByAsc("number");
+                            topicWrapper.orderByAsc(Topic::getNumber);
                             return topicMapper.selectList(topicWrapper);
                         }
                     }

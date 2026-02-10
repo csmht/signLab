@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.mapper.TagMapper;
 import com.example.demo.pojo.entity.Tag;
@@ -29,9 +29,9 @@ public class TagService extends ServiceImpl<TagMapper, Tag> {
      * @return 标签列表
      */
     public List<Tag> getTagsByType(String type) {
-        QueryWrapper<Tag> wrapper = new QueryWrapper<>();
-        wrapper.eq("type", type);
-        wrapper.orderByAsc("id");
+        LambdaQueryWrapper<Tag> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Tag::getType, type);
+        wrapper.orderByAsc(Tag::getId);
         return list(wrapper);
     }
 

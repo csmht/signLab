@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
@@ -253,8 +253,8 @@ public class TeacherProcedureQueryService {
         }
 
         // 查询题目映射
-        QueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new QueryWrapper<>();
-        topicMapQueryWrapper.eq("experimental_procedure_id", procedure.getId());
+        LambdaQueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new LambdaQueryWrapper<>();
+        topicMapQueryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedure.getId());
         List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(topicMapQueryWrapper);
 
         if (topicMaps != null && !topicMaps.isEmpty()) {
@@ -265,10 +265,10 @@ public class TeacherProcedureQueryService {
             response.setTopicIds(topicIds);
 
             // 查询题目详情（包含答案）
-            QueryWrapper<Topic> topicQueryWrapper = new QueryWrapper<>();
-            topicQueryWrapper.in("id", topicIds)
-                    .eq("is_deleted", false)
-                    .orderByAsc("number");
+            LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+            topicQueryWrapper.in(Topic::getId, topicIds)
+                    .eq(Topic::getIsDeleted, false)
+                    .orderByAsc(Topic::getNumber);
             List<Topic> topics = topicMapper.selectList(topicQueryWrapper);
 
             if (topics != null && !topics.isEmpty()) {

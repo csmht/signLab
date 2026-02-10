@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
@@ -157,7 +157,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      */
     public PageResponse<TopicDetailResponse> queryTopics(TopicQueryRequest request) {
         // 1. 构建查询条件
-        QueryWrapper<Topic> wrapper = buildQueryWrapper(request);
+        LambdaQueryWrapper<Topic> wrapper = buildQueryWrapper(request);
 
         // 2. 分页查询
         Page<Topic> page = page(new Page<>(request.getCurrent(), request.getSize()), wrapper);
@@ -194,17 +194,17 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         TopicStatisticsResponse response = new TopicStatisticsResponse();
 
         // 1. 总题目数
-        QueryWrapper<Topic> wrapper = new QueryWrapper<>();
-        wrapper.eq("is_deleted", false);
+        LambdaQueryWrapper<Topic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Topic::getIsDeleted, false);
         Long totalCount = count(wrapper);
         response.setTotalCount(totalCount);
 
         // 2. 按题型统计
         Map<Integer, Long> typeCount = new HashMap<>();
         for (int i = 1; i <= 6; i++) {
-            QueryWrapper<Topic> typeWrapper = new QueryWrapper<>();
-            typeWrapper.eq("is_deleted", false);
-            typeWrapper.eq("type", i);
+            LambdaQueryWrapper<Topic> typeWrapper = new LambdaQueryWrapper<>();
+            typeWrapper.eq(Topic::getIsDeleted, false);
+            typeWrapper.eq(Topic::getType, i);
             long count = count(typeWrapper);
             if (count > 0) {
                 typeCount.put(i, count);
@@ -272,9 +272,9 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             return new ArrayList<>();
         }
 
-        QueryWrapper<Topic> wrapper = new QueryWrapper<>();
-        wrapper.in("id", topicIds);
-        wrapper.eq("is_deleted", false);
+        LambdaQueryWrapper<Topic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(Topic::getId, topicIds);
+        wrapper.eq(Topic::getIsDeleted, false);
         wrapper.last(limit != null ? "LIMIT " + limit : "");
 
         return list(wrapper);
@@ -289,11 +289,11 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      * @return 题目列表
      */
     public List<Topic> getRandomTopics(Integer type, List<Long> tagIds, Integer count) {
-        QueryWrapper<Topic> wrapper = new QueryWrapper<>();
-        wrapper.eq("is_deleted", false);
+        LambdaQueryWrapper<Topic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Topic::getIsDeleted, false);
 
         if (type != null) {
-            wrapper.eq("type", type);
+            wrapper.eq(Topic::getType, type);
         }
 
         // 如果指定了标签，查询包含这些标签的题目
@@ -308,11 +308,11 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                 return new ArrayList<>();
             }
 
-            wrapper.in("id", topicIds);
+            wrapper.in(Topic::getId, topicIds);
         }
 
         // 随机排序并限制数量
-        wrapper.orderByAsc("RAND()");
+        wrapper.last("ORDER BY RAND()");
         if (count != null && count > 0) {
             wrapper.last("LIMIT " + count);
         }
@@ -323,20 +323,20 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
     /**
      * 构建查询条件
      */
-    private QueryWrapper<Topic> buildQueryWrapper(TopicQueryRequest request) {
-        QueryWrapper<Topic> wrapper = new QueryWrapper<>();
-        wrapper.eq("is_deleted", false);
+    private LambdaQueryWrapper<Topic> buildQueryWrapper(TopicQueryRequest request) {
+        LambdaQueryWrapper<Topic> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Topic::getIsDeleted, false);
 
         if (request.getType() != null) {
-            wrapper.eq("type", request.getType());
+            wrapper.eq(Topic::getType, request.getType());
         }
 
         if (request.getKeyword() != null && !request.getKeyword().trim().isEmpty()) {
-            wrapper.like("content", request.getKeyword().trim());
+            wrapper.like(Topic::getContent, request.getKeyword().trim());
         }
 
         if (request.getCreatedBy() != null) {
-            wrapper.eq("created_by", request.getCreatedBy());
+            wrapper.eq(Topic::getCreatedBy, request.getCreatedBy());
         }
 
         // 标签筛选（需要通过TopicTagMap关联查询）
@@ -349,10 +349,10 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             }
 
             if (!topicIds.isEmpty()) {
-                wrapper.in("id", topicIds);
+                wrapper.in(Topic::getId, topicIds);
             } else {
                 // 如果没有匹配的题目，返回空结果
-                wrapper.eq("id", -1);
+                wrapper.eq(Topic::getId, -1);
             }
         }
 
@@ -365,7 +365,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             }
 
             if (!topicIds.isEmpty()) {
-                wrapper.in("id", topicIds);
+                wrapper.in(Topic::getId, topicIds);
             }
         }
 
@@ -378,11 +378,11 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             }
 
             if (!topicIds.isEmpty()) {
-                wrapper.in("id", topicIds);
+                wrapper.in(Topic::getId, topicIds);
             }
         }
 
-        wrapper.orderByDesc("created_time");
+        wrapper.orderByDesc(Topic::getCreatedTime);
         return wrapper;
     }
 

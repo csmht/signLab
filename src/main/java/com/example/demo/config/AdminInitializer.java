@@ -1,6 +1,6 @@
 package com.example.demo.config;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.entity.User;
 import com.example.demo.util.PasswordUtil;
@@ -29,8 +29,8 @@ public class AdminInitializer{
     public void start() {
         try {
             // 检查管理员账号是否存在
-            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("username", ADMIN_USERNAME);
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getUsername, ADMIN_USERNAME);
             User existingAdmin = userMapper.selectOne(queryWrapper);
 
             if (existingAdmin == null) {

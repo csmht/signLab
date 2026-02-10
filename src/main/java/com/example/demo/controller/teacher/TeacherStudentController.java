@@ -1,6 +1,6 @@
 package com.example.demo.controller.teacher;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.enums.AttendanceStatus;
@@ -96,7 +96,7 @@ public class TeacherStudentController {
             }
 
             // 查询班级的所有学生
-            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            LambdaQueryWrapper<StudentClassRelation> relationQuery = new LambdaQueryWrapper<>();
 
             // 确定要查询的班级列表
             List<String> targetClassCodes = new ArrayList<>();
@@ -110,7 +110,7 @@ public class TeacherStudentController {
 
             // 如果有目标班级，查询这些班级的学生
             if (!targetClassCodes.isEmpty()) {
-                relationQuery.in("class_code", targetClassCodes);
+                relationQuery.in(StudentClassRelation::getClassCode, targetClassCodes);
             }
 
             List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
@@ -118,9 +118,9 @@ public class TeacherStudentController {
             // 查询所有签到记录（如果指定了班级实验）
             Map<String, AttendanceRecord> attendanceMap = new HashMap<>();
             if (courseId != null && experimentId != null) {
-                QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
-                attendanceQuery.eq("course_id", courseId)
-                        .eq("experiment_id", experimentId);
+                LambdaQueryWrapper<AttendanceRecord> attendanceQuery = new LambdaQueryWrapper<>();
+                attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
+                        .eq(AttendanceRecord::getExperimentId, experimentId);
                 List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
                 attendanceMap = attendanceRecords.stream()
                         .collect(Collectors.toMap(AttendanceRecord::getStudentUsername, r -> r, (r1, r2) -> r1));
@@ -132,7 +132,7 @@ public class TeacherStudentController {
 
                 // 查询学生信息
                 User student = userMapper.selectOne(
-                        new QueryWrapper<User>().eq("username", studentUsername)
+                        new LambdaQueryWrapper<User>().eq(User::getUsername, studentUsername)
                 );
                 if (student == null) {
                     continue;
@@ -140,7 +140,7 @@ public class TeacherStudentController {
 
                 // 查询班级信息
                 Class studentClass = classMapper.selectOne(
-                        new QueryWrapper<Class>().eq("class_code", relation.getClassCode())
+                        new LambdaQueryWrapper<Class>().eq(Class::getClassCode, relation.getClassCode())
                 );
 
                 Map<String, Object> studentInfo = new HashMap<>();

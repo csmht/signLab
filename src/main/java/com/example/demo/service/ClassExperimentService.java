@@ -1,6 +1,6 @@
 package com.example.demo.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
@@ -68,8 +68,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
                 new BatchBindClassesToExperimentResponse.ClassResult();
             result.setClassCode(classCode);
 
-            QueryWrapper<Class> classQuery = new QueryWrapper<>();
-            classQuery.eq("class_code", classCode);
+            LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
+            classQuery.eq(Class::getClassCode, classCode);
             Class clazz = classMapper.selectOne(classQuery);
 
             if (clazz == null) {
@@ -158,9 +158,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
 
         int count = 0;
         for (String classCode : classCodes) {
-            QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("class_code", classCode)
-                    .eq("experiment_id", experimentId);
+            LambdaQueryWrapper<ClassExperiment> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(ClassExperiment::getExperimentId, experimentId);
             boolean removed = remove(queryWrapper);
             if (removed) {
                 count++;
@@ -194,29 +193,29 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         }
 
         // 构建查询条件
-        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.in("id", experimentIds);
+        LambdaQueryWrapper<ClassExperiment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.in(ClassExperiment::getId, experimentIds);
 
         // 支持按班级编号过滤
         if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
             List<Long> filteredExperimentIds =
                 classExperimentClassRelationService.getExperimentIdsByClassCode(request.getClassCode().trim());
-            queryWrapper.in("id", filteredExperimentIds);
+            queryWrapper.in(ClassExperiment::getId, filteredExperimentIds);
         }
 
         // 支持按课程ID过滤
         if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
-            queryWrapper.eq("course_id", request.getCourseId().trim());
+            queryWrapper.eq(ClassExperiment::getCourseId, request.getCourseId().trim());
         }
 
         if(studentUsername != null && !studentUsername.trim().isEmpty()) {
-            List<String> list = studentClassRelationMapper.selectList(new QueryWrapper<StudentClassRelation>().eq("student_id", studentUsername)).stream().map(StudentClassRelation::getClassCode).toList();
+            List<String> list = studentClassRelationMapper.selectList(new LambdaQueryWrapper<StudentClassRelation>().eq(StudentClassRelation::getStudentUsername, studentUsername)).stream().map(StudentClassRelation::getClassCode).toList();
             List<Long> actualExperimentIds =
                 classExperimentClassRelationService.getExperimentIdsByClassCodes(list);
-            queryWrapper.in("id", actualExperimentIds);
+            queryWrapper.in(ClassExperiment::getId, actualExperimentIds);
         }
 
-        queryWrapper.orderByDesc("start_time");
+        queryWrapper.orderByDesc(ClassExperiment::getStartTime);
 
         // 分页查询
         if (request.getPageable() != null && request.getPageable()) {
@@ -256,22 +255,22 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             String teacherUsername, CourseSessionQueryRequest request) {
 
         // 构建查询条件
-        QueryWrapper<ClassExperiment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_name", teacherUsername);
+        LambdaQueryWrapper<ClassExperiment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ClassExperiment::getUserName, teacherUsername);
 
         // 支持按班级编号过滤
         if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
             List<Long> filteredExperimentIds =
                 classExperimentClassRelationService.getExperimentIdsByClassCode(request.getClassCode().trim());
-            queryWrapper.in("id", filteredExperimentIds);
+            queryWrapper.in(ClassExperiment::getId, filteredExperimentIds);
         }
 
         // 支持按课程ID过滤
         if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
-            queryWrapper.eq("course_id", request.getCourseId().trim());
+            queryWrapper.eq(ClassExperiment::getCourseId, request.getCourseId().trim());
         }
 
-        queryWrapper.orderByDesc("start_time");
+        queryWrapper.orderByDesc(ClassExperiment::getStartTime);
 
         // 分页查询
         if (request.getPageable() != null && request.getPageable()) {
@@ -327,8 +326,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         // 查询班级名称
         List<String> classNames = new ArrayList<>();
         for (String code : classCodes) {
-            QueryWrapper<Class> classQuery = new QueryWrapper<>();
-            classQuery.eq("class_code", code);
+            LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
+            classQuery.eq(Class::getClassCode, code);
             Class clazz = classMapper.selectOne(classQuery);
             if (clazz != null) {
                 classNames.add(clazz.getClassName());
