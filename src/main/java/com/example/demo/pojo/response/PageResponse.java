@@ -1,5 +1,6 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.entity.StudentClassRelation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -14,13 +14,18 @@ import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.entity.User;
+import com.example.demo.pojo.response.StudentClassRelationsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 学生班级关系服务
@@ -59,7 +64,7 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
      * @param request   查询请求
      * @return 分页结果
      */
-    public PageResponse<StudentClassRelation> getStudentsByClassCodePage(
+    public PageResponse<StudentClassRelationsResponse> getStudentsByClassCodePage(
             String classCode, StudentQueryRequest request) {
 
         LambdaQueryWrapper<StudentClassRelation> queryWrapper = new LambdaQueryWrapper<>();
@@ -77,18 +82,20 @@ public class StudentClassRelationService extends ServiceImpl<StudentClassRelatio
         if (request.getPageable() != null && request.getPageable()) {
             Page<StudentClassRelation> page = new Page<>(request.getCurrent(), request.getSize());
             Page<StudentClassRelation> result = page(page, queryWrapper);
+
             return PageResponse.of(
                     result.getCurrent(),
                     result.getSize(),
                     result.getTotal(),
-                    result.getRecords()
+                    StudentClassRelationsResponse.getStudentsByClassCodePage(result.getRecords(),userMapper)
             );
         } else {
             // 不分页，返回全部数据
             List<StudentClassRelation> records = list(queryWrapper);
-            return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
+            return PageResponse.of(1L, (long) records.size(), (long) records.size(), StudentClassRelationsResponse.getStudentsByClassCodePage(records,userMapper));
         }
     }
+
 
     /**
      * 批量绑定学生到班级

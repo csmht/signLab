@@ -218,11 +218,11 @@ public class ClassController {
      */
     @PostMapping("/{classCode}/students")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<PageResponse<StudentClassRelation>> getStudents(
+    public ApiResponse<PageResponse<StudentClassRelationsResponse>> getStudents(
             @PathVariable String classCode,
             @RequestBody com.example.demo.pojo.request.StudentQueryRequest request) {
         try {
-            PageResponse<StudentClassRelation> response = studentClassRelationService.getStudentsByClassCodePage(
+            PageResponse<StudentClassRelationsResponse> response = studentClassRelationService.getStudentsByClassCodePage(
                     classCode, request);
             return ApiResponse.success(response);
         } catch (Exception e) {
