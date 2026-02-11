@@ -3,16 +3,25 @@ package com.example.demo.controller.teacher;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.entity.Experiment;
+import com.example.demo.pojo.request.ClassExperimentQueryByClassRequest;
+import com.example.demo.pojo.request.ClassExperimentQueryRequest;
 import com.example.demo.pojo.request.teacher.CreateExperimentRequest;
 import com.example.demo.pojo.request.teacher.UpdateExperimentRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.ClassExperimentDetailResponse;
+import com.example.demo.pojo.response.ClassExperimentMapResponse;
 import com.example.demo.pojo.response.ExperimentResponse;
+import com.example.demo.pojo.response.PageResponse;
+import com.example.demo.service.ClassExperimentService;
 import com.example.demo.service.ExperimentService;
+import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +38,7 @@ import java.util.stream.Collectors;
 public class TeacherExperimentController {
 
     private final ExperimentService experimentService;
+    private final ClassExperimentService classExperimentService;
 
     /**
      * 创建实验
@@ -220,6 +230,56 @@ public class TeacherExperimentController {
             return ApiResponse.success(responses, "查询成功");
         } catch (Exception e) {
             log.error("查询实验列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 教师查询班级实验列表
+     *
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    @GetMapping("/class-experiments")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<PageResponse<ClassExperimentDetailResponse>> queryClassExperiments(
+            ClassExperimentQueryRequest request) {
+        try {
+            // 获取当前登录教师用户名
+            String teacherUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录"));
+
+            PageResponse<ClassExperimentDetailResponse> response = classExperimentService
+                .queryClassExperimentsForTeacher(teacherUsername, request);
+
+            return ApiResponse.success(response, "查询成功");
+        } catch (BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("教师查询班级实验失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据班级代码查询该班级关联的所有实验详情（按课程分组）
+     *
+     * @param request 查询请求（包含班级代码）
+     * @return 按课程分组的实验详情
+     */
+    @GetMapping("/by-class")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<ClassExperimentMapResponse> getClassExperimentsByClassCode(
+            @Valid @RequestBody ClassExperimentQueryByClassRequest request) {
+        try {
+            log.info("查询班级实验，班级代码: {}", request.getClassCode());
+
+            ClassExperimentMapResponse response = classExperimentService
+                    .getClassExperimentsGroupByCourse(request.getClassCode());
+
+            return ApiResponse.success(response, "查询成功");
+        } catch (Exception e) {
+            log.error("查询班级实验失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
     }
