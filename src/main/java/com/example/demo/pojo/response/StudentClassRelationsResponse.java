@@ -37,7 +37,14 @@ public class StudentClassRelationsResponse {
 
     public static List<StudentClassRelationsResponse> getStudentsByClassCodePage(List<StudentClassRelation> records, UserMapper userMapper) {
         List<String> ids = records.stream().map(StudentClassRelation::getStudentUsername).toList();
-        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, ids));
+        List<User> users ;
+
+        if (ids.isEmpty()) {
+            users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, ids));
+        }else {
+            users = List.of();
+        }
+
         Map<String,String> idNameMap = new HashMap<String,String>();
 
         users.forEach(user -> {

@@ -80,4 +80,14 @@ public class CourseSessionResponse {
      * 授课老师用户名
      */
     private String userName;
+
+    /**
+     * 授课老师姓名
+     */
+    private String teacherName;
+
+    /**
+     * 课程名称
+     */
+    private String courseName;
 }

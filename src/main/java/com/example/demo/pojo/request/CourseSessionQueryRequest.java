@@ -33,4 +33,14 @@ public class CourseSessionQueryRequest {
      * 是否分页查询（true-分页，false-列表）
      */
     private Boolean pageable = true;
+
+    /**
+     * 实验开始时间-开始日期（yyyy-MM-dd）
+     */
+    private String startDate;
+
+    /**
+     * 实验开始时间-结束日期（yyyy-MM-dd）
+     */
+    private String endDate;
 }
