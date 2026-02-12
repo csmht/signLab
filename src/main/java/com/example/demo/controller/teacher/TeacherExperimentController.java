@@ -264,18 +264,18 @@ public class TeacherExperimentController {
     /**
      * 根据班级代码查询该班级关联的所有实验详情（按课程分组）
      *
-     * @param request 查询请求（包含班级代码）
+     * @param classCode 包含班级代码
      * @return 按课程分组的实验详情
      */
-    @GetMapping("/by-class")
+    @GetMapping("/by-class/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ClassExperimentMapResponse> getClassExperimentsByClassCode(
-            @Valid @RequestBody ClassExperimentQueryByClassRequest request) {
+            @PathVariable("classCode") String classCode) {
         try {
-            log.info("查询班级实验，班级代码: {}", request.getClassCode());
+            log.debug("classCode: {}", classCode);
 
             ClassExperimentMapResponse response = classExperimentService
-                    .getClassExperimentsGroupByCourse(request.getClassCode());
+                    .getClassExperimentsGroupByCourse(classCode);
 
             return ApiResponse.success(response, "查询成功");
         } catch (Exception e) {
