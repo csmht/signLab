@@ -614,6 +614,11 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         ClassExperimentMapResponse response = new ClassExperimentMapResponse();
         response.setCourseExperiments(new LinkedHashMap<>());
 
+        Class aClass = classMapper.selectOne(new LambdaQueryWrapper<Class>().eq(Class::getClassCode, classCode));
+        if (aClass == null) {
+            throw new BusinessException("未找到班级");
+        }
+
         // 1. 获取班级关联的所有班级实验ID
         List<Long> classExperimentIds =
             classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
