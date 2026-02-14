@@ -51,14 +51,14 @@ public class QrService {
      * @param experimentId 实验ID
      * @return 二维码数据
      */
-    public TeacherQrVO getTeacherQrVOByClassAndExperiment(String classCode, String experimentId) {
+    public TeacherQrVO getTeacherQrVOByClassAndExperiment(String classCode, Long experimentId) {
         // 通过关联表查询班级实验ID
         List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
 
         // 找到匹配的实验
         for (Long id : experimentIds) {
             ClassExperiment ce = classExperimentMapper.selectById(id);
-            if (ce != null && ce.getExperimentId().equals(experimentId)) {
+            if (ce != null && ce.getExperimentId().equals(String.valueOf(experimentId))) {
                 return generateQrVO(ce);
             }
         }

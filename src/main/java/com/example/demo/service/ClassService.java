@@ -333,10 +333,10 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
      * @param experimentId 实验ID
      * @return 班级详细信息列表
      */
-    public List<Class> getClassesByExperimentId(String experimentId) {
+    public List<Class> getClassesByExperimentId(Long experimentId) {
         // 1. 根据实验ID查询所��相关的班级实验ID
         LambdaQueryWrapper<ClassExperiment> classExperimentQuery = new LambdaQueryWrapper<>();
-        classExperimentQuery.eq(ClassExperiment::getExperimentId, experimentId);
+        classExperimentQuery.eq(ClassExperiment::getExperimentId, String.valueOf(experimentId));
         List<ClassExperiment> classExperiments = classExperimentMapper.selectList(classExperimentQuery);
 
         if (classExperiments == null || classExperiments.isEmpty()) {

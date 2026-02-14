@@ -335,7 +335,7 @@ public class ClassController {
     @PostMapping("/unbind-experiment/{experimentId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Integer> batchUnbindClasses(
-            @PathVariable String experimentId,
+            @PathVariable Long experimentId,
             @RequestBody List<String> classCodes) {
         try {
             int count = classExperimentService.batchUnbindClasses(experimentId, classCodes);
@@ -353,7 +353,7 @@ public class ClassController {
      */
     @GetMapping("/by-experiment/{experimentId}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<Class>> getClassesByExperimentId(@PathVariable String experimentId) {
+    public ApiResponse<List<Class>> getClassesByExperimentId(@PathVariable Long experimentId) {
         try {
             List<Class> classes = classService.getClassesByExperimentId(experimentId);
             return ApiResponse.success(classes, "查询成功");

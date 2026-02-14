@@ -47,7 +47,7 @@ public class QrController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<TeacherQrVO> getQrByClassAndExperiment(
             @RequestParam("classCode") String classCode,
-            @RequestParam("experimentId") String experimentId) {
+            @RequestParam("experimentId") Long experimentId) {
         TeacherQrVO teacherQrVO = qrService.getTeacherQrVOByClassAndExperiment(classCode, experimentId);
         return ApiResponse.success(teacherQrVO);
     }
