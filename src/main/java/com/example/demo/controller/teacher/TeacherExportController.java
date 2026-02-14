@@ -5,8 +5,10 @@ import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.excel.AttendanceRecordExportExcel;
 import com.example.demo.pojo.excel.CourseGradeExportExcel;
+import com.example.demo.pojo.request.teacher.ExportCourseDataRequest;
 import com.example.demo.service.DataExportService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -98,10 +100,66 @@ public class TeacherExportController {
                     .sheet("考勤记录")
                     .doWrite(data);
 
-            log.info("导出考勤记录成功，课程：{}，记录数：{}", courseId, data.size());
+            log.info("导出���勤记录成功，课程：{}，记录数：{}", courseId, data.size());
 
         } catch (Exception e) {
             log.error("导出考勤记录失败", e);
+            response.setStatus(500);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":500,\"message\":\"导出失败: " + e.getMessage() + "\"}");
+        }
+    }
+
+    /**
+     * 导出课程实验成绩表
+     * 包含班级、用户名、姓名、各实验成绩、课程总成绩
+     *
+     * @param request  导出请求（包含课程ID和班级编号列表）
+     * @param response HTTP响应
+     */
+    @PostMapping("/course-experiment-grades")
+    @RequireRole(value = UserRole.TEACHER)
+    public void exportCourseExperimentGrades(
+            @RequestBody @Valid ExportCourseDataRequest request,
+            HttpServletResponse response) throws IOException {
+        try {
+            dataExportService.exportCourseExperimentGrades(
+                    request.getCourseId(),
+                    request.getClassCodes(),
+                    response
+            );
+            log.info("导出课程实验成绩表成功，课程：{}，班级：{}", request.getCourseId(), request.getClassCodes());
+
+        } catch (Exception e) {
+            log.error("导出课程实验成绩表失败", e);
+            response.setStatus(500);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":500,\"message\":\"导出失败: " + e.getMessage() + "\"}");
+        }
+    }
+
+    /**
+     * 导出课程考勤表
+     * 包含班级、用户名、姓名、各实验考勤状态
+     *
+     * @param request  导出请求（包含课程ID和班级编号列表）
+     * @param response HTTP响应
+     */
+    @PostMapping("/course-attendance")
+    @RequireRole(value = UserRole.TEACHER)
+    public void exportCourseAttendance(
+            @RequestBody @Valid ExportCourseDataRequest request,
+            HttpServletResponse response) throws IOException {
+        try {
+            dataExportService.exportCourseAttendance(
+                    request.getCourseId(),
+                    request.getClassCodes(),
+                    response
+            );
+            log.info("导出课程考勤表成功，课程：{}，班级：{}", request.getCourseId(), request.getClassCodes());
+
+        } catch (Exception e) {
+            log.error("导出课程考勤表失败", e);
             response.setStatus(500);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":500,\"message\":\"导出失败: " + e.getMessage() + "\"}");
