@@ -164,7 +164,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
      * @return 解绑的班级数量
      */
     @Transactional(rollbackFor = Exception.class)
-    public int batchUnbindClasses(String experimentId, List<String> classCodes) {
+    public int batchUnbindClasses(Long experimentId, List<String> classCodes) {
         if (classCodes == null || classCodes.isEmpty()) {
             return 0;
         }

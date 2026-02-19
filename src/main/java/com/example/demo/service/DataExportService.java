@@ -1,10 +1,8 @@
 package com.example.demo.service;
 
 import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.write.metadata.WriteTable;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
-import com.example.demo.mapper.AttendanceRecordMapper;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.entity.AttendanceRecord;
@@ -18,6 +16,7 @@ import com.example.demo.pojo.excel.CourseGradeExportExcel;
 import com.example.demo.pojo.vo.CourseGradeResult;
 import com.example.demo.pojo.vo.ExperimentGradeResult;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -214,7 +213,7 @@ public class DataExportService {
         }
 
         // 2. 查询指定班级的所有学生
-        List<Map<String, Object>> studentList = getStudentsByClassCodes(classCodes);
+        List<StudentInfo> studentList = getStudentsByClassCodes(classCodes);
 
         if (studentList.isEmpty()) {
             throw new BusinessException(404, "指定班级下没有学生");
@@ -232,10 +231,10 @@ public class DataExportService {
 
         // 4. 构建数据
         List<List<Object>> dataList = new ArrayList<>();
-        for (Map<String, Object> student : studentList) {
-            String studentUsername = (String) student.get("username");
-            String studentName = (String) student.get("name");
-            String classCode = (String) student.get("classCode");
+        for (StudentInfo student : studentList) {
+            String studentUsername = student.studentUsername();
+            String studentName = student.studentName();
+            String classCode = student.classCode();
 
             // 获取班级名称
             String className = getClassName(classCode);
@@ -292,7 +291,7 @@ public class DataExportService {
         }
 
         // 2. 查询指定班级的所有学生
-        List<Map<String, Object>> studentList = getStudentsByClassCodes(classCodes);
+        List<StudentInfo> studentList = getStudentsByClassCodes(classCodes);
 
         if (studentList.isEmpty()) {
             throw new BusinessException(404, "指定班级下没有学生");
@@ -326,10 +325,10 @@ public class DataExportService {
 
         // 5. 构建数据
         List<List<Object>> dataList = new ArrayList<>();
-        for (Map<String, Object> student : studentList) {
-            String studentUsername = (String) student.get("username");
-            String studentName = (String) student.get("name");
-            String classCode = (String) student.get("classCode");
+        for (StudentInfo student : studentList) {
+            String studentUsername = student.studentUsername();
+            String studentName = student.studentName();
+            String classCode = student.classCode();
 
             // 获取班级名称
             String className = getClassName(classCode);
@@ -358,8 +357,8 @@ public class DataExportService {
     /**
      * 根据班级编号列表获取学生列表
      */
-    private List<Map<String, Object>> getStudentsByClassCodes(List<String> classCodes) {
-        List<Map<String, Object>> studentList = new ArrayList<>();
+    private List<StudentInfo> getStudentsByClassCodes(List<String> classCodes) {
+        List<StudentInfo> studentList = new ArrayList<>();
 
         for (String classCode : classCodes) {
             // 查询班级下的学生
@@ -371,16 +370,22 @@ public class DataExportService {
                 );
 
                 if (student != null) {
-                    Map<String, Object> studentInfo = new LinkedHashMap<>();
-                    studentInfo.put("username", student.getUsername());
-                    studentInfo.put("name", student.getName());
-                    studentInfo.put("classCode", classCode);
+                    StudentInfo studentInfo = new StudentInfo(
+                            student.getUsername(),
+                            student.getName(),
+                            classCode
+                    );
+
                     studentList.add(studentInfo);
                 }
             }
         }
 
         return studentList;
+    }
+
+
+        private record StudentInfo(String studentUsername, String studentName, String classCode) {
     }
 
     /**

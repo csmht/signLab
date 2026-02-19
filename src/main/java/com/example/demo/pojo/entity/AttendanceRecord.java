@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @AutoTable
 @Table(value = "attendance_records", comment = "签到记录表")
 @TableName("attendance_records")
-@TableIndex(name = "uk_course_student", fields = {"courseId", "studentUsername"}, type = IndexTypeEnum.UNIQUE)
+@TableIndex(name = "uk_course_student", fields = {"courseId", "studentUsername","experimentId"}, type = IndexTypeEnum.UNIQUE)
 @TableIndex(name = "idx_attendance_course_id", fields = {"courseId"})
 @TableIndex(name = "idx_attendance_student_username", fields = {"studentUsername"})
 @TableIndex(name = "idx_student_actual_class", fields = {"studentActualClassCode"})
