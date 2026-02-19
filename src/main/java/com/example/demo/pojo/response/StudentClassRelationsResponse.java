@@ -39,7 +39,7 @@ public class StudentClassRelationsResponse {
         List<String> ids = records.stream().map(StudentClassRelation::getStudentUsername).toList();
         List<User> users ;
 
-        if (ids.isEmpty()) {
+        if (!ids.isEmpty()) {
             users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, ids));
         }else {
             users = List.of();
