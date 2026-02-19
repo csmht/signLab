@@ -216,7 +216,7 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
         StudentExperimentalProcedure existing = getByStudentAndProcedure(
                 studentUsername, classCode, experimentalProcedureId);
         if (existing != null) {
-            throw new BusinessException(400, "已标记该视频为已观看");
+            return;
         }
 
         // 4. 插入观看记录
@@ -234,7 +234,7 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
             throw new BusinessException(500, "标记视频观看失败");
         }
 
-        log.info("学生 {} 在班级 {} 标���视频 {} 已观看", studentUsername, classCode, experimentalProcedureId);
+        log.info("学生 {} 在班级 {} 标记视频 {} 已观看", studentUsername, classCode, experimentalProcedureId);
     }
 
     /**
