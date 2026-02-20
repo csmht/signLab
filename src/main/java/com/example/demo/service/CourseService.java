@@ -295,7 +295,6 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
         response.setCourseId(course.getCourseId());
         response.setCourseName(course.getCourseName());
         response.setTeacherUsername(course.getTeacherUsername());
-        response.setTeacherEmployeeId(course.getTeacherEmployeeId());
         response.setCreateTime(course.getCreateTime());
         response.setUpdateTime(course.getUpdateTime());
         return response;

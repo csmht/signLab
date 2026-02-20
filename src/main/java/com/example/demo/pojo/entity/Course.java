@@ -23,7 +23,6 @@ import java.time.LocalTime;
 @TableName("courses")
 @TableIndex(name = "uk_course_id", fields = {"courseId"}, type = IndexTypeEnum.UNIQUE)
 @TableIndex(name = "idx_courses_teacher_username", fields = {"teacherUsername"})
-@TableIndex(name = "idx_courses_teacher_employee_id", fields = {"teacherEmployeeId"})
 @TableIndex(name = "idx_courses_start_time", fields = {"createTime"})
 public class Course {
 
@@ -42,10 +41,6 @@ public class Course {
     /** 授课教师用户名 */
     @Column(comment = "授课教师用户名", type = "varchar(50)", notNull = true)
     private String teacherUsername;
-
-    /** 教师工号 */
-    @Column(comment = "教师工号", type = "varchar(20)")
-    private String teacherEmployeeId;
 
     /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
