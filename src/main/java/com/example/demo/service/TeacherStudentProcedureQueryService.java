@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.*;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.lang.Class;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -38,6 +40,10 @@ public class TeacherStudentProcedureQueryService {
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final DownloadService downloadService;
+    private final StudentClassRelationMapper studentClassRelationMapper;
+    private final UserMapper userMapper;
+    private final CourseMapper courseMapper;
+    private final StudentClassRelationService studentClassRelationService;
 
     /**
      * 查询学生在指定班级实验中的步骤完成情况
@@ -337,160 +343,223 @@ public class TeacherStudentProcedureQueryService {
 
         log.info("查询班级实验完成统计，班级: {}, 实验: {}", classCode, experimentId);
 
-        // 1. 查询实验基本信息
-        Experiment experiment = experimentMapper.selectById(experimentId);
-        if (experiment == null) {
-            throw new com.example.demo.exception.BusinessException(404, "实验不存在");
-        }
-
-        // 2. 查询班级实验关系
-        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
-
-        com.example.demo.pojo.entity.ClassExperiment classExperiment = null;
-        for (Long id : experimentIds) {
-            com.example.demo.pojo.entity.ClassExperiment ce = classExperimentMapper.selectById(id);
-            if (ce != null && ce.getExperimentId().equals(experimentId.toString())) {
-                classExperiment = ce;
-                break;
-            }
-        }
-
-        // 3. 查询实验的所有步骤
-        List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
-
-        // 4. 查询班级中所有学生提交记录
-        // ���用已查询的班级实验ID列表
-        LambdaQueryWrapper<StudentExperimentalProcedure> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.in(StudentExperimentalProcedure::getClassExperimentId, experimentIds);
-        List<StudentExperimentalProcedure> allStudentProcedures = studentExperimentalProcedureService.list(queryWrapper);
-
-        // 4. 获取唯一学生列表
-        List<String> studentUsernames = allStudentProcedures.stream()
-                .map(StudentExperimentalProcedure::getStudentUsername)
-                .distinct()
-                .collect(Collectors.toList());
-
-        int totalStudents = studentUsernames.size();
-
-        // 5. 统计每个步骤的完成情况
-        List<ClassExperimentStatisticsResponse.ProcedureStatistics> procedureStatisticsList = new ArrayList<>();
-        BigDecimal totalScoreSum = BigDecimal.ZERO;
-        int submittedStudents = 0;
-
-        for (ExperimentalProcedure procedure : procedures) {
-            ClassExperimentStatisticsResponse.ProcedureStatistics procStat =
-                    new ClassExperimentStatisticsResponse.ProcedureStatistics();
-            procStat.setId(procedure.getId());
-            procStat.setNumber(procedure.getNumber());
-            procStat.setType(procedure.getType());
-            procStat.setRemark(procedure.getRemark());
-
-            // 统计该步骤的完成情况
-            List<StudentExperimentalProcedure> procedureSubmissions = allStudentProcedures.stream()
-                    .filter(sp -> sp.getExperimentalProcedureId().equals(procedure.getId()))
-                    .filter(sp -> sp.getAnswer() != null && !sp.getAnswer().trim().isEmpty())
-                    .collect(Collectors.toList());
-
-            int completedCount = procedureSubmissions.size();
-            int notCompletedCount = totalStudents - completedCount;
-
-            procStat.setCompletedCount(completedCount);
-            procStat.setNotCompletedCount(notCompletedCount);
-
-            // 计算完成率
-            BigDecimal completionRate = totalStudents > 0
-                    ? new BigDecimal(completedCount)
-                            .multiply(new BigDecimal(100))
-                            .divide(new BigDecimal(totalStudents), 2, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
-            procStat.setCompletionRate(completionRate);
-
-            // 计算平均分
-            BigDecimal avgScore = procedureSubmissions.stream()
-                    .filter(sp -> sp.getScore() != null)
-                    .map(StudentExperimentalProcedure::getScore)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            avgScore = completedCount > 0
-                    ? avgScore.divide(new BigDecimal(completedCount), 2, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
-            procStat.setAverageScore(avgScore);
-
-            procedureStatisticsList.add(procStat);
-        }
-
-        // 6. 统计每个学生的完成情况
-        List<ClassExperimentStatisticsResponse.StudentCompletionInfo> studentCompletions = new ArrayList<>();
-
-        for (String studentUsername : studentUsernames) {
-            // 获取该学生的所有提交记录
-            List<StudentExperimentalProcedure> studentSubmissions = allStudentProcedures.stream()
-                    .filter(sp -> sp.getStudentUsername().equals(studentUsername))
-                    .filter(sp -> sp.getAnswer() != null && !sp.getAnswer().trim().isEmpty())
-                    .collect(Collectors.toList());
-
-            if (studentSubmissions.isEmpty()) {
-                continue;
-            }
-
-            // 统计完成进度
-            int completedCount = (int) studentSubmissions.stream()
-                    .map(StudentExperimentalProcedure::getExperimentalProcedureId)
-                    .distinct()
-                    .count();
-
-            // 计算总分
-            BigDecimal totalScore = studentSubmissions.stream()
-                    .filter(sp -> sp.getScore() != null)
-                    .map(StudentExperimentalProcedure::getScore)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            // 获取最后提交时间
-            LocalDateTime lastSubmissionTime = studentSubmissions.stream()
-                    .map(StudentExperimentalProcedure::getCreatedTime)
-                    .max(LocalDateTime::compareTo)
-                    .orElse(null);
-
-            // 累加到总分
-            totalScoreSum = totalScoreSum.add(totalScore);
-
-            ClassExperimentStatisticsResponse.StudentCompletionInfo studentInfo =
-                    new ClassExperimentStatisticsResponse.StudentCompletionInfo();
-            studentInfo.setStudentUsername(studentUsername);
-            studentInfo.setCompletedCount(completedCount);
-            studentInfo.setTotalCount(procedures.size());
-            studentInfo.setProgress(completedCount + "/" + procedures.size());
-            studentInfo.setTotalScore(totalScore);
-            studentInfo.setLastSubmissionTime(lastSubmissionTime);
-
-            studentCompletions.add(studentInfo);
-            submittedStudents++;
-        }
-
-        // 7. 计算总体统计
-        BigDecimal overallCompletionRate = totalStudents > 0
-                ? new BigDecimal(submittedStudents)
-                        .multiply(new BigDecimal(100))
-                        .divide(new BigDecimal(totalStudents), 2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-
-        BigDecimal overallAverageScore = submittedStudents > 0
-                ? totalScoreSum.divide(new BigDecimal(submittedStudents), 2, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-
-        // 8. 构建响应
         ClassExperimentStatisticsResponse response = new ClassExperimentStatisticsResponse();
+
         response.setClassCode(classCode);
         response.setExperimentId(experimentId);
+
+        //获取实验信息
+        Experiment experiment = experimentMapper.selectById(experimentId);
+        if (experiment == null) {
+            throw new BusinessException("实验不存在");
+        }
         response.setExperimentName(experiment.getExperimentName());
-        response.setUserName(classExperiment != null ? classExperiment.getUserName() : null);
-        response.setTotalStudents(totalStudents);
-        response.setSubmittedCount(submittedStudents);
-        response.setCompletionRate(overallCompletionRate);
-        response.setAverageScore(overallAverageScore);
-        response.setProcedureStatistics(procedureStatisticsList);
+
+        //获取授课老师信息
+        Course course = courseMapper.selectOne(new LambdaQueryWrapper<Course>().eq(Course::getCourseId,experiment.getCourseId()));
+        if(course == null){
+            return new ClassExperimentStatisticsResponse();
+        }
+        response.setUserName(userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername,course.getTeacherUsername())).getName());
+
+        //获取班级人员
+        List<StudentClassRelation> studentClassRelations = studentClassRelationMapper.selectList(new LambdaQueryWrapper<StudentClassRelation>().eq(StudentClassRelation::getClassCode,classCode));
+        response.setTotalStudents(studentClassRelations.size());
+
+        List<String> studentUserName = studentClassRelations.stream().map(StudentClassRelation::getStudentUsername).toList();
+        if(studentUserName.isEmpty()){
+            return new ClassExperimentStatisticsResponse();
+        }
+
+        // 查询实验的所有步骤
+        List<ExperimentalProcedure> procedures = experimentalProcedureService.list(
+            new LambdaQueryWrapper<ExperimentalProcedure>()
+                .eq(ExperimentalProcedure::getExperimentId, experimentId)
+                .eq(ExperimentalProcedure::getIsDeleted, false)
+                .orderByAsc(ExperimentalProcedure::getNumber)
+        );
+        int totalProcedures = procedures.size();
+
+        // 筛选占比不为零的步骤（必须完成的步骤）
+        List<Long> requiredProcedureIds = procedures.stream()
+            .filter(p -> p.getProportion() != null && p.getProportion() > 0)
+            .map(ExperimentalProcedure::getId)
+            .collect(Collectors.toList());
+
+        // 查询班级学生在该实验的所有步骤提交记录
+        List<StudentExperimentalProcedure> studentProcedures;
+        studentProcedures = studentExperimentalProcedureService.list(
+            new LambdaQueryWrapper<StudentExperimentalProcedure>()
+                    .eq(StudentExperimentalProcedure::getExperimentId, experimentId)
+                    .in(StudentExperimentalProcedure::getStudentUsername, studentUserName)
+        );
+
+        // 按学生分组
+        Map<String, List<StudentExperimentalProcedure>> studentProcedureMap = studentProcedures.isEmpty()
+            ? Collections.emptyMap()
+            : studentProcedures.stream()
+                .collect(Collectors.groupingBy(StudentExperimentalProcedure::getStudentUsername));
+
+        // 已提交人数（至少提交一个步骤的学生）
+        int submittedCount = studentProcedureMap.size();
+        if(submittedCount == 0){
+            return new ClassExperimentStatisticsResponse();
+        }
+
+        // 完成率
+        BigDecimal completionRate = response.getTotalStudents() > 0
+            ? BigDecimal.valueOf(submittedCount).divide(BigDecimal.valueOf(response.getTotalStudents()), 4, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+
+        // 计算平均分（只计算非 0 分学生的平均分）
+        BigDecimal totalScoreSum = BigDecimal.ZERO;
+        int validStudentCount = 0;  // 非 0 分学生数量
+        for (String username : studentUserName) {
+            List<StudentExperimentalProcedure> studentProcList = studentProcedureMap.getOrDefault(username, Collections.emptyList());
+            BigDecimal studentScore = calculateStudentTotalScore(username, requiredProcedureIds, studentProcList);
+            // 只统计非 0 分的学生
+            if (studentScore.compareTo(BigDecimal.ZERO) > 0) {
+                totalScoreSum = totalScoreSum.add(studentScore);
+                validStudentCount++;
+            }
+        }
+
+        BigDecimal averageScore = validStudentCount > 0
+            ? totalScoreSum.divide(BigDecimal.valueOf(validStudentCount), 2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+
+        // 构建步骤统计列表
+        List<ClassExperimentStatisticsResponse.ProcedureStatistics> procedureStats = procedures.stream().map(procedure -> {
+            ClassExperimentStatisticsResponse.ProcedureStatistics stat = new ClassExperimentStatisticsResponse.ProcedureStatistics();
+            stat.setId(procedure.getId());
+            stat.setNumber(procedure.getNumber());
+            stat.setType(procedure.getType());
+            stat.setRemark(procedure.getRemark());
+
+            // 统计该步骤的完成人数（有记录且 answer 不为空）
+            int completedCount = (int) studentProcedures.stream()
+                .filter(sp -> sp.getExperimentalProcedureId().equals(procedure.getId()))
+                .filter(sp -> sp.getAnswer() != null && !sp.getAnswer().trim().isEmpty())
+                .count();
+
+            stat.setCompletedCount(completedCount);
+            stat.setNotCompletedCount(response.getTotalStudents() - completedCount);
+            stat.setCompletionRate(response.getTotalStudents() > 0
+                ? BigDecimal.valueOf(completedCount).divide(BigDecimal.valueOf(response.getTotalStudents()), 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO);
+
+            // 计算该步骤的平均分（仅计算已批改的）
+            List<BigDecimal> scores = studentProcedures.stream()
+                .filter(sp -> sp.getExperimentalProcedureId().equals(procedure.getId()))
+                .filter(sp -> sp.getScore() != null && sp.getIsGraded() != null && sp.getIsGraded() > 0)
+                .map(StudentExperimentalProcedure::getScore)
+                .toList();
+
+            BigDecimal avgScore = scores.isEmpty() ? BigDecimal.ZERO
+                : scores.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                    .divide(BigDecimal.valueOf(scores.size()), 2, RoundingMode.HALF_UP);
+            stat.setAverageScore(avgScore);
+
+            return stat;
+        }).collect(Collectors.toList());
+
+        // 构建学生完成列表
+        List<ClassExperimentStatisticsResponse.StudentCompletionInfo> studentCompletions = studentUserName.stream().map(username -> {
+            ClassExperimentStatisticsResponse.StudentCompletionInfo info = new ClassExperimentStatisticsResponse.StudentCompletionInfo();
+            info.setStudentUsername(username);
+
+            // 获取学生姓名
+            User student = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getUsername, username));
+            if (student != null) {
+                info.setStudentName(student.getName());
+            }
+
+            List<StudentExperimentalProcedure> studentProcList = studentProcedureMap.getOrDefault(username, Collections.emptyList());
+
+            // 已完成步骤数（有记录且 answer 不为空）
+            int completedCount = (int) studentProcList.stream()
+                .filter(sp -> sp.getAnswer() != null && !sp.getAnswer().trim().isEmpty())
+                .count();
+
+            info.setCompletedCount(completedCount);
+            info.setTotalCount(totalProcedures);
+            info.setProgress(completedCount + "/" + totalProcedures);
+
+            // 使用业务规则计算总得分
+            BigDecimal totalScore = calculateStudentTotalScore(username, requiredProcedureIds, studentProcList);
+            info.setTotalScore(totalScore);
+
+            // 最后提交时间
+            studentProcList.stream()
+                .map(StudentExperimentalProcedure::getUpdatedTime)
+                .filter(Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .ifPresent(info::setLastSubmissionTime);
+
+            return info;
+        }).collect(Collectors.toList());
+
+        // 设置响应
+        response.setSubmittedCount(submittedCount);
+        response.setCompletionRate(completionRate);
+        response.setAverageScore(averageScore);
+        response.setProcedureStatistics(procedureStats);
         response.setStudentCompletions(studentCompletions);
 
         return response;
+    }
+
+    /**
+     * 计算学生实验总分
+     * 规则：如果任意一个占比不为零的步骤未完成或未批改，则总分为0
+     *
+     * @param studentUsername 学生用户名
+     * @param requiredProcedureIds 必须完成的步骤ID列表
+     * @param studentProcedures 学生的步骤提交记录
+     * @return 学生总分
+     */
+    private BigDecimal calculateStudentTotalScore(
+            String studentUsername,
+            List<Long> requiredProcedureIds,
+            List<StudentExperimentalProcedure> studentProcedures) {
+
+        // 按步骤ID分组
+        Map<Long, StudentExperimentalProcedure> procedureMap = studentProcedures.stream()
+            .filter(sp -> sp.getStudentUsername().equals(studentUsername))
+            .collect(Collectors.toMap(
+                StudentExperimentalProcedure::getExperimentalProcedureId,
+                sp -> sp,
+                (a, b) -> a
+            ));
+
+        // 检查是否所有必须完成的步骤都已完成并批改
+        for (Long requiredId : requiredProcedureIds) {
+            StudentExperimentalProcedure sp = procedureMap.get(requiredId);
+            // 未完成：没有记录
+            if (sp == null) {
+                return BigDecimal.ZERO;
+            }
+            // 未完成：answer 为空
+            if (sp.getAnswer() == null || sp.getAnswer().trim().isEmpty()) {
+                return BigDecimal.ZERO;
+            }
+            // 未批改：score 为 null
+            if (sp.getScore() == null) {
+                return BigDecimal.ZERO;
+            }
+            // 未批改：isGraded 为 0 或 null
+            if (sp.getIsGraded() == null || sp.getIsGraded() == 0) {
+                return BigDecimal.ZERO;
+            }
+        }
+
+        // 所有必须步骤都已完成并批改，计算总分
+        return studentProcedures.stream()
+            .filter(sp -> sp.getStudentUsername().equals(studentUsername))
+            .map(StudentExperimentalProcedure::getScore)
+            .filter(Objects::nonNull)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
