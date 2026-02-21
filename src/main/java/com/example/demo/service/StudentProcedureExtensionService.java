@@ -1,20 +1,23 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.StudentProcedureExtensionMapper;
 import com.example.demo.pojo.entity.StudentProcedureExtension;
+import com.example.demo.pojo.request.teacher.ExtensionQueryRequest;
+import com.example.demo.pojo.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -25,6 +28,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedureExtensionMapper, StudentProcedureExtension> {
+
+    private final ExperimentalProcedureService experimentalProcedureService;
 
     /**
      * 计算延长后的结束时间（核心方法）
@@ -188,5 +193,68 @@ public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedu
         LambdaQueryWrapper<StudentProcedureExtension> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StudentProcedureExtension::getExperimentalProcedureId, procedureId);
         return list(wrapper);
+    }
+
+    /**
+     * 分页筛选查询延长记录
+     *
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    public PageResponse<StudentProcedureExtension> queryExtensions(ExtensionQueryRequest request) {
+        LambdaQueryWrapper<StudentProcedureExtension> wrapper = new LambdaQueryWrapper<>();
+
+        // 筛选条件
+        if (StringUtils.hasText(request.getStudentUsername())) {
+            wrapper.like(StudentProcedureExtension::getStudentUsername, request.getStudentUsername());
+        }
+        if (StringUtils.hasText(request.getTeacherUsername())) {
+            wrapper.like(StudentProcedureExtension::getTeacherUsername, request.getTeacherUsername());
+        }
+        if (request.getExperimentalProcedureId() != null) {
+            wrapper.eq(StudentProcedureExtension::getExperimentalProcedureId, request.getExperimentalProcedureId());
+        }
+
+        wrapper.orderByDesc(StudentProcedureExtension::getId);
+
+        // 分页查询
+        if (Boolean.TRUE.equals(request.getPageable())) {
+            Page<StudentProcedureExtension> page = new Page<>(request.getCurrent(), request.getSize());
+            Page<StudentProcedureExtension> result = page(page, wrapper);
+            return PageResponse.of(result.getCurrent(), result.getSize(), result.getTotal(), result.getRecords());
+        } else {
+            List<StudentProcedureExtension> list = list(wrapper);
+            return PageResponse.of(1L, (long) list.size(), (long) list.size(), list);
+        }
+    }
+
+    /**
+     * 按实验ID批量延长（延长该实验下所有步骤）
+     *
+     * @param experimentId       实验ID
+     * @param studentUsernames   学生用户名列表
+     * @param extendedMinutes    延长时间（分钟）
+     * @param teacherUsername    开通教师用户名
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void batchExtendByExperiment(
+            Long experimentId,
+            List<String> studentUsernames,
+            Integer extendedMinutes,
+            String teacherUsername) {
+
+        // 1. 查询该实验下所有步骤ID
+        List<Long> procedureIds = experimentalProcedureService.getProcedureIdsByExperimentId(experimentId);
+        if (procedureIds.isEmpty()) {
+            throw new BusinessException(404, "该实验没有步骤");
+        }
+
+        // 2. 对每个步骤调用批量延长
+        for (Long procedureId : procedureIds) {
+            batchExtend(procedureId, studentUsernames, extendedMinutes, teacherUsername);
+        }
+
+        log.info("教师 {} 为 {} 名学生延长实验 {} 所有 {} 个步骤 {} 分钟",
+                teacherUsername, studentUsernames.size(), experimentId, procedureIds.size(), extendedMinutes);
     }
 }

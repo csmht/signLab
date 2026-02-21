@@ -4,15 +4,16 @@ import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.entity.StudentProcedureExtension;
+import com.example.demo.pojo.request.teacher.BatchExtendByExperimentRequest;
 import com.example.demo.pojo.request.teacher.BatchExtendProcedureTimeRequest;
+import com.example.demo.pojo.request.teacher.ExtensionQueryRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.service.StudentProcedureExtensionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 教师步骤时间延长控制器
@@ -52,6 +53,35 @@ public class TeacherProcedureExtensionController {
             return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
             log.error("批量延长步骤时间失败", e);
+            return ApiResponse.error(500, "设置失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 按实验ID批量延长（延长该实验下所有步骤）
+     *
+     * @param request 延长请求
+     * @return 操作结果
+     */
+    @PostMapping("/by-experiment")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Void> batchExtendByExperiment(
+            @Valid @RequestBody BatchExtendByExperimentRequest request) {
+        try {
+            String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new BusinessException(401, "未登录"));
+
+            studentProcedureExtensionService.batchExtendByExperiment(
+                    request.getExperimentId(),
+                    request.getStudentUsernames(),
+                    request.getExtendedMinutes(),
+                    teacherUsername
+            );
+            return ApiResponse.success(null, "设置延长时间成功");
+        } catch (BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("按实验批量延长步骤时间失败", e);
             return ApiResponse.error(500, "设置失败: " + e.getMessage());
         }
     }
@@ -100,19 +130,17 @@ public class TeacherProcedureExtensionController {
     }
 
     /**
-     * 查询步骤延长记录列表
+     * 分页筛选查询延长记录
      *
-     * @param procedureId 实验步骤ID
-     * @return 延长记录列表
+     * @param request 查询请求
+     * @return 分页结果
      */
     @GetMapping
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<StudentProcedureExtension>> getProcedureExtensions(
-            @RequestParam("procedureId") Long procedureId) {
+    public ApiResponse<PageResponse<StudentProcedureExtension>> queryExtensions(ExtensionQueryRequest request) {
         try {
-            List<StudentProcedureExtension> extensions =
-                    studentProcedureExtensionService.getExtensionsByProcedureId(procedureId);
-            return ApiResponse.success(extensions, "查询成功");
+            PageResponse<StudentProcedureExtension> result = studentProcedureExtensionService.queryExtensions(request);
+            return ApiResponse.success(result, "查询成功");
         } catch (Exception e) {
             log.error("查询延长记录失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
