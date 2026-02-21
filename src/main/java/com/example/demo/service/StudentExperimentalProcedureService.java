@@ -34,6 +34,7 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
     private final ExperimentalProcedureService experimentalProcedureService;
     private final ClassExperimentMapper classExperimentMapper;
     private final ClassExperimentClassRelationMapper classExperimentClassRelationMapper;
+    private final StudentProcedureExtensionService studentProcedureExtensionService;
 
     /**
      * 查询学生在指定班级实验中的所有步骤答案
@@ -125,6 +126,9 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
                 startTime,
                 currentProcedure.getDurationMinutes()
         );
+        // 查询延长时间并计算延长后的结束时间
+        endTime = studentProcedureExtensionService.calculateExtendedEndTime(
+                studentUsername, currentProcedure.getId(), endTime);
 
         if (startTime == null || endTime == null) {
             throw new BusinessException(500, "步骤时间配置不完整，请联系教师");
@@ -175,6 +179,9 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
                             prevProcedureStartTime,
                             procedure.getDurationMinutes()
                     );
+                    // 查询前置步骤的延长时间
+                    prevProcedureEndTime = studentProcedureExtensionService.calculateExtendedEndTime(
+                            studentUsername, procedure.getId(), prevProcedureEndTime);
 
                     if (prevProcedureEndTime == null) {
                         throw new BusinessException(500, "前置步骤时间配置不完整，请联系教师");
@@ -291,6 +298,9 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
                 ),
                 procedure.getDurationMinutes()
         );
+        // 查询延长时间
+        endTime = studentProcedureExtensionService.calculateExtendedEndTime(
+                studentUsername, experimentalProcedureId, endTime);
 
         // 6. 检查是否在时间窗口内
         if (endTime == null || LocalDateTime.now().isAfter(endTime)) {

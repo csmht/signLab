@@ -45,6 +45,7 @@ public class StudentExperimentService {
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final ExperimentalProcedureService experimentalProcedureService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
+    private final StudentProcedureExtensionService studentProcedureExtensionService;
     private final VideoFileMapper videoFileMapper;
     private final DataCollectionMapper dataCollectionMapper;
     private final ProcedureTopicMapper procedureTopicMapper;
@@ -171,6 +172,9 @@ public class StudentExperimentService {
                     startTime,
                     procedure.getDurationMinutes()
             );
+            // 查询延长时间并计算延长后的结束时间
+            endTime = studentProcedureExtensionService.calculateExtendedEndTime(
+                    studentUsername, procedure.getId(), endTime);
 
             response.setStartTime(startTime);
             response.setEndTime(endTime);
