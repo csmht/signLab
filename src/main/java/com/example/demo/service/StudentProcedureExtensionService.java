@@ -77,7 +77,8 @@ public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedu
     }
 
     /**
-     * 批量设置学生步骤延长时间（优化版：批量查询 + 批量插入/更新）
+     * 批量设置学生步骤延长时间
+     * 如果学生已有该步骤的延长记录，将返回错误
      *
      * @param procedureId       实验步骤ID
      * @param studentUsernames  学生用户名列表
@@ -101,47 +102,30 @@ public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedu
                     .in(StudentProcedureExtension::getStudentUsername, studentUsernames);
         List<StudentProcedureExtension> existingRecords = list(queryWrapper);
 
-        // 2. 构建已存在记录的 Map（学生用户名 -> 记录）
-        Map<String, StudentProcedureExtension> existingMap = existingRecords.stream()
-                .collect(Collectors.toMap(
-                        StudentProcedureExtension::getStudentUsername,
-                        e -> e,
-                        (e1, e2) -> e1
-                ));
+        // 2. 如果存在记录，返回错误
+        if (!existingRecords.isEmpty()) {
+            StudentProcedureExtension existing = existingRecords.get(0);
+            throw new BusinessException(400, String.format(
+                    "学生%s已有步骤%d的延长记录，需要删除后再添加",
+                    existing.getStudentUsername(), procedureId));
+        }
 
-        // 3. 分离需要更新和需要新增的记录
-        List<StudentProcedureExtension> toUpdate = new ArrayList<>();
+        // 3. 批量创建新记录
         List<StudentProcedureExtension> toInsert = new ArrayList<>();
-
         for (String studentUsername : studentUsernames) {
-            StudentProcedureExtension existing = existingMap.get(studentUsername);
-            if (existing != null) {
-                // 更新现有记录
-                existing.setExtendedMinutes(extendedMinutes);
-                existing.setTeacherUsername(teacherUsername);
-                toUpdate.add(existing);
-            } else {
-                // 创建新记录
-                StudentProcedureExtension extension = new StudentProcedureExtension();
-                extension.setStudentUsername(studentUsername);
-                extension.setExperimentalProcedureId(procedureId);
-                extension.setExtendedMinutes(extendedMinutes);
-                extension.setTeacherUsername(teacherUsername);
-                toInsert.add(extension);
-            }
+            StudentProcedureExtension extension = new StudentProcedureExtension();
+            extension.setStudentUsername(studentUsername);
+            extension.setExperimentalProcedureId(procedureId);
+            extension.setExtendedMinutes(extendedMinutes);
+            extension.setTeacherUsername(teacherUsername);
+            toInsert.add(extension);
         }
 
-        // 4. 批量更新和插入
-        if (!toUpdate.isEmpty()) {
-            updateBatchById(toUpdate);
-        }
-        if (!toInsert.isEmpty()) {
-            saveBatch(toInsert);
-        }
+        // 4. 批量插入
+        saveBatch(toInsert);
 
-        log.info("教师 {} 为 {} 名学生设置步骤 {} 延长时间 {} 分钟（更新 {} 条，新增 {} 条）",
-                teacherUsername, studentUsernames.size(), procedureId, extendedMinutes,
-                toUpdate.size(), toInsert.size());
+        log.info("教师 {} 为 {} 名学生设置步骤 {} 延长时间 {} 分钟",
+                teacherUsername, studentUsernames.size(), procedureId, extendedMinutes);
     }
 
     /**
