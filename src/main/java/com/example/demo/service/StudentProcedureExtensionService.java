@@ -184,18 +184,6 @@ public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedu
     }
 
     /**
-     * 查询步骤的延长记录列表
-     *
-     * @param procedureId 实验步骤ID
-     * @return 延长记录列表
-     */
-    public List<StudentProcedureExtension> getExtensionsByProcedureId(Long procedureId) {
-        LambdaQueryWrapper<StudentProcedureExtension> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StudentProcedureExtension::getExperimentalProcedureId, procedureId);
-        return list(wrapper);
-    }
-
-    /**
      * 分页筛选查询延长记录
      *
      * @param request 查询请求
