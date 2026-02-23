@@ -8,6 +8,7 @@ import org.apache.tomcat.util.json.JSONFilter;
 import org.springframework.boot.json.JacksonJsonParser;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TopicChoicesUntil {
@@ -101,5 +102,68 @@ public class TopicChoicesUntil {
         }catch (Exception e){
             throw new BusinessException("参数格式错误");
         }
+    }
+
+    /**
+     * 将 Map<Long, String> 转为 JSON 字符串
+     * @param map Map 对象
+     * @return JSON 字符串
+     */
+    public static String LongStringMapToJson(Map<Long, String> map) throws JsonProcessingException {
+        if (map == null || map.isEmpty()) {
+            return "{}";
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(map);
+    }
+
+    /**
+     * 将 JSON 字符串转为 Map<Long, String>
+     * @param json JSON 字符串
+     * @return Map<Long, String> 对象
+     */
+    public static Map<Long, String> JsonToLongStringMap(String json) {
+        try {
+            if (json == null || json.isEmpty()) {
+                return new HashMap<>();
+            }
+            // 去掉外层的双引号（如果有）
+            if (json.startsWith("\"") && json.endsWith("\"")) {
+                json = json.substring(1, json.length() - 1);
+            }
+            // 替换转义的双引号
+            json = json.replace("\\\"", "\"");
+
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(json, new TypeReference<Map<Long, String>>() {});
+        } catch (Exception e) {
+            throw new BusinessException("参数格式错误");
+        }
+    }
+
+    /**
+     * 将 List<Map<String, Object>> 转为 JSON 字符串
+     * @param list List 对象
+     * @return JSON 字符串
+     */
+    public static String listMapToJson(List<Map<String, Object>> list) throws JsonProcessingException {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(list);
+    }
+
+    /**
+     * 将 Map<String, Object> 转为 JSON 字符串
+     * @param map Map 对象
+     * @return JSON 字符串
+     */
+    public static String objectMapToJson(Map<String, Object> map) throws JsonProcessingException {
+        if (map == null || map.isEmpty()) {
+            return "{}";
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.writeValueAsString(map);
     }
 }

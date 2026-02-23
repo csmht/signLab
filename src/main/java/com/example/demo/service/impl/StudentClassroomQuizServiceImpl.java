@@ -144,19 +144,15 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         // 查询题目列表
         List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
 
-        // 将答案Map转换为JSON字符串
-        String answerJson;
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            answerJson = mapper.writeValueAsString(request.getAnswers());
-        } catch (Exception e) {
-            log.error("答案JSON转换失败", e);
-            throw new BusinessException(500, "答案格式错误");
-        }
+        // 解析 JSON 字符串为 Map
+        Map<Long, String> answers = TopicChoicesUntil.JsonToLongStringMap(request.getAnswers());
+
+        // 答案已经是 JSON 字符串格式
+        String answerJson = request.getAnswers();
 
         // 自动评分
-        BigDecimal score = classroomQuizScorer.calculateScore(request.getAnswers(), topics);
-        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(request.getAnswers(), topics);
+        BigDecimal score = classroomQuizScorer.calculateScore(answers, topics);
+        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(answers, topics);
 
         // 保存答案记录
         ClassroomQuizAnswer answer = new ClassroomQuizAnswer();

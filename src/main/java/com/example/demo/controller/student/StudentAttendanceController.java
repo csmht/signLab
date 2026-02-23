@@ -50,18 +50,18 @@ public class StudentAttendanceController {
      * 查询学生的签到统计
      * 返回当前登录学生的签到统计信息
      *
-     * @return 签到统计信息
+     * @return 签到统计信息的JSON字符串
      */
     @GetMapping("/stats")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<java.util.Map<String, Object>> getAttendanceStats() {
+    public ApiResponse<String> getAttendanceStats() {
         try {
             String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            java.util.Map<String, Object> stats = attendanceRecordService.getStudentAttendanceStats(studentUsername);
+            String statsJson = attendanceRecordService.getStudentAttendanceStats(studentUsername);
 
-            return ApiResponse.success(stats, "查询签到统计成功");
+            return ApiResponse.success(statsJson, "查询签到统计成功");
         } catch (Exception e) {
             log.error("查询签到统计失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());

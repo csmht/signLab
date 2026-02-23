@@ -16,6 +16,7 @@ import com.example.demo.service.StudentExperimentalProcedureService;
 import com.example.demo.service.StudentProcedureCompletionService;
 import com.example.demo.service.StudentProcedureQueryService;
 import com.example.demo.util.SecurityUtil;
+import com.example.demo.util.TopicChoicesUntil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -256,11 +257,14 @@ public class StudentProcedureController {
             String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
+            // 解析 JSON 字符串为 Map
+            Map<Long, String> answers = TopicChoicesUntil.JsonToLongStringMap(request.getAnswers());
+
             studentProcedureCompletionService.completeTopicProcedure(
                     studentUsername,
                     request.getClassCode(),
                     request.getProcedureId(),
-                    request.getAnswers()
+                    answers
             );
 
             return ApiResponse.success(null, "提交成功");
@@ -348,11 +352,14 @@ public class StudentProcedureController {
             String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
+            // 解析 JSON 字符串为 Map
+            Map<Long, String> answers = TopicChoicesUntil.JsonToLongStringMap(request.getAnswers());
+
             studentProcedureCompletionService.updateTopicProcedure(
                     studentUsername,
                     request.getClassCode(),
                     request.getProcedureId(),
-                    request.getAnswers()
+                    answers
             );
 
             return ApiResponse.success(null, "修改成功");
@@ -463,8 +470,12 @@ public class StudentProcedureController {
             String studentUsername = SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
+            // 解析 JSON 字符串为 Map
+            Map<Long, String> answers = TopicChoicesUntil.JsonToLongStringMap(request.getAnswers());
+
             studentProcedureCompletionService.completeTimedQuizProcedure(
-                    studentUsername, request.getClassCode(), request);
+                    studentUsername, request.getClassCode(), request.getProcedureId(),
+                    request.getSecretKey(), answers);
 
             return ApiResponse.success(null, "提交成功");
         } catch (com.example.demo.exception.BusinessException e) {
