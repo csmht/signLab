@@ -400,11 +400,19 @@ public class StudentProcedureQueryService {
                 detail.setTags(procedureTopic.getTags());
 
                 // 查询题目列表
-                List<Topic> topics = getTopicsForProcedure(procedureTopic);
                 List<StudentProcedureDetailWithAnswerResponse.TopicItem> topicItems = new ArrayList<>();
 
                 // 解析学生答案
                 Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+                List<Long> list = studentAnswers.keySet().stream().toList();
+
+                List<Topic> topics = new ArrayList<>();
+
+                if(!list.isEmpty()){
+                    topics  = topicMapper.selectList(new LambdaQueryWrapper<Topic>().in(Topic::getId, list));
+                }
+
 
                 for (Topic topic : topics) {
                     StudentProcedureDetailWithAnswerResponse.TopicItem item =
@@ -433,6 +441,7 @@ public class StudentProcedureQueryService {
                         }
                     }
 
+                    item.setNumber(topic.getNumber());
                     topicItems.add(item);
                 }
 

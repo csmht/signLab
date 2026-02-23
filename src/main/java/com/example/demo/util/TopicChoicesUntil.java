@@ -21,9 +21,15 @@ public class TopicChoicesUntil {
         }
 
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(answerJson,
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<Long, String>>() {});
+            Map<Long, String> longStringMap = new HashMap<>();
+
+            String[] split = answerJson.split(";");
+            for (String s : split) {
+                String[] keyValue = s.split(":");
+                longStringMap.put(Long.parseLong(keyValue[0]), keyValue[1]);
+            }
+
+            return longStringMap;
         } catch (Exception e) {
             return new HashMap<>();
         }

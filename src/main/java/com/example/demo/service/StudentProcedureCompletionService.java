@@ -3,11 +3,7 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
-import com.example.demo.mapper.DataCollectionMapper;
-import com.example.demo.mapper.ProcedureTopicMapper;
-import com.example.demo.mapper.ProcedureTopicMapMapper;
-import com.example.demo.mapper.StudentProcedureAttachmentMapper;
-import com.example.demo.mapper.TimedQuizProcedureMapper;
+import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
@@ -54,6 +50,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
     /** 步骤附件存储根路径 */
     private static final String ATTACHMENT_ROOT_PATH = "uploads" + File.separator + "procedure-attachments";
+    private final ClassExperimentMapper classExperimentMapper;
 
     /**
      * 完成题库练习（类型3）
