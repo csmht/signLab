@@ -39,3 +39,4 @@ build/
 
 ### Uploads ###
 uploads/
+/convert_to_lambda.py

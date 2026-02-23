@@ -19,7 +19,8 @@
       "Bash(Select-Object -ExpandProperty content)",
       "Bash(git checkout:*)",
       "Bash(python:*)",
-      "Bash(iconv:*)"
+      "Bash(iconv:*)",
+      "Bash(grep:*)"
     ]
   }
 }
