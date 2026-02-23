@@ -33,7 +33,7 @@ public class InsertTimedQuizProcedureRequest {
     private Integer topicNumber;
 
     /** 标签列表（仅在随机抽取时有效） */
-    private List<String> topicTags;
+    private List<Long> topicTags;
 
     /** 题目类型列表（仅在随机抽取时有效） */
     private List<Integer> topicTypes;

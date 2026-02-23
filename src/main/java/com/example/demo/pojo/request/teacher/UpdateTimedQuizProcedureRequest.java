@@ -30,7 +30,7 @@ public class UpdateTimedQuizProcedureRequest {
     private Integer topicNumber;
 
     /** 标签列表 */
-    private List<String> topicTags;
+    private List<Long> topicTags;
 
     /** 题目类型列表 */
     private List<Integer> topicTypes;

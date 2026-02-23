@@ -87,35 +87,43 @@ public class StudentExperimentService {
 
         // 3. 查询实验步骤列表
         List<ExperimentalProcedure> procedures = experimentalProcedureService.getByExperimentId(experimentId);
-        if (procedures == null || procedures.isEmpty()) {
-            throw new BusinessException(404, "实验步骤不存在");
+
+
+        StudentExperimentDetailResponse response = new StudentExperimentDetailResponse();
+
+        if (!(procedures == null || procedures.isEmpty())) {
+            long completedCount;
+            String progress;
+            List<StudentProcedureDetailResponse> procedureDetails;
+
+            // 4. 查询学生的步骤答案
+            List<StudentExperimentalProcedure> studentProcedures =
+                    studentExperimentalProcedureService.getByStudentAndExperiment(
+                            studentUsername, classCode, experimentId);
+
+            // 5. 构建步骤详情响应列表
+            Long classExperimentId = classExperiment.getId();
+            procedureDetails = procedures.stream()
+                    .map(procedure -> buildProcedureDetailResponse(
+                            procedure,
+                            studentUsername,
+                            classCode,
+                            classExperimentId,
+                            studentProcedures
+                    ))
+                    .collect(Collectors.toList());
+
+            // 6. 计算实验总进度
+            completedCount = procedureDetails.stream()
+                    .filter(StudentProcedureDetailResponse::getIsCompleted)
+                    .count();
+            progress = completedCount + "/" + procedureDetails.size();
+
+            response.setProcedures(procedureDetails);
+            response.setProgress(progress);
         }
 
-        // 4. 查询学生的步骤答案
-        List<StudentExperimentalProcedure> studentProcedures =
-                studentExperimentalProcedureService.getByStudentAndExperiment(
-                        studentUsername, classCode, experimentId);
-
-        // 5. 构建步骤详情响应列表
-        Long classExperimentId = classExperiment.getId();
-        List<StudentProcedureDetailResponse> procedureDetails = procedures.stream()
-                .map(procedure -> buildProcedureDetailResponse(
-                        procedure,
-                        studentUsername,
-                        classCode,
-                        classExperimentId,
-                        studentProcedures
-                ))
-                .collect(Collectors.toList());
-
-        // 6. 计算实验总进度
-        long completedCount = procedureDetails.stream()
-                .filter(StudentProcedureDetailResponse::getIsCompleted)
-                .count();
-        String progress = completedCount + "/" + procedureDetails.size();
-
         // 7. 构建响应
-        StudentExperimentDetailResponse response = new StudentExperimentDetailResponse();
         response.setExperimentId(experiment.getId());
         response.setExperimentName(experiment.getExperimentName());
         response.setCourseId(classExperiment.getCourseId());
@@ -125,8 +133,6 @@ public class StudentExperimentService {
         response.setStartTime(classExperiment.getStartTime());
         response.setEndTime(classExperiment.getEndTime());
         response.setUserName(classExperiment.getUserName());
-        response.setProcedures(procedureDetails);
-        response.setProgress(progress);
 
         return response;
     }

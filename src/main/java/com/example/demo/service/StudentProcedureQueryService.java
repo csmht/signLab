@@ -482,7 +482,7 @@ public class StudentProcedureQueryService {
                 List<Long> tagIdList = Arrays.stream(tagIds)
                     .filter(s -> s != null && !s.isEmpty())
                     .map(Long::parseLong)
-                    .collect(Collectors.toList());
+                    .toList();
 
                 if (!tagIdList.isEmpty()) {
                     // 查询包含所有指定标签的题目（AND逻辑）

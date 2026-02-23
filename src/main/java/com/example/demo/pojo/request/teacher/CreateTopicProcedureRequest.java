@@ -43,7 +43,7 @@ public class CreateTopicProcedureRequest {
     /**
      * 标签ID列表（仅在随机抽取时有效），后端自动拼接成"id1,id2"格式
      */
-    private List<String> topicTags;
+    private List<Long> topicTags;
 
     /**
      * 题目类型列表（仅在随机抽取时有效），后端自动拼接成"1,2,3"格式

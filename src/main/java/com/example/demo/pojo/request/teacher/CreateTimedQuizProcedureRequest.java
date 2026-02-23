@@ -30,7 +30,7 @@ public class CreateTimedQuizProcedureRequest {
     private Integer topicNumber;
 
     /** 标签列表（仅在随机抽取时有效） */
-    private List<String> topicTags;
+    private List<Long> topicTags;
 
     /** 题目类型列表（仅在随机抽取时有效，如 [1,2,3] 表示单选、多选、判断） */
     private List<Integer> topicTypes;

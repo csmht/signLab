@@ -855,11 +855,20 @@ public class TeacherProcedureCreationService {
      * @param topicTags 标签ID列表
      * @return 逗号分隔的字符串，如 "id1,id2,id3"
      */
-    private String joinTopicTags(List<String> topicTags) {
+    private String joinTopicTags(List<Long> topicTags) {
         if (topicTags == null || topicTags.isEmpty()) {
             return null;
         }
-        return String.join(",", topicTags);
+
+        StringBuilder sb = new StringBuilder();
+        for (Long topicTag : topicTags) {
+            if (!sb.isEmpty()) {
+                sb.append(",");
+            }
+            sb.append(topicTag);
+        }
+
+        return sb.toString();
     }
 
     /**
