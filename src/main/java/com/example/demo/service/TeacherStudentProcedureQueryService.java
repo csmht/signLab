@@ -6,6 +6,8 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.*;
+import com.example.demo.util.TopicChoicesUntil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -314,7 +316,11 @@ public class TeacherStudentProcedureQueryService {
                 topicAnswer.setNumber(topic.getNumber());
                 topicAnswer.setType(topic.getType());
                 topicAnswer.setContent(topic.getContent());
-                topicAnswer.setChoices(topic.getChoices());
+                try {
+                    topicAnswer.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                } catch (JsonProcessingException e) {
+                    throw new BusinessException("JSON序列失败");
+                }
                 topicAnswer.setStudentAnswer(studentAnswer);
                 topicAnswer.setCorrectAnswer(topic.getCorrectAnswer());
 
@@ -859,7 +865,11 @@ public class TeacherStudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    try {
+                        item.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
 
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(studentAnswer);
@@ -952,7 +962,11 @@ public class TeacherStudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    try {
+                        item.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
                     topicItems.add(item);
                 }
 
@@ -1388,7 +1402,11 @@ public class TeacherStudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    try {
+                        item.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
 
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(studentAnswer);
@@ -1461,7 +1479,11 @@ public class TeacherStudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    try {
+                        item.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
                     topicItems.add(item);
                 }
 
@@ -1538,7 +1560,11 @@ public class TeacherStudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    try {
+                        item.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
 
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(studentAnswer);
@@ -1611,7 +1637,11 @@ public class TeacherStudentProcedureQueryService {
                     item.setNumber(topic.getNumber());
                     item.setType(topic.getType());
                     item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                    try {
+                        item.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
                     topicItems.add(item);
                 }
 

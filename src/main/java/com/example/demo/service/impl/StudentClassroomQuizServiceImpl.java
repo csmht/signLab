@@ -8,6 +8,8 @@ import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.StudentClassroomQuizService;
 import com.example.demo.util.ClassroomQuizScorer;
+import com.example.demo.util.TopicChoicesUntil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -86,7 +88,11 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setNumber(topic.getNumber());
                     detail.setType(topic.getType());
                     detail.setContent(topic.getContent());
-                    detail.setChoices(topic.getChoices());
+                    try {
+                        detail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
                     detail.setStudentAnswer(null);
                     detail.setCorrectAnswer(null); // 进行中不返回正确答案
                     detail.setIsCorrect(null);
@@ -222,7 +228,11 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setNumber(topic.getNumber());
                     detail.setType(topic.getType());
                     detail.setContent(topic.getContent());
-                    detail.setChoices(topic.getChoices());
+                    try {
+                        detail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
 
                     // 学生答案
                     detail.setStudentAnswer(studentAnswers.get(topic.getId()));

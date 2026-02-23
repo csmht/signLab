@@ -22,6 +22,8 @@ import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.response.StudentExperimentDetailResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailResponse;
 import com.example.demo.util.ProcedureTimeCalculator;
+import com.example.demo.util.TopicChoicesUntil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -336,7 +338,11 @@ public class StudentExperimentService {
                     topicDetail.setNumber(topic.getNumber());
                     topicDetail.setType(topic.getType());
                     topicDetail.setContent(topic.getContent());
-                    topicDetail.setChoices(topic.getChoices());
+                    try {
+                        topicDetail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
+                    } catch (JsonProcessingException e) {
+                        throw new BusinessException("JSON序列失败");
+                    }
                     topicDetails.add(topicDetail);
                 }
                 response.setTopics(topicDetails);

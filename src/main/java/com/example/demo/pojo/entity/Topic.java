@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.demo.util.TopicChoicesUntil.parseTopicChoices;
+
 /**
  * 题目表
  * 存储试卷中的题目信息
@@ -82,5 +84,20 @@ public class Topic {
     /** 更新时间 */
     @Column(comment = "更新时间", type = "datetime")
     private java.time.LocalDateTime updatedTime;
+
+    public Map<String,String> ChoicesToMap() {
+        return parseTopicChoices(this.choices);
+    }
+
+    public void MapToChoices(Map<String,String> choices) {
+        StringBuilder builder = new StringBuilder();
+        choices.forEach((k, v) -> {
+            builder.append(k).append(":").append(v).append("$");
+        });
+        if (!builder.isEmpty()) {
+            builder.deleteCharAt(builder.length() - 1);
+        }
+        this.choices = builder.toString();
+    }
 
 }

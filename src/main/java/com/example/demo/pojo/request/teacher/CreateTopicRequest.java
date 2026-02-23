@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 创建题目请求
@@ -40,4 +41,5 @@ public class CreateTopicRequest {
      * 标签ID列表（可包含难度标签、知识点标签等）
      */
     private List<Long> tagIds;
+
 }
