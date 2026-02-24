@@ -172,9 +172,27 @@ public class StudentProcedureDetailWithoutAnswerResponse {
         /**
          * 选项内容（key: 选项字母如A、B、C、D，value: 选项内容）
          */
-        private String choices;
+        private Map<String, String> choices;
 
+        public void setChoices(Map<String,String> choices){
+            this.choices = choices;
+        }
 
+        // 将答案从String变为Map
+        public void setChoices(String choices) {
+            if (choices == null || choices.trim().isEmpty()) {
+                setChoices(Map.of());
+                return;
+            }
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                setChoices(mapper.readValue(choices,
+                        new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {}));
+            } catch (Exception e) {
+                // 解析失败时设置为null
+                setChoices(Map.of());
+            }
+        }
     }
 
     /**

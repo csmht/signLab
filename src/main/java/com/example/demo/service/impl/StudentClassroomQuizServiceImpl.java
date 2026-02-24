@@ -8,8 +8,6 @@ import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.StudentClassroomQuizService;
 import com.example.demo.util.ClassroomQuizScorer;
-import com.example.demo.util.TopicChoicesUntil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,11 +86,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setNumber(topic.getNumber());
                     detail.setType(topic.getType());
                     detail.setContent(topic.getContent());
-                    try {
-                        detail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
-                    } catch (JsonProcessingException e) {
-                        throw new BusinessException("JSON序列失败");
-                    }
+                    detail.setChoices(topic.getChoices());
                     detail.setStudentAnswer(null);
                     detail.setCorrectAnswer(null); // 进行中不返回正确答案
                     detail.setIsCorrect(null);
@@ -144,15 +138,19 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         // 查询题目列表
         List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
 
-        // 解析 JSON 字符串为 Map
-        Map<Long, String> answers = TopicChoicesUntil.JsonToLongStringMap(request.getAnswers());
-
-        // 答案已经是 JSON 字符串格式
-        String answerJson = request.getAnswers();
+        // 将答案Map转换为JSON字符串
+        String answerJson;
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            answerJson = mapper.writeValueAsString(request.getAnswers());
+        } catch (Exception e) {
+            log.error("答案JSON转换失败", e);
+            throw new BusinessException(500, "答案格式错误");
+        }
 
         // 自动评分
-        BigDecimal score = classroomQuizScorer.calculateScore(answers, topics);
-        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(answers, topics);
+        BigDecimal score = classroomQuizScorer.calculateScore(request.getAnswers(), topics);
+        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(request.getAnswers(), topics);
 
         // 保存答案记录
         ClassroomQuizAnswer answer = new ClassroomQuizAnswer();
@@ -224,11 +222,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setNumber(topic.getNumber());
                     detail.setType(topic.getType());
                     detail.setContent(topic.getContent());
-                    try {
-                        detail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
-                    } catch (JsonProcessingException e) {
-                        throw new BusinessException("JSON序列失败");
-                    }
+                    detail.setChoices(topic.getChoices());
 
                     // 学生答案
                     detail.setStudentAnswer(studentAnswers.get(topic.getId()));

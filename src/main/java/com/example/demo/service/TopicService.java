@@ -15,8 +15,6 @@ import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.response.TopicDetailResponse;
 import com.example.demo.pojo.response.TopicResponse;
 import com.example.demo.pojo.response.TopicStatisticsResponse;
-import com.example.demo.util.TopicChoicesUntil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -53,7 +51,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         Topic topic = new Topic();
         topic.setType(request.getType());
         topic.setContent(request.getContent());
-        topic.MapToChoices(TopicChoicesUntil.JsonToMap(request.getChoices()));
+        topic.setChoices(request.getChoices());
         topic.setCorrectAnswer(request.getCorrectAnswer());
         topic.setCreatedBy(createdBy);
         topic.setCreatedTime(LocalDateTime.now());
@@ -92,7 +90,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             topic.setContent(request.getContent());
         }
         if (request.getChoices() != null) {
-            topic.MapToChoices(TopicChoicesUntil.JsonToMap(request.getChoices()));
+            topic.setChoices(request.getChoices());
         }
         if (request.getCorrectAnswer() != null) {
             topic.setCorrectAnswer(request.getCorrectAnswer());
@@ -396,11 +394,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         response.setId(topic.getId());
         response.setType(topic.getType());
         response.setContent(topic.getContent());
-        try {
-            response.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
-        } catch (JsonProcessingException e) {
-            throw new BusinessException("JSON序列失败");
-        }
+        response.setChoices(topic.getChoices());
         response.setCorrectAnswer(topic.getCorrectAnswer());
         response.setCreatedBy(topic.getCreatedBy());
         response.setCreatedTime(topic.getCreatedTime());

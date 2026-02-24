@@ -1,7 +1,6 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
@@ -17,8 +16,6 @@ import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.util.ProcedureTimeCalculator;
-import com.example.demo.util.TopicChoicesUntil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -282,11 +279,7 @@ public class TeacherProcedureQueryService {
                     topicDetail.setNumber(topic.getNumber());
                     topicDetail.setType(topic.getType());
                     topicDetail.setContent(topic.getContent());
-                    try {
-                        topicDetail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
-                    } catch (JsonProcessingException e) {
-                        throw new BusinessException("JSON序列失败");
-                    }
+                    topicDetail.setChoices(topic.getChoices());
                     topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
                     topicDetails.add(topicDetail);
                 }

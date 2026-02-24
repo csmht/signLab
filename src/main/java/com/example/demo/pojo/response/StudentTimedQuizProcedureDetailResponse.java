@@ -116,7 +116,7 @@ public class StudentTimedQuizProcedureDetailResponse {
         /**
          * 选项内容（key: 选项字母如A、B、C、D，value: 选项内容）
          */
-        private String choices;
+        private Map<String, String> choices;
 
         /**
          * 学生答案
@@ -138,5 +138,20 @@ public class StudentTimedQuizProcedureDetailResponse {
          */
         private java.math.BigDecimal score;
 
+        // 将答案从String变为Map
+        public void setChoices(String choices) {
+            if (choices == null || choices.trim().isEmpty()) {
+                this.choices = null;
+                return;
+            }
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                this.choices = mapper.readValue(choices,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+            } catch (Exception e) {
+                // 解析失败时设置为null
+                this.choices = null;
+            }
+        }
     }
 }

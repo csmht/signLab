@@ -3,7 +3,11 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
-import com.example.demo.mapper.*;
+import com.example.demo.mapper.DataCollectionMapper;
+import com.example.demo.mapper.ProcedureTopicMapper;
+import com.example.demo.mapper.ProcedureTopicMapMapper;
+import com.example.demo.mapper.StudentProcedureAttachmentMapper;
+import com.example.demo.mapper.TimedQuizProcedureMapper;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.ProcedureTopic;
@@ -50,7 +54,6 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
     /** 步骤附件存储根路径 */
     private static final String ATTACHMENT_ROOT_PATH = "uploads" + File.separator + "procedure-attachments";
-    private final ClassExperimentMapper classExperimentMapper;
 
     /**
      * 完成题库练习（类型3）
@@ -618,18 +621,15 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      *
      * @param studentUsername 学生用户名
      * @param classCode       班级编号
-     * @param procedureId     步骤ID
-     * @param secretKey       密钥
-     * @param answers         题目答案Map
+     * @param request         提交限时答题请求
      */
     @Transactional(rollbackFor = Exception.class)
     public void completeTimedQuizProcedure(String studentUsername, String classCode,
-                                           Long procedureId, String secretKey,
-                                           Map<Long, String> answers) {
-        log.info("学生 {} 在班级 {} 提交限时答题，步骤ID：{}", studentUsername, classCode, procedureId);
+                                           CompleteTimedQuizProcedureRequest request) {
+        log.info("学生 {} 在班级 {} 提交限时答题，步骤ID：{}", studentUsername, classCode, request.getProcedureId());
 
         // 1. 查询并验证步骤信息
-        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(request.getProcedureId());
         if (procedure == null || procedure.getIsDeleted()) {
             throw new BusinessException(404, "实验步骤不存在");
         }
@@ -646,7 +646,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
         // 3. 验证密钥（不依赖数据库）
         TimedQuizKeyGenerator.KeyValidationResult validationResult =
-                timedQuizKeyGenerator.validateKey(secretKey, studentUsername, timedQuiz.getQuizTimeLimit());
+                timedQuizKeyGenerator.validateKey(request.getSecretKey(), studentUsername, timedQuiz.getQuizTimeLimit());
 
         if (!validationResult.isValid()) {
             throw new BusinessException(400, validationResult.getMessage());
@@ -654,7 +654,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
         // 4. 检查是否已提交（直接查询学生答案表）
         LambdaQueryWrapper<StudentExperimentalProcedure> existingWrapper = new LambdaQueryWrapper<>();
-        existingWrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId)
+        existingWrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, request.getProcedureId())
                 .eq(StudentExperimentalProcedure::getStudentUsername, studentUsername)
                 .eq(StudentExperimentalProcedure::getClassCode, classCode);
         StudentExperimentalProcedure existing = studentExperimentalProcedureService.getOne(existingWrapper);
@@ -667,24 +667,24 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
             // 老师选定模式：验证题目ID是否在步骤的题目列表中
             LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedureId);
+            queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, request.getProcedureId());
             long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
 
-            if (answers.size() != topicCount) {
+            if (request.getAnswers().size() != topicCount) {
                 throw new BusinessException(400,
-                    String.format("应提交%d道题目，实际提交%d道", topicCount, answers.size()));
+                    String.format("应提交%d道题目，实际提交%d道", topicCount, request.getAnswers().size()));
             }
         } else {
             // 随机模式：验证题目数量
-            if (answers.size() != timedQuiz.getTopicNumber()) {
+            if (request.getAnswers().size() != timedQuiz.getTopicNumber()) {
                 throw new BusinessException(400,
-                    String.format("应提交%d道题目，实际提交%d道", timedQuiz.getTopicNumber(), answers.size()));
+                    String.format("应提交%d道题目，实际提交%d道", timedQuiz.getTopicNumber(), request.getAnswers().size()));
             }
         }
 
         // 6. 构建答案字符串
         StringBuilder answerBuilder = new StringBuilder();
-        for (Map.Entry<Long, String> entry : answers.entrySet()) {
+        for (Map.Entry<Long, String> entry : request.getAnswers().entrySet()) {
             answerBuilder.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
         }
 
@@ -693,7 +693,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setExperimentId(procedure.getExperimentId());
         studentProcedure.setStudentUsername(studentUsername);
         studentProcedure.setClassCode(classCode);
-        studentProcedure.setExperimentalProcedureId(procedureId);
+        studentProcedure.setExperimentalProcedureId(request.getProcedureId());
         studentProcedure.setNumber(procedure.getNumber());
         studentProcedure.setAnswer(answerBuilder.toString());
         studentProcedure.setIsLocked(true);  // 锁定答案，不允许修改
@@ -705,6 +705,6 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         }
 
         log.info("学生 {} 在班级 {} 完成限时答题，步骤：{}，题目数：{}",
-                studentUsername, classCode, procedureId, answers.size());
+                studentUsername, classCode, request.getProcedureId(), request.getAnswers().size());
     }
 }

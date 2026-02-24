@@ -1,6 +1,7 @@
 package com.example.demo.pojo.request.student;
 
 import lombok.Data;
+import java.util.Map;
 
 /**
  * 更新题库练习请求
@@ -18,8 +19,7 @@ public class UpdateTopicProcedureRequest {
     private String classCode;
 
     /**
-     * 题目答案（JSON字符串格式，题目ID -> 答案）
-     * 例如: {"1": "A", "2": "B-C", "3": "对"}
+     * 题目答案Map（题目ID -> 答案）
      */
-    private String answers;
+    private Map<Long, String> answers;
 }

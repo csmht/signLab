@@ -20,8 +20,6 @@ import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.entity.User;
 import com.example.demo.util.CryptoUtil;
 import com.example.demo.util.SecurityUtil;
-import com.example.demo.util.TopicChoicesUntil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -508,9 +506,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * 查询学生的签到统计信息
      *
      * @param studentUsername 学生用户名
-     * @return 统计信息的JSON字符串
+     * @return 统计信息
      */
-    public String getStudentAttendanceStats(String studentUsername) {
+    public java.util.Map<String, Object> getStudentAttendanceStats(String studentUsername) {
         LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AttendanceRecord::getStudentUsername, studentUsername);
         List<AttendanceRecord> records = list(queryWrapper);
@@ -552,13 +550,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             stats.put("attendanceRate", 0.0);
         }
 
-        // 将 Map 转为 JSON 字符串
-        try {
-            return TopicChoicesUntil.objectMapToJson(stats);
-        } catch (JsonProcessingException e) {
-            log.error("JSON转换失败", e);
-            throw new BusinessException(500, "数据格式转换失败");
-        }
+        return stats;
     }
 
     /**
@@ -566,9 +558,9 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * 查询指定班级实验中跨班签到的学生
      *
      * @param classExperimentId 班级实验ID
-     * @return 跨班签到学生列表的JSON字符串
+     * @return 跨班签到学生列表
      */
-    public String getCrossClassAttendees(Long classExperimentId) {
+    public java.util.List<java.util.Map<String, Object>> getCrossClassAttendees(Long classExperimentId) {
         // 1. 查询班级实验信息
         ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
@@ -586,7 +578,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         java.util.List<AttendanceRecord> crossClassRecords = list(attendanceQuery);
 
         // 3. 构建返回结果
-        java.util.List<java.util.Map<String, Object>> result = crossClassRecords.stream().map(record -> {
+        return crossClassRecords.stream().map(record -> {
             java.util.Map<String, Object> info = new java.util.HashMap<>();
             info.put("studentCode", record.getStudentUsername());
             info.put("studentActualClassCode", record.getStudentActualClassCode());
@@ -609,13 +601,5 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
 
             return info;
         }).collect(java.util.stream.Collectors.toList());
-
-        // 将 List<Map> 转为 JSON 字符串
-        try {
-            return TopicChoicesUntil.listMapToJson(result);
-        } catch (JsonProcessingException e) {
-            log.error("JSON转换失败", e);
-            throw new BusinessException(500, "数据格式转换失败");
-        }
     }
 }

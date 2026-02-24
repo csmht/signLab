@@ -10,8 +10,6 @@ import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.TeacherClassroomQuizService;
-import com.example.demo.util.TopicChoicesUntil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -266,11 +264,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                     detail.setNumber(topic.getNumber());
                     detail.setType(topic.getType());
                     detail.setContent(topic.getContent());
-                    try {
-                        detail.setChoices(TopicChoicesUntil.MapJson(topic.ChoicesToMap()));
-                    } catch (JsonProcessingException e) {
-                        throw new BusinessException("JSON序列失败");
-                    }
+                    detail.setChoices(topic.getChoices());
 
                     // 学生答案
                     detail.setStudentAnswer(studentAnswers.get(topic.getId()));

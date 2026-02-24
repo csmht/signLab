@@ -2,6 +2,8 @@ package com.example.demo.pojo.request.student;
 
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 完成限时答题请求
  */
@@ -17,6 +19,6 @@ public class CompleteTimedQuizProcedureRequest {
     /** 密钥 */
     private String secretKey;
 
-    /** 题目答案（JSON字符串格式，题目ID -> 答案） */
-    private String answers;
+    /** 题目答案Map（题目ID -> 答案） */
+    private Map<Long, String> answers;
 }

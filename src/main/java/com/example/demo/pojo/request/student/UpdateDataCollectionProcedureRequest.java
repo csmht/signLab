@@ -3,6 +3,7 @@ package com.example.demo.pojo.request.student;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 更新数据收集请求
@@ -20,16 +21,14 @@ public class UpdateDataCollectionProcedureRequest {
     private String classCode;
 
     /**
-     * 填空类型答案（JSON字符串格式）
-     * 例如: {"blank1": "答案1", "blank2": "答案2"}
+     * 填空类型答案
      */
-    private String fillBlankAnswers;
+    private Map<String, String> fillBlankAnswers;
 
     /**
-     * 表格类型答案（JSON字符串格式）
-     * 例如: {"cell_1_1": "值1", "cell_1_2": "值2"}
+     * 表格类型答案
      */
-    private String tableCellAnswers;
+    private Map<String, String> tableCellAnswers;
 
     /**
      * 照片文件列表
