@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.*;
@@ -809,8 +811,8 @@ public class TeacherStudentProcedureQueryService {
                         @SuppressWarnings("unchecked")
                         Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
 
-                        detail.setFillBlankAnswers(fillBlankAnswers);
-                        detail.setTableCellAnswers(tableCellAnswers);
+                        detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+                        detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                     } catch (Exception e) {
                         log.warn("解析数据收集答案失败: {}", e.getMessage());
                     }
@@ -1255,8 +1257,8 @@ public class TeacherStudentProcedureQueryService {
                         @SuppressWarnings("unchecked")
                         Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
 
-                        detail.setFillBlankAnswers(fillBlankAnswers);
-                        detail.setTableCellAnswers(tableCellAnswers);
+                        detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+                        detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                     } catch (Exception e) {
                         log.warn("解析数据收集答案失败: {}", e.getMessage());
                     }

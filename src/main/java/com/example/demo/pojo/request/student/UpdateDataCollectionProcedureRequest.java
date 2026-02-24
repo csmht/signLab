@@ -1,9 +1,10 @@
 package com.example.demo.pojo.request.student;
 
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 更新数据收集请求
@@ -21,14 +22,14 @@ public class UpdateDataCollectionProcedureRequest {
     private String classCode;
 
     /**
-     * 填空类型答案
+     * 填空类型答案列表
      */
-    private Map<String, String> fillBlankAnswers;
+    private List<FillBlankAnswer> fillBlankAnswers;
 
     /**
-     * 表格类型答案
+     * 表格类型答案列表
      */
-    private Map<String, String> tableCellAnswers;
+    private List<TableCellAnswer> tableCellAnswers;
 
     /**
      * 照片文件列表

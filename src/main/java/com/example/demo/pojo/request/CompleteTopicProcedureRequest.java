@@ -1,9 +1,9 @@
 package com.example.demo.pojo.request;
 
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 完成题库练习请求
@@ -23,12 +23,11 @@ public class CompleteTopicProcedureRequest {
 
     /**
      * 题目答案列表
-     * key: 题目ID
-     * value: 答案（根据题目类型不同格式不同）
+     * 答案格式（根据题目类型不同）：
      *   - 单选题/判断题：选项字母（如"A"、"B"）
      *   - 多选题：选项字母组合（如"A-B-C"）
      *   - 填空题：答案内容
      *   - 简答题：文字回答
      */
-    private Map<Long, String> answers;
+    private List<TopicAnswerItem> answers;
 }

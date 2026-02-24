@@ -1,10 +1,10 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.TopicChoice;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 学生课堂小测详情响应
@@ -94,9 +94,9 @@ public class StudentClassroomQuizDetailResponse {
         private String content;
 
         /**
-         * 选项内容（key: 选项字母如A、B、C、D，value: 选项内容）
+         * 选项内容列表
          */
-        private Map<String, String> choices;
+        private List<TopicChoice> choices;
 
         /**
          * 学生答案
@@ -113,7 +113,9 @@ public class StudentClassroomQuizDetailResponse {
          */
         private Boolean isCorrect;
 
-        // 将答案从String变为Map
+        /**
+         * 从JSON字符串解析选项
+         */
         public void setChoices(String choices) {
             if (choices == null || choices.trim().isEmpty()) {
                 this.choices = null;
@@ -121,8 +123,9 @@ public class StudentClassroomQuizDetailResponse {
             }
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                this.choices = mapper.readValue(choices,
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {});
+                java.util.Map<String, String> map = mapper.readValue(choices,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+                this.choices = TopicChoice.fromMap(map);
             } catch (Exception e) {
                 // 解析失败时设置为null
                 this.choices = null;

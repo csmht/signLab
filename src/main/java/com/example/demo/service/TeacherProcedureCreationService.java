@@ -3,6 +3,8 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.example.demo.pojo.dto.mapvo.DataField;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
@@ -172,10 +174,10 @@ public class TeacherProcedureCreationService {
         log.info("数据收集步骤创建成功，步骤ID: {}", procedure.getId());
 
         // 2. 构建数据描述和正确答案JSON
-        String remark = buildDataCollectionRemark(request.getDataType(), request.getDataFields(),
+        String remark = buildDataCollectionRemark(request.getDataType(), DataField.toMap(request.getDataFields()),
                 request.getTableRowHeaders(), request.getTableColumnHeaders());
-        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), request.getDataFields(),
-                request.getTableCellAnswers());
+        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), DataField.toMap(request.getDataFields()),
+                TableCellAnswer.toMap(request.getTableCellAnswers()));
 
         // 3. 创建数据收集记录
         DataCollection dataCollection = new DataCollection();
@@ -396,10 +398,10 @@ public class TeacherProcedureCreationService {
                 dataCollection.setType(request.getDataType().longValue());
 
                 // 构建数据描述和正确答案JSON
-                String remark = buildDataCollectionRemark(request.getDataType(), request.getDataFields(),
+                String remark = buildDataCollectionRemark(request.getDataType(), DataField.toMap(request.getDataFields()),
                         request.getTableRowHeaders(), request.getTableColumnHeaders());
-                String correctAnswer = buildCorrectAnswerJson(request.getDataType(), request.getDataFields(),
-                        request.getTableCellAnswers());
+                String correctAnswer = buildCorrectAnswerJson(request.getDataType(), DataField.toMap(request.getDataFields()),
+                        TableCellAnswer.toMap(request.getTableCellAnswers()));
 
                 dataCollection.setRemark(remark);
                 dataCollection.setCorrectAnswer(correctAnswer);
@@ -644,10 +646,10 @@ public class TeacherProcedureCreationService {
         log.info("数据收集步骤插入成功，步骤ID: {}", procedure.getId());
 
         // 构建数据描述和正确答案JSON
-        String remark = buildDataCollectionRemark(request.getDataType(), request.getDataFields(),
+        String remark = buildDataCollectionRemark(request.getDataType(), DataField.toMap(request.getDataFields()),
                 request.getTableRowHeaders(), request.getTableColumnHeaders());
-        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), request.getDataFields(),
-                request.getTableCellAnswers());
+        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), DataField.toMap(request.getDataFields()),
+                TableCellAnswer.toMap(request.getTableCellAnswers()));
 
         // 创建数据收集记录
         DataCollection dataCollection = new DataCollection();

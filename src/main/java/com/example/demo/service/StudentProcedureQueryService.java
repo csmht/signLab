@@ -3,6 +3,9 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
+import com.example.demo.pojo.dto.mapvo.TopicChoice;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
@@ -332,11 +335,12 @@ public class StudentProcedureQueryService {
 
                             @SuppressWarnings("unchecked")
                             Map<String, String> fillBlankAnswers = (Map<String, String>) answerMap.get("fillBlankAnswers");
+
                             @SuppressWarnings("unchecked")
                             Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
 
-                            detail.setFillBlankAnswers(fillBlankAnswers);
-                            detail.setTableCellAnswers(tableCellAnswers);
+                            detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+                            detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                         } catch (Exception e) {
                             log.error("解析数据收集答案失败", e);
                         }
@@ -576,17 +580,17 @@ public class StudentProcedureQueryService {
     }
 
     /**
-     * 解析题目选项字符串为Map
+     * 解析题目选项字符串为List<TopicChoice>
      * 格式：A:选项A内容$B:选项B内容$C:选项C内容$D:选项D内容
      * @param choices 选项字符串
-     * @return 选项Map，key为选项字母(A、B、C、D)，value为选项内容
+     * @return 选项列表
      */
-    private Map<String, String> parseTopicChoices(String choices) {
+    private List<TopicChoice> parseTopicChoices(String choices) {
         if (choices == null || choices.isEmpty()) {
-            return new HashMap<>();
+            return new ArrayList<>();
         }
 
-        Map<String, String> choicesMap = new HashMap<>();
+        List<TopicChoice> choiceList = new ArrayList<>();
         try {
             // 按 $ 分割各个选项
             String[] options = choices.split("\\$");
@@ -597,16 +601,19 @@ public class StudentProcedureQueryService {
                     if (parts.length == 2) {
                         String key = parts[0].trim();
                         String value = parts[1].trim();
-                        choicesMap.put(key, value);
+                        TopicChoice choice = new TopicChoice();
+                        choice.setOptionKey(key);
+                        choice.setOptionContent(value);
+                        choiceList.add(choice);
                     }
                 }
             }
         } catch (Exception e) {
             log.error("解析题目选项失败, choices: {}", choices, e);
-            return new HashMap<>();
+            return new ArrayList<>();
         }
 
-        return choicesMap;
+        return choiceList;
     }
 
     /**

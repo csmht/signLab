@@ -1,8 +1,10 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.TagCountItem;
+import com.example.demo.pojo.dto.mapvo.TypeCountItem;
 import lombok.Data;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * 题目统计响应
@@ -16,30 +18,22 @@ public class TopicStatisticsResponse {
     private Long totalCount;
 
     /**
-     * 按题型统计
-     * key: 题型类型（1-单选，2-多选等）
-     * value: 该题型题目数量
+     * 按题型统计列表
      */
-    private Map<Integer, Long> typeCount;
+    private List<TypeCountItem> typeCount;
 
     /**
-     * 按学科标签统计（type=1）
-     * key: 标签名称
-     * value: 该标签下的题目数量
+     * 按学科标签统计列表（type=1）
      */
-    private Map<String, Long> subjectTagCount;
+    private List<TagCountItem> subjectTagCount;
 
     /**
-     * 按难度标签统计（type=2）
-     * key: 标签名称
-     * value: 该标签下的题目数量
+     * 按难度标签统计列表（type=2）
      */
-    private Map<String, Long> difficultyTagCount;
+    private List<TagCountItem> difficultyTagCount;
 
     /**
-     * 按自定义标签统计（type=4）
-     * key: 标签名称
-     * value: 该标签下的题目数量
+     * 按自定义标签统计列表（type=4）
      */
-    private Map<String, Long> customTagCount;
+    private List<TagCountItem> customTagCount;
 }

@@ -2,6 +2,7 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.pojo.dto.mapvo.CrossClassAttendee;
 import com.example.demo.pojo.request.UpdateAttendanceRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.AttendanceListResponse;
@@ -122,10 +123,10 @@ public class TeacherAttendanceController {
      */
     @GetMapping("/cross-class-attendees")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<java.util.List<java.util.Map<String, Object>>> getCrossClassAttendees(
+    public ApiResponse<List<CrossClassAttendee>> getCrossClassAttendees(
             @RequestParam("classExperimentId") Long classExperimentId) {
         try {
-            java.util.List<java.util.Map<String, Object>> attendees =
+            List<CrossClassAttendee> attendees =
                     attendanceRecordService.getCrossClassAttendees(classExperimentId);
             return ApiResponse.success(attendees);
         } catch (Exception e) {

@@ -1,10 +1,11 @@
 package com.example.demo.pojo.vo;
 
+import com.example.demo.pojo.dto.mapvo.ExperimentResultItem;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 课程成绩结果 VO
@@ -36,11 +37,9 @@ public class CourseGradeResult {
     private boolean isUngraded;
 
     /**
-     * 各实验成绩结果
-     * key: 实验ID
-     * value: 实验成绩结果
+     * 各实验成绩结果列表
      */
-    private Map<Long, ExperimentGradeResult> experimentResults;
+    private List<ExperimentResultItem> experimentResults;
 
     /**
      * 显示文本
@@ -52,7 +51,7 @@ public class CourseGradeResult {
      * 创建已批改的课程成绩结果
      */
     public static CourseGradeResult graded(String courseId, String courseName, BigDecimal score,
-                                           Map<Long, ExperimentGradeResult> experimentResults) {
+                                           List<ExperimentResultItem> experimentResults) {
         CourseGradeResult result = new CourseGradeResult();
         result.setCourseId(courseId);
         result.setCourseName(courseName);
@@ -67,7 +66,7 @@ public class CourseGradeResult {
      * 创建未批改的课程成绩结果
      */
     public static CourseGradeResult ungraded(String courseId, String courseName,
-                                             Map<Long, ExperimentGradeResult> experimentResults) {
+                                             List<ExperimentResultItem> experimentResults) {
         CourseGradeResult result = new CourseGradeResult();
         result.setCourseId(courseId);
         result.setCourseName(courseName);

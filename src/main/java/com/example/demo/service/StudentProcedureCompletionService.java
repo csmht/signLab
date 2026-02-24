@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
@@ -682,10 +683,10 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 6. 构建答案字符串
+        // 6. 构建答案��符串
         StringBuilder answerBuilder = new StringBuilder();
-        for (Map.Entry<Long, String> entry : request.getAnswers().entrySet()) {
-            answerBuilder.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
+        for (TopicAnswerItem item : request.getAnswers()) {
+            answerBuilder.append(item.getTopicId()).append(":").append(item.getAnswer()).append(";");
         }
 
         // 7. 创建学生步骤答案记录（设置 isLocked = true）

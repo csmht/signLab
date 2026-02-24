@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.demo.pojo.dto.mapvo.ExperimentResultItem;
 import com.example.demo.pojo.entity.Experiment;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,13 +123,16 @@ public class GradeCalculationService {
         List<Experiment> experiments = experimentService.list(experimentQuery);
 
         // 3. 计算每个实验的成绩
-        Map<Long, ExperimentGradeResult> experimentResults = new HashMap<>();
+        List<ExperimentResultItem> experimentResults = new ArrayList<>();
         boolean hasUngradedExperiment = false;
 
         for (Experiment experiment : experiments) {
             ExperimentGradeResult expResult = calculateExperimentGrade(
                     experiment.getId(), studentUsername, classCode);
-            experimentResults.put(experiment.getId(), expResult);
+            ExperimentResultItem item = new ExperimentResultItem();
+            item.setExperimentId(experiment.getId());
+            item.setResult(expResult);
+            experimentResults.add(item);
 
             if (expResult.isUngraded()) {
                 hasUngradedExperiment = true;
@@ -141,9 +146,13 @@ public class GradeCalculationService {
 
         // 5. 计算课程成绩 = Σ(实验成绩 × 实验占比 / 100)
         BigDecimal courseScore = BigDecimal.ZERO;
-        for (Experiment experiment : experiments) {
-            ExperimentGradeResult expResult = experimentResults.get(experiment.getId());
-            if (expResult.getScore() != null && experiment.getPercentage() != null && experiment.getPercentage() > 0) {
+        for (ExperimentResultItem resultItem : experimentResults) {
+            ExperimentGradeResult expResult = resultItem.getResult();
+            // 查找对应的实验获取占比
+            Experiment experiment = experiments.stream()
+                    .filter(e -> e.getId().equals(resultItem.getExperimentId()))
+                    .findFirst().orElse(null);
+            if (expResult.getScore() != null && experiment != null && experiment.getPercentage() != null && experiment.getPercentage() > 0) {
                 BigDecimal expScore = expResult.getScore();
                 BigDecimal percentage = new BigDecimal(experiment.getPercentage());
                 // 实验成绩 × 实验占比 / 100

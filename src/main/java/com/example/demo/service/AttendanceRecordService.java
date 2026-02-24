@@ -9,6 +9,8 @@ import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.StudentClassRelationMapper;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.dto.mapvo.CrossClassAttendee;
+import com.example.demo.pojo.dto.mapvo.StudentAttendanceStats;
 import com.example.demo.pojo.request.AttendanceRequest;
 import com.example.demo.pojo.request.UpdateAttendanceRequest;
 import com.example.demo.pojo.response.AttendanceListResponse;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 签到记录服务
@@ -508,46 +511,46 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * @param studentUsername 学生用户名
      * @return 统计信息
      */
-    public java.util.Map<String, Object> getStudentAttendanceStats(String studentUsername) {
+    public StudentAttendanceStats getStudentAttendanceStats(String studentUsername) {
         LambdaQueryWrapper<AttendanceRecord> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AttendanceRecord::getStudentUsername, studentUsername);
         List<AttendanceRecord> records = list(queryWrapper);
 
-        java.util.Map<String, Object> stats = new java.util.HashMap<>();
+        StudentAttendanceStats stats = new StudentAttendanceStats();
 
         // 总签到次数
-        stats.put("totalAttendance", records.size());
+        stats.setTotalAttendance(records.size());
 
         // 正常签到次数
         long normalCount = records.stream()
                 .filter(r -> AttendanceStatus.NORMAL.getCode().equals(r.getAttendanceStatus()))
                 .count();
-        stats.put("normalAttendance", normalCount);
+        stats.setNormalAttendance(normalCount);
 
         // 迟到次数
         long lateCount = records.stream()
                 .filter(r -> AttendanceStatus.LATE.getCode().equals(r.getAttendanceStatus()))
                 .count();
-        stats.put("lateAttendance", lateCount);
+        stats.setLateAttendance(lateCount);
 
         // 跨班签到次数
         long crossClassCount = records.stream()
                 .filter(r -> AttendanceStatus.CROSS_CLASS.getCode().equals(r.getAttendanceStatus()))
                 .count();
-        stats.put("crossClassAttendance", crossClassCount);
+        stats.setCrossClassAttendance(crossClassCount);
 
         // 补签次数
         long makeupCount = records.stream()
                 .filter(r -> AttendanceStatus.MAKEUP.getCode().equals(r.getAttendanceStatus()))
                 .count();
-        stats.put("makeupAttendance", makeupCount);
+        stats.setMakeupAttendance(makeupCount);
 
         // 签到率（假设正常和迟到都算签到成功）
         if (!records.isEmpty()) {
             double attendanceRate = (normalCount + lateCount + crossClassCount + makeupCount) * 100.0 / records.size();
-            stats.put("attendanceRate", Math.round(attendanceRate * 100.0) / 100.0); // 保留两位小数
+            stats.setAttendanceRate(Math.round(attendanceRate * 100.0) / 100.0); // 保留两位小数
         } else {
-            stats.put("attendanceRate", 0.0);
+            stats.setAttendanceRate(0.0);
         }
 
         return stats;
@@ -560,7 +563,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
      * @param classExperimentId 班级实验ID
      * @return 跨班签到学生列表
      */
-    public java.util.List<java.util.Map<String, Object>> getCrossClassAttendees(Long classExperimentId) {
+    public List<CrossClassAttendee> getCrossClassAttendees(Long classExperimentId) {
         // 1. 查询班级实验信息
         ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
@@ -575,31 +578,31 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
                 .eq(AttendanceRecord::getExperimentId, experimentId)
                 .eq(AttendanceRecord::getAttendanceStatus, AttendanceStatus.CROSS_CLASS.getCode());
-        java.util.List<AttendanceRecord> crossClassRecords = list(attendanceQuery);
+        List<AttendanceRecord> crossClassRecords = list(attendanceQuery);
 
         // 3. 构建返回结果
         return crossClassRecords.stream().map(record -> {
-            java.util.Map<String, Object> info = new java.util.HashMap<>();
-            info.put("studentCode", record.getStudentUsername());
-            info.put("studentActualClassCode", record.getStudentActualClassCode());
-            info.put("attendanceTime", record.getAttendanceTime());
-            info.put("lastAttendanceTime", record.getAttendanceTime());
+            CrossClassAttendee attendee = new CrossClassAttendee();
+            attendee.setStudentCode(record.getStudentUsername());
+            attendee.setStudentActualClassCode(record.getStudentActualClassCode());
+            attendee.setAttendanceTime(record.getAttendanceTime());
+            attendee.setLastAttendanceTime(record.getAttendanceTime());
 
             // 查询学生姓名
             User student = userMapper.selectOne(
                     new LambdaQueryWrapper<User>().eq(User::getUsername, record.getStudentUsername())
             );
-            info.put("studentName", student != null ? student.getName() : record.getStudentUsername());
+            attendee.setStudentName(student != null ? student.getName() : record.getStudentUsername());
 
             // 查询学生实际班级名称
-            com.example.demo.pojo.entity.Class studentClass = classMapper.selectOne(
-                    new LambdaQueryWrapper<com.example.demo.pojo.entity.Class>()
+            Class studentClass = classMapper.selectOne(
+                    new LambdaQueryWrapper<Class>()
                             .eq(Class::getClassCode, record.getStudentActualClassCode())
             );
-            info.put("className", studentClass != null ? studentClass.getClassName() : record.getStudentActualClassCode());
-            info.put("studentType", "CROSS_CLASS_ATTENDEE");
+            attendee.setClassName(studentClass != null ? studentClass.getClassName() : record.getStudentActualClassCode());
+            attendee.setStudentType("CROSS_CLASS_ATTENDEE");
 
-            return info;
-        }).collect(java.util.stream.Collectors.toList());
+            return attendee;
+        }).collect(Collectors.toList());
     }
 }

@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.pojo.dto.mapvo.ExperimentResultItem;
 import com.example.demo.mapper.ClassMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.entity.AttendanceRecord;
@@ -248,9 +249,13 @@ public class DataExportService {
             CourseGradeResult courseResult = gradeCalculationService.calculateCourseGrade(
                     courseId, studentUsername, classCode);
 
+            // 将实验结果列表转换为Map以便查找
+            Map<Long, ExperimentGradeResult> expResultMap =
+                ExperimentResultItem.toMap(courseResult.getExperimentResults());
+
             // 添加各实验成绩
             for (Experiment exp : experiments) {
-                ExperimentGradeResult expResult = courseResult.getExperimentResults().get(exp.getId());
+                ExperimentGradeResult expResult = expResultMap.get(exp.getId());
                 if (expResult != null) {
                     row.add(expResult.getDisplayText());
                 } else {

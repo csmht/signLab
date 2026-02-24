@@ -2,6 +2,8 @@ package com.example.demo.controller.student;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.pojo.dto.mapvo.StudentAttendanceStats;
+import com.example.demo.pojo.entity.AttendanceRecord;
 import com.example.demo.pojo.request.AttendanceRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.AttendanceResponse;
@@ -9,6 +11,8 @@ import com.example.demo.service.AttendanceRecordService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 学生签到记录控制器
@@ -31,7 +35,7 @@ public class StudentAttendanceController {
      */
     @GetMapping("/records")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<java.util.List<com.example.demo.pojo.entity.AttendanceRecord>> getAttendanceRecords() {
+    public ApiResponse<List<AttendanceRecord>> getAttendanceRecords() {
         try {
             String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
@@ -54,12 +58,12 @@ public class StudentAttendanceController {
      */
     @GetMapping("/stats")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<java.util.Map<String, Object>> getAttendanceStats() {
+    public ApiResponse<StudentAttendanceStats> getAttendanceStats() {
         try {
             String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            java.util.Map<String, Object> stats = attendanceRecordService.getStudentAttendanceStats(studentUsername);
+            StudentAttendanceStats stats = attendanceRecordService.getStudentAttendanceStats(studentUsername);
 
             return ApiResponse.success(stats, "查询签到统计成功");
         } catch (Exception e) {

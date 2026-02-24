@@ -2,6 +2,7 @@ package com.example.demo.controller.student;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import com.example.demo.pojo.request.CompleteDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.CompleteTopicProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
@@ -260,7 +261,7 @@ public class StudentProcedureController {
                     studentUsername,
                     request.getClassCode(),
                     request.getProcedureId(),
-                    request.getAnswers()
+                    TopicAnswerItem.toMap(request.getAnswers())
             );
 
             return ApiResponse.success(null, "提交成功");
@@ -352,7 +353,7 @@ public class StudentProcedureController {
                     studentUsername,
                     request.getClassCode(),
                     request.getProcedureId(),
-                    request.getAnswers()
+                    TopicAnswerItem.toMap(request.getAnswers())
             );
 
             return ApiResponse.success(null, "修改成功");

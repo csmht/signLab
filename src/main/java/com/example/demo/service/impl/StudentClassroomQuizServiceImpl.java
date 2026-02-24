@@ -2,6 +2,7 @@ package com.example.demo.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
@@ -149,8 +150,8 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         }
 
         // 自动评分
-        BigDecimal score = classroomQuizScorer.calculateScore(request.getAnswers(), topics);
-        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(request.getAnswers(), topics);
+        BigDecimal score = classroomQuizScorer.calculateScore(TopicAnswerItem.toMap(request.getAnswers()), topics);
+        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(TopicAnswerItem.toMap(request.getAnswers()), topics);
 
         // 保存答案记录
         ClassroomQuizAnswer answer = new ClassroomQuizAnswer();

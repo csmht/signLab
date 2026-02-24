@@ -1,7 +1,8 @@
 package com.example.demo.pojo.request.student;
 
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import lombok.Data;
-import java.util.Map;
+import java.util.List;
 
 /**
  * 更新题库练习请求
@@ -19,7 +20,7 @@ public class UpdateTopicProcedureRequest {
     private String classCode;
 
     /**
-     * 题目答案Map（题目ID -> 答案）
+     * 题目答案列表
      */
-    private Map<Long, String> answers;
+    private List<TopicAnswerItem> answers;
 }

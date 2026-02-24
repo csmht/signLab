@@ -1,11 +1,13 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
+import com.example.demo.pojo.dto.mapvo.TopicChoice;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 学生步骤详情响应（已提交，带答案）
@@ -153,14 +155,14 @@ public class StudentProcedureDetailWithAnswerResponse {
         private Boolean needDoc;
 
         /**
-         * 填空答案（key: 字段名, value: 答案值）
+         * 填空答案列表
          */
-        private Map<String, String> fillBlankAnswers;
+        private List<FillBlankAnswer> fillBlankAnswers;
 
         /**
-         * 表格答案（key: 单元格位置, value: 答案值）
+         * 表格答案列表
          */
-        private Map<String, String> tableCellAnswers;
+        private List<TableCellAnswer> tableCellAnswers;
 
         /**
          * 提交的照片文件列表
@@ -237,9 +239,9 @@ public class StudentProcedureDetailWithAnswerResponse {
         private String content;
 
         /**
-         * 选项内容（key: 选项字母如A、B、C、D，value: 选项内容）
+         * 选项内容列表
          */
-        private Map<String, String> choices;
+        private List<TopicChoice> choices;
 
         /**
          * 学生答案
@@ -261,23 +263,25 @@ public class StudentProcedureDetailWithAnswerResponse {
          */
         private BigDecimal score;
 
-        public void setChoices(Map<String,String> choices){
+        public void setChoices(List<TopicChoice> choices){
             this.choices = choices;
         }
 
-        // 将答案从String变为Map
+        /**
+         * 从JSON字符串解析选项
+         */
         public void setChoices(String choices) {
             if (choices == null || choices.trim().isEmpty()) {
-                setChoices(Map.of());
+                setChoices(java.util.Collections.emptyList());
                 return;
             }
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                setChoices(mapper.readValue(choices,
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, String>>() {}));
+                java.util.Map<String, String> map = mapper.readValue(choices,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+                setChoices(TopicChoice.fromMap(map));
             } catch (Exception e) {
-                // 解析失败时设置为null
-                setChoices(Map.of());
+                setChoices(java.util.Collections.emptyList());
             }
         }
     }

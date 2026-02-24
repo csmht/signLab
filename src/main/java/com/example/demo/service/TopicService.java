@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.TopicMapper;
+import com.example.demo.pojo.dto.mapvo.TagCountItem;
+import com.example.demo.pojo.dto.mapvo.TypeCountItem;
 import com.example.demo.pojo.entity.Tag;
 import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.TopicTagMap;
@@ -200,23 +202,26 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         response.setTotalCount(totalCount);
 
         // 2. 按题型统计
-        Map<Integer, Long> typeCount = new HashMap<>();
+        List<TypeCountItem> typeCount = new ArrayList<>();
         for (int i = 1; i <= 6; i++) {
             LambdaQueryWrapper<Topic> typeWrapper = new LambdaQueryWrapper<>();
             typeWrapper.eq(Topic::getIsDeleted, false);
             typeWrapper.eq(Topic::getType, i);
             long count = count(typeWrapper);
             if (count > 0) {
-                typeCount.put(i, count);
+                TypeCountItem item = new TypeCountItem();
+                item.setType(i);
+                item.setCount(count);
+                typeCount.add(item);
             }
         }
         response.setTypeCount(typeCount);
 
         // 3. 按标签统计（需要通过TopicTagMap关联查询）
         List<Tag> allTags = tagService.list();
-        Map<String, Long> subjectTagCount = new HashMap<>();
-        Map<String, Long> difficultyTagCount = new HashMap<>();
-        Map<String, Long> customTagCount = new HashMap<>();
+        List<TagCountItem> subjectTagCount = new ArrayList<>();
+        List<TagCountItem> difficultyTagCount = new ArrayList<>();
+        List<TagCountItem> customTagCount = new ArrayList<>();
 
         for (Tag tag : allTags) {
             // 查询该标签下的题目数量
@@ -231,15 +236,18 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
                     .count();
 
             if (count > 0) {
+                TagCountItem item = new TagCountItem();
+                item.setTagName(tag.getTagName());
+                item.setCount(count);
                 switch (tag.getType()) {
                     case "1": // 学科标签
-                        subjectTagCount.put(tag.getTagName(), count);
+                        subjectTagCount.add(item);
                         break;
                     case "2": // 难度标签
-                        difficultyTagCount.put(tag.getTagName(), count);
+                        difficultyTagCount.add(item);
                         break;
                     case "4": // 自定义标签
-                        customTagCount.put(tag.getTagName(), count);
+                        customTagCount.add(item);
                         break;
                 }
             }

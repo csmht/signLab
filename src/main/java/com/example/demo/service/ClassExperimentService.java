@@ -612,7 +612,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
      */
     public ClassExperimentMapResponse getClassExperimentsGroupByCourse(String classCode) {
         ClassExperimentMapResponse response = new ClassExperimentMapResponse();
-        response.setCourseExperiments(new LinkedHashMap<>());
+        response.setCourseExperiments(new java.util.ArrayList<>());
 
         Class aClass = classMapper.selectOne(new LambdaQueryWrapper<Class>().eq(Class::getClassCode, classCode));
         if (aClass == null) {
@@ -697,7 +697,11 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
                     .collect(Collectors.toList());
             detail.setExperiments(experimentItems);
 
-            response.getCourseExperiments().put(courseId, detail);
+            com.example.demo.pojo.dto.mapvo.CourseExperimentItem item =
+                new com.example.demo.pojo.dto.mapvo.CourseExperimentItem();
+            item.setCourseCode(courseId);
+            item.setDetail(detail);
+            response.getCourseExperiments().add(item);
         }
 
         return response;

@@ -1,9 +1,10 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 学生数据收集步骤详情响应
@@ -83,14 +84,14 @@ public class StudentDataCollectionProcedureDetailResponse {
         private Boolean needDoc;
 
         /**
-         * 填空答案（key: 字段名, value: 学生答案值）
+         * 填空答案列表
          */
-        private Map<String, String> fillBlankAnswers;
+        private List<FillBlankAnswer> fillBlankAnswers;
 
         /**
-         * 表格答案（key: 单元格位置, value: 学生答案值）
+         * 表格答案列表
          */
-        private Map<String, String> tableCellAnswers;
+        private List<TableCellAnswer> tableCellAnswers;
 
         /**
          * 正确答案（JSON格式）

@@ -2,15 +2,13 @@ package com.example.demo.controller;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.pojo.dto.mapvo.DownloadKeyResponse;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.service.DownloadService;
 import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 资源控制器
@@ -33,16 +31,16 @@ public class ResourceController {
      */
     @GetMapping("/video/key/{videoId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Map<String, String>> getVideoDownloadKey(@PathVariable Long videoId) {
+    public ApiResponse<DownloadKeyResponse> getVideoDownloadKey(@PathVariable Long videoId) {
         try {
             String username = SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new IllegalArgumentException("未登录用户"));
 
             String downloadKey = downloadService.generateVideoKey(videoId, username);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("downloadKey", downloadKey);
-            result.put("downloadUrl", "/api/download/video/" + downloadKey);
+            DownloadKeyResponse result = new DownloadKeyResponse();
+            result.setDownloadKey(downloadKey);
+            result.setDownloadUrl("/api/download/video/" + downloadKey);
 
             return ApiResponse.success(result, "获取下载密钥成功");
         } catch (IllegalArgumentException e) {
@@ -62,7 +60,7 @@ public class ResourceController {
      */
     @GetMapping("/file/key/{fileType}/{fileId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Map<String, String>> getFileDownloadKey(
+    public ApiResponse<DownloadKeyResponse> getFileDownloadKey(
             @PathVariable String fileType,
             @PathVariable Long fileId) {
         try {
@@ -71,9 +69,9 @@ public class ResourceController {
 
             String downloadKey = downloadService.generateFileKey(fileType, fileId, username);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("downloadKey", downloadKey);
-            result.put("downloadUrl", "/api/download/file/" + downloadKey);
+            DownloadKeyResponse result = new DownloadKeyResponse();
+            result.setDownloadKey(downloadKey);
+            result.setDownloadUrl("/api/download/file/" + downloadKey);
 
             return ApiResponse.success(result, "获取下载密钥成功");
         } catch (IllegalArgumentException e) {
@@ -92,16 +90,16 @@ public class ResourceController {
      */
     @GetMapping("/video/playkey/{videoId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Map<String, String>> getVideoPlayKey(@PathVariable Long videoId) {
+    public ApiResponse<DownloadKeyResponse> getVideoPlayKey(@PathVariable Long videoId) {
         try {
             String username = SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new IllegalArgumentException("未登录用户"));
 
             String playKey = downloadService.generatePlayKey(videoId, username);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("playKey", playKey);
-            result.put("playUrl", "/api/download/play/" + playKey);
+            DownloadKeyResponse result = new DownloadKeyResponse();
+            result.setPlayKey(playKey);
+            result.setPlayUrl("/api/download/play/" + playKey);
 
             return ApiResponse.success(result, "获取播放密钥成功");
         } catch (IllegalArgumentException e) {

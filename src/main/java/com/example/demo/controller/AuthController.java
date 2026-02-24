@@ -180,9 +180,9 @@ public class AuthController {
      * @return 登录响应（包含用户信息和JWT token）
      */
     @PostMapping("/login-by-openid")
-    public ApiResponse<LoginResponse> loginByOpenId(@RequestBody Map<String, String> request) {
+    public ApiResponse<LoginResponse> loginByOpenId(@RequestBody com.example.demo.pojo.dto.mapvo.LoginRequest request) {
         try {
-            String openid = request.get("openid");
+            String openid = request.getOpenId();
             if (openid == null || openid.trim().isEmpty()) {
                 return ApiResponse.error(400, "openid不能为空");
             }
@@ -203,9 +203,9 @@ public class AuthController {
      * @return 登录响应（包含用户信息和JWT token）
      */
     @PostMapping("/login-by-code")
-    public ApiResponse<LoginResponse> loginByCode(@RequestBody Map<String, String> request) {
+    public ApiResponse<LoginResponse> loginByCode(@RequestBody com.example.demo.pojo.dto.mapvo.LoginRequest request) {
         try {
-            String code = request.get("code");
+            String code = request.getCode();
             if (code == null || code.trim().isEmpty()) {
                 return ApiResponse.error(400, "code不能为空");
             }
