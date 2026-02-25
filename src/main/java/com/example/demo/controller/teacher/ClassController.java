@@ -191,18 +191,22 @@ public class ClassController {
     /**
      * 删除班级
      *
-     * @param id 班级ID
+     * @param classCode 班级代码
      * @return 删除结果
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Void> delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable String classCode) {
         try {
-            boolean success = classService.removeById(id);
+            Class clazz = classService.getByClassCode(classCode);
+            if (clazz == null) {
+                return ApiResponse.error(404, "班级不存在");
+            }
+            boolean success = classService.removeById(clazz.getId());
             if (success) {
                 return ApiResponse.success(null, "班级删除成功");
             } else {
-                return ApiResponse.error(404, "班级不存在");
+                return ApiResponse.error(500, "班级删除失败");
             }
         } catch (Exception e) {
             return ApiResponse.error(500, "删除失败: " + e.getMessage());
