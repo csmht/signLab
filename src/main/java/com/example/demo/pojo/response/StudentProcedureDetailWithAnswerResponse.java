@@ -179,6 +179,11 @@ public class StudentProcedureDetailWithAnswerResponse {
          * 格式：JSON字符串，包含fillBlankCorrectAnswer和tableCellCorrectAnswer
          */
         private String correctAnswer;
+
+        /**
+         * 误差范围（用于数值类答案的判分）
+         */
+        private Double tolerance;
     }
 
     /**

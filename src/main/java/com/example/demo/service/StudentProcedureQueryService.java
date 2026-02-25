@@ -9,6 +9,7 @@ import com.example.demo.pojo.dto.mapvo.TopicChoice;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
+import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.ProcedureTimeCalculator;
 import com.example.demo.util.TimedQuizKeyGenerator;
 import lombok.RequiredArgsConstructor;
@@ -283,6 +284,7 @@ public class StudentProcedureQueryService {
                 detail.setRemark(dataCollection.getRemark());
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
+                detail.setTolerance(dataCollection.getTolerance());
 
                 // 查询附件信息
                 LambdaQueryWrapper<StudentProcedureAttachment> attachmentWrapper = new LambdaQueryWrapper<>();
@@ -562,21 +564,14 @@ public class StudentProcedureQueryService {
     }
 
     /**
-     * 解析题库答案JSON
+     * 解析题库答案
+     * 答案格式：{"type": "TOPIC", "data": {"题目ID": "答案"}}
+     *
+     * @param answer JSON 格式的答案字符串
+     * @return Map<题目ID, 答案内容>
      */
-    private Map<Long, String> parseTopicAnswers(String answerJson) {
-        if (answerJson == null || answerJson.isEmpty()) {
-            return new HashMap<>();
-        }
-
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(answerJson,
-                new com.fasterxml.jackson.core.type.TypeReference<Map<Long, String>>() {});
-        } catch (Exception e) {
-            log.error("解析题库答案失败", e);
-            return new HashMap<>();
-        }
+    private Map<Long, String> parseTopicAnswers(String answer) {
+        return AnswerMapJSONUntil.parseTopicData(answer);
     }
 
     /**
