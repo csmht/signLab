@@ -197,8 +197,7 @@ public class StudentExperimentService {
                 .orElse(null);
 
         boolean isCompleted = studentProcedure != null
-                && studentProcedure.getAnswer() != null
-                && !studentProcedure.getAnswer().trim().isEmpty();
+                && studentProcedure.getAnswer() != null && !studentProcedure.getAnswer().trim().isEmpty();
 
         response.setIsCompleted(isCompleted);
 

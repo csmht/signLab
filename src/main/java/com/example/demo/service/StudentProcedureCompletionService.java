@@ -17,6 +17,7 @@ import com.example.demo.pojo.entity.StudentExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentProcedureAttachment;
 import com.example.demo.pojo.entity.TimedQuizProcedure;
 import com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest;
+import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.TimedQuizKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -103,12 +104,6 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 4. 构建答案字符串
-        StringBuilder answerBuilder = new StringBuilder();
-        for (Map.Entry<Long, String> entry : answers.entrySet()) {
-            answerBuilder.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
-        }
-
         // 5. 创建学生步骤答案记录
         StudentExperimentalProcedure studentProcedure = new StudentExperimentalProcedure();
         studentProcedure.setExperimentId(procedure.getExperimentId());
@@ -116,7 +111,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(procedureId);
         studentProcedure.setNumber(procedure.getNumber());
-        studentProcedure.setAnswer(answerBuilder.toString());
+        studentProcedure.setAnswer(AnswerMapJSONUntil.toTopicJson(answers));
         studentProcedure.setCreatedTime(LocalDateTime.now());
 
         boolean saved = studentExperimentalProcedureService.save(studentProcedure);
@@ -163,9 +158,6 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是数据收集类型");
         }
 
-        // 3. 将答案转换为JSON格式存储
-        String answerJson = convertAnswersToJson(fillBlankAnswers, tableCellAnswers);
-
         // 3. 创建学生步骤答案记录
         StudentExperimentalProcedure studentProcedure = new StudentExperimentalProcedure();
         studentProcedure.setExperimentId(procedure.getExperimentId());
@@ -173,7 +165,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(procedureId);
         studentProcedure.setNumber(procedure.getNumber());
-        studentProcedure.setAnswer(answerJson);
+        studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
         studentProcedure.setCreatedTime(LocalDateTime.now());
 
         boolean saved = studentExperimentalProcedureService.save(studentProcedure);
@@ -205,33 +197,6 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 studentUsername, classCode, procedureId,
                 photos != null ? photos.size() : 0,
                 documents != null ? documents.size() : 0);
-    }
-
-    /**
-     * 将答案转换为JSON格式
-     *
-     * @param fillBlankAnswers 填空类型答案
-     * @param tableCellAnswers 表格类型答案
-     * @return JSON字符串
-     */
-    private String convertAnswersToJson(java.util.Map<String, String> fillBlankAnswers,
-                                       java.util.Map<String, String> tableCellAnswers) {
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            java.util.Map<String, Object> answerData = new java.util.HashMap<>();
-
-            if (fillBlankAnswers != null && !fillBlankAnswers.isEmpty()) {
-                answerData.put("fillBlankAnswers", fillBlankAnswers);
-            }
-            if (tableCellAnswers != null && !tableCellAnswers.isEmpty()) {
-                answerData.put("tableCellAnswers", tableCellAnswers);
-            }
-
-            return objectMapper.writeValueAsString(answerData);
-        } catch (Exception e) {
-            log.error("转换答案为JSON失败", e);
-            throw new BusinessException(500, "答案格式转换失败");
-        }
     }
 
     /**
@@ -472,18 +437,12 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 4. 构建答案字符串
-        StringBuilder answerBuilder = new StringBuilder();
-        for (Map.Entry<Long, String> entry : answers.entrySet()) {
-            answerBuilder.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
-        }
-
         // 5. 查询现有记录并更新
         StudentExperimentalProcedure studentProcedure =
                 studentExperimentalProcedureService.getByStudentAndProcedure(
                         studentUsername, classCode, procedureId);
 
-        studentProcedure.setAnswer(answerBuilder.toString());
+        studentProcedure.setAnswer(AnswerMapJSONUntil.toTopicJson(answers));
         studentProcedure.setScore(null); // 清除之前分数
         studentProcedure.setIsGraded(0); // 重置为未评分
         studentProcedure.setTeacherComment(null); // 清除评语
@@ -533,15 +492,12 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是数据收集类型");
         }
 
-        // 3. 将答案转换为JSON格式
-        String answerJson = convertAnswersToJson(fillBlankAnswers, tableCellAnswers);
-
         // 4. 查询现有记录并更新
         StudentExperimentalProcedure studentProcedure =
                 studentExperimentalProcedureService.getByStudentAndProcedure(
                         studentUsername, classCode, procedureId);
 
-        studentProcedure.setAnswer(answerJson);
+        studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
         studentProcedure.setScore(null);
         studentProcedure.setIsGraded(0);
         studentProcedure.setTeacherComment(null);
@@ -683,12 +639,6 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 6. 构建答案��符串
-        StringBuilder answerBuilder = new StringBuilder();
-        for (TopicAnswerItem item : request.getAnswers()) {
-            answerBuilder.append(item.getTopicId()).append(":").append(item.getAnswer()).append(";");
-        }
-
         // 7. 创建学生步骤答案记录（设置 isLocked = true）
         StudentExperimentalProcedure studentProcedure = new StudentExperimentalProcedure();
         studentProcedure.setExperimentId(procedure.getExperimentId());
@@ -696,7 +646,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(request.getProcedureId());
         studentProcedure.setNumber(procedure.getNumber());
-        studentProcedure.setAnswer(answerBuilder.toString());
+        studentProcedure.setAnswer(AnswerMapJSONUntil.buildTimedQuizAnswerJson(request.getAnswers()));
         studentProcedure.setIsLocked(true);  // 锁定答案，不允许修改
         studentProcedure.setCreatedTime(LocalDateTime.now());
 

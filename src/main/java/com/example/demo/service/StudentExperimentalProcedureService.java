@@ -13,6 +13,7 @@ import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.ClassExperimentClassRelation;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
+import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 学生实验步骤答案服务
@@ -233,7 +236,7 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(experimentalProcedureId);
         studentProcedure.setNumber(procedure.getNumber());
-        studentProcedure.setAnswer("VIEWED");
+        studentProcedure.setAnswer(AnswerMapJSONUntil.buildVideo());
         studentProcedure.setCreatedTime(LocalDateTime.now());
 
         boolean saved = save(studentProcedure);
