@@ -396,18 +396,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
      * 解析题库答案JSON
      */
     private Map<Long, String> parseTopicAnswers(String answerJson) {
-        if (answerJson == null || answerJson.isEmpty()) {
-            return new HashMap<>();
-        }
-
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(answerJson,
-                    new com.fasterxml.jackson.core.type.TypeReference<Map<Long, String>>() {});
-        } catch (Exception e) {
-            log.warn("解析题库答案失败: {}", e.getMessage());
-            return new HashMap<>();
-        }
+        return com.example.demo.util.AnswerMapJSONUntil.parseTopicData(answerJson);
     }
 
     /**

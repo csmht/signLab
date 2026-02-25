@@ -287,47 +287,36 @@ public class TeacherStudentProcedureQueryService {
             return;
         }
 
-        // 格式: topicId:answer;topicId:answer;
+        // 使用工具类解析答案（新格式：{"type":"TOPIC","data":{"题目ID":"答案"}}）
+        Map<Long, String> studentAnswers = parseTopicAnswers(answerString);
+
         List<StudentProcedureDetailCompletionResponse.TopicAnswer> topicAnswers = new ArrayList<>();
-        String[] answerPairs = answerString.split(";");
 
-        for (String pair : answerPairs) {
-            if (pair.trim().isEmpty()) {
+        for (Map.Entry<Long, String> entry : studentAnswers.entrySet()) {
+            Long topicId = entry.getKey();
+            String studentAnswer = entry.getValue();
+
+            // 2. 查询题目信息
+            Topic topic = topicMapper.selectById(topicId);
+            if (topic == null) {
                 continue;
             }
-            String[] parts = pair.split(":");
-            if (parts.length != 2) {
-                continue;
-            }
 
-            try {
-                Long topicId = Long.parseLong(parts[0]);
-                String studentAnswer = parts[1];
+            StudentProcedureDetailCompletionResponse.TopicAnswer topicAnswer =
+                    new StudentProcedureDetailCompletionResponse.TopicAnswer();
+            topicAnswer.setTopicId(topic.getId());
+            topicAnswer.setNumber(topic.getNumber());
+            topicAnswer.setType(topic.getType());
+            topicAnswer.setContent(topic.getContent());
+            topicAnswer.setChoices(topic.getChoices());
+            topicAnswer.setStudentAnswer(studentAnswer);
+            topicAnswer.setCorrectAnswer(topic.getCorrectAnswer());
 
-                // 2. 查询题目信息
-                Topic topic = topicMapper.selectById(topicId);
-                if (topic == null) {
-                    continue;
-                }
+            // 3. 判断答案是否正确
+            boolean isCorrect = studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer());
+            topicAnswer.setIsCorrect(isCorrect);
 
-                StudentProcedureDetailCompletionResponse.TopicAnswer topicAnswer =
-                        new StudentProcedureDetailCompletionResponse.TopicAnswer();
-                topicAnswer.setTopicId(topic.getId());
-                topicAnswer.setNumber(topic.getNumber());
-                topicAnswer.setType(topic.getType());
-                topicAnswer.setContent(topic.getContent());
-                topicAnswer.setChoices(topic.getChoices());
-                topicAnswer.setStudentAnswer(studentAnswer);
-                topicAnswer.setCorrectAnswer(topic.getCorrectAnswer());
-
-                // 3. 判断答案是否正确
-                boolean isCorrect = studentAnswer.equals(topic.getCorrectAnswer());
-                topicAnswer.setIsCorrect(isCorrect);
-
-                topicAnswers.add(topicAnswer);
-            } catch (NumberFormatException e) {
-                log.warn("解析题目ID失败: {}", parts[0]);
-            }
+            topicAnswers.add(topicAnswer);
         }
 
         response.setTopicAnswers(topicAnswers);
@@ -801,21 +790,16 @@ public class TeacherStudentProcedureQueryService {
                 ).getAnswer();
 
                 if (answer != null && !answer.isEmpty()) {
-                    try {
-                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                        Map<String, Object> answerMap = mapper.readValue(answer,
-                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                    // 使用工具类解析 data 字段（支持嵌套对象）
+                    Map<String, Object> dataMap = com.example.demo.util.AnswerMapJSONUntil.parseDataAsObject(answer);
 
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> fillBlankAnswers = (Map<String, String>) answerMap.get("fillBlankAnswers");
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> fillBlankAnswers = (Map<String, String>) dataMap.get("fillBlankAnswers");
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> tableCellAnswers = (Map<String, String>) dataMap.get("tableCellAnswers");
 
-                        detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
-                        detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
-                    } catch (Exception e) {
-                        log.warn("解析数据收集答案失败: {}", e.getMessage());
-                    }
+                    detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+                    detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                 }
 
                 // 教师始终可以查看正确答案
@@ -1036,18 +1020,7 @@ public class TeacherStudentProcedureQueryService {
      * 解析题库答案JSON
      */
     private Map<Long, String> parseTopicAnswers(String answerJson) {
-        if (answerJson == null || answerJson.isEmpty()) {
-            return new HashMap<>();
-        }
-
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(answerJson,
-                new com.fasterxml.jackson.core.type.TypeReference<Map<Long, String>>() {});
-        } catch (Exception e) {
-            log.warn("解析题库答案失败: {}", e.getMessage());
-            return new HashMap<>();
-        }
+        return com.example.demo.util.AnswerMapJSONUntil.parseTopicData(answerJson);
     }
 
     // ============================================
@@ -1247,21 +1220,16 @@ public class TeacherStudentProcedureQueryService {
                 // 解析答案JSON
                 String answer = studentProcedure.getAnswer();
                 if (answer != null && !answer.isEmpty()) {
-                    try {
-                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                        Map<String, Object> answerMap = mapper.readValue(answer,
-                            new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                    // 使用工具类解析 data 字段（支持嵌套对象）
+                    Map<String, Object> dataMap = com.example.demo.util.AnswerMapJSONUntil.parseDataAsObject(answer);
 
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> fillBlankAnswers = (Map<String, String>) answerMap.get("fillBlankAnswers");
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> fillBlankAnswers = (Map<String, String>) dataMap.get("fillBlankAnswers");
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> tableCellAnswers = (Map<String, String>) dataMap.get("tableCellAnswers");
 
-                        detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
-                        detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
-                    } catch (Exception e) {
-                        log.warn("解析数据收集答案失败: {}", e.getMessage());
-                    }
+                    detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+                    detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                 }
 
                 // 正确答案

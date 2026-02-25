@@ -22,7 +22,6 @@ public class AnswerMapJSONUntil {
     private static final Logger log = LoggerFactory.getLogger(AnswerMapJSONUntil.class);
 
     public static String VIEWED = "VIEWED";
-    public static String CREATED_TIME = "CREATED_TIME";
 
     // 类型常量
     public static String TYPE_TOPIC = "TOPIC";                       // 题库答题
@@ -33,7 +32,9 @@ public class AnswerMapJSONUntil {
 
     /**
      * 解析答案 JSON，返回 data 字段的内容
-     * data 字段可能是 JSON 对象或 JSON 字符串
+     * 根据 type 字段判断是否有嵌套结构：
+     * - TOPIC/TIMED_QUIZ: data 中值是字符串，直接返回 Map<String, String>
+     * - DATA_COLLECTION: data 中值是嵌套对象，需要特殊处理
      *
      * @param answerJson JSON 字符串
      * @return Map<字段名/题目ID, 答案>，解析失败返回空 Map
@@ -47,6 +48,7 @@ public class AnswerMapJSONUntil {
             Map<String, Object> answerMap = MAPPER.readValue(answerJson,
                 new TypeReference<Map<String, Object>>() {});
 
+            String type = (String) answerMap.get("type");
             Object dataObj = answerMap.get("data");
             if (dataObj == null) {
                 return new HashMap<>();
@@ -58,13 +60,113 @@ public class AnswerMapJSONUntil {
                 if (dataStr.isEmpty()) {
                     return new HashMap<>();
                 }
-                return MAPPER.readValue(dataStr, new TypeReference<Map<String, String>>() {});
+
+                // 根据 type 判断解析方式
+                if (TYPE_DATA_COLLECTION.equals(type)) {
+                    // DATA_COLLECTION 类型，data 字符串中包含嵌套对象
+                    Map<String, Object> objectMap = MAPPER.readValue(dataStr,
+                        new TypeReference<Map<String, Object>>() {});
+                    // 将嵌套对象转换为字符串形式返回
+                    Map<String, String> result = new HashMap<>();
+                    for (Map.Entry<String, Object> entry : objectMap.entrySet()) {
+                        if (entry.getValue() instanceof Map) {
+                            result.put(entry.getKey(), MAPPER.writeValueAsString(entry.getValue()));
+                        } else {
+                            result.put(entry.getKey(), String.valueOf(entry.getValue()));
+                        }
+                    }
+                    return result;
+                } else {
+                    // TOPIC/TIMED_QUIZ/VIEWED 类型，直接解析为 String Map
+                    return MAPPER.readValue(dataStr, new TypeReference<Map<String, String>>() {});
+                }
             }
 
-            // 如果 data 已经是 Map，直接返回
-            @SuppressWarnings("unchecked")
-            Map<String, String> dataMap = (Map<String, String>) dataObj;
-            return dataMap;
+            // 如果 data 已经是 Map
+            if (TYPE_DATA_COLLECTION.equals(type)) {
+                // DATA_COLLECTION 类型，data 中包含嵌套对象
+                @SuppressWarnings("unchecked")
+                Map<String, Object> objectMap = (Map<String, Object>) dataObj;
+                Map<String, String> result = new HashMap<>();
+                for (Map.Entry<String, Object> entry : objectMap.entrySet()) {
+                    if (entry.getValue() instanceof Map) {
+                        result.put(entry.getKey(), MAPPER.writeValueAsString(entry.getValue()));
+                    } else {
+                        result.put(entry.getKey(), String.valueOf(entry.getValue()));
+                    }
+                }
+                return result;
+            } else {
+                // TOPIC/TIMED_QUIZ/VIEWED 类型，直接返回 String Map
+                @SuppressWarnings("unchecked")
+                Map<String, String> dataMap = (Map<String, String>) dataObj;
+                return dataMap;
+            }
+        } catch (Exception e) {
+            log.error("解析答案 JSON 失败, answerJson: {}", answerJson, e);
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * 解析答案 JSON，返回 data 字段的内容（支持嵌套对象）
+     * 根据 type 字段判断解析方式：
+     * - DATA_COLLECTION: 返回包含嵌套对象的 Map<String, Object>
+     * - 其他类型: 返回 Map<String, Object>，但值都是字符串
+     *
+     * @param answerJson JSON 字符串
+     * @return Map<字段名, Object>，解析失败返回空 Map
+     */
+    public static Map<String, Object> parseDataAsObject(String answerJson) {
+        if (answerJson == null || answerJson.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        try {
+            Map<String, Object> answerMap = MAPPER.readValue(answerJson,
+                new TypeReference<Map<String, Object>>() {});
+
+            String type = (String) answerMap.get("type");
+            Object dataObj = answerMap.get("data");
+            if (dataObj == null) {
+                return new HashMap<>();
+            }
+
+            // 如果 data 是字符串，需要再次解析为 Map
+            if (dataObj instanceof String) {
+                String dataStr = (String) dataObj;
+                if (dataStr.isEmpty()) {
+                    return new HashMap<>();
+                }
+
+                // 根据 type 判断解析方式
+                if (TYPE_DATA_COLLECTION.equals(type)) {
+                    // DATA_COLLECTION 类型，解析为嵌套对象 Map
+                    return MAPPER.readValue(dataStr, new TypeReference<Map<String, Object>>() {});
+                } else {
+                    // TOPIC/TIMED_QUIZ/VIEWED 类型，先解析为 String Map，再转换为 Object Map
+                    Map<String, String> stringMap = MAPPER.readValue(dataStr,
+                        new TypeReference<Map<String, String>>() {});
+                    return new HashMap<>(stringMap);
+                }
+            }
+
+            // 如果 data 已经是 Map
+            if (TYPE_DATA_COLLECTION.equals(type)) {
+                // DATA_COLLECTION 类型，直接返回 Object Map
+                @SuppressWarnings("unchecked")
+                Map<String, Object> dataMap = (Map<String, Object>) dataObj;
+                return dataMap;
+            } else {
+                // TOPIC/TIMED_QUIZ/VIEWED 类型，转换为 Object Map
+                @SuppressWarnings("unchecked")
+                Map<String, ?> rawMap = (Map<String, ?>) dataObj;
+                Map<String, Object> result = new HashMap<>();
+                for (Map.Entry<String, ?> entry : rawMap.entrySet()) {
+                    result.put(entry.getKey(), entry.getValue());
+                }
+                return result;
+            }
         } catch (Exception e) {
             log.error("解析答案 JSON 失败, answerJson: {}", answerJson, e);
             return new HashMap<>();

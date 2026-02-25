@@ -330,22 +330,17 @@ public class StudentProcedureQueryService {
                 if (studentProcedure != null) {
                     String answer = studentProcedure.getAnswer();
                     if (answer != null && !answer.isEmpty()) {
-                        try {
-                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                            Map<String, Object> answerMap = mapper.readValue(answer,
-                                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+                        // 使用工具类解析 data 字段（支持嵌套对象）
+                        Map<String, Object> dataMap = AnswerMapJSONUntil.parseDataAsObject(answer);
 
-                            @SuppressWarnings("unchecked")
-                            Map<String, String> fillBlankAnswers = (Map<String, String>) answerMap.get("fillBlankAnswers");
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> fillBlankAnswers = (Map<String, String>) dataMap.get("fillBlankAnswers");
 
-                            @SuppressWarnings("unchecked")
-                            Map<String, String> tableCellAnswers = (Map<String, String>) answerMap.get("tableCellAnswers");
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> tableCellAnswers = (Map<String, String>) dataMap.get("tableCellAnswers");
 
-                            detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
-                            detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
-                        } catch (Exception e) {
-                            log.error("解析数据收集答案失败", e);
-                        }
+                        detail.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+                        detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                     }
 
                     // 如果已过答题时间，返回正确答案
@@ -427,16 +422,10 @@ public class StudentProcedureQueryService {
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(studentAnswer);
 
-                    // 如果已过答题时间，才返回正确答案和是否正确
-                    if (isAfterEndTime) {
-                        item.setCorrectAnswer(topic.getCorrectAnswer());
+                    // 返回正确答案和是否正确
+                    item.setCorrectAnswer(topic.getCorrectAnswer());
+                    item.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
 
-                        if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
-                            item.setIsCorrect(true);
-                        } else {
-                            item.setIsCorrect(false);
-                        }
-                    }
 
                     item.setNumber(topic.getNumber());
                     topicItems.add(item);
@@ -650,16 +639,10 @@ public class StudentProcedureQueryService {
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(studentAnswer);
 
-                    // 如果已过答题时间，才返回正确答案和是否正确
-                    if (isAfterEndTime) {
-                        item.setCorrectAnswer(topic.getCorrectAnswer());
+                    // 返回正确答案和是否正确
+                    item.setCorrectAnswer(topic.getCorrectAnswer());
+                    item.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
 
-                        if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
-                            item.setIsCorrect(true);
-                        } else {
-                            item.setIsCorrect(false);
-                        }
-                    }
 
                     topicItems.add(item);
                 }
@@ -755,7 +738,7 @@ public class StudentProcedureQueryService {
             List<Long> tagIdList = Arrays.stream(tagIds)
                 .filter(s -> s != null && !s.isEmpty())
                 .map(Long::parseLong)
-                .collect(Collectors.toList());
+                .toList();
 
             if (!tagIdList.isEmpty()) {
                 // 查询包含所有指定标签的题目（AND逻辑）
