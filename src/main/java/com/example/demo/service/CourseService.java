@@ -13,9 +13,11 @@ import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.entity.Course;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -50,6 +52,7 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
         Course lastCourse = getOne(queryWrapper);
 
         int nextNum = 1;
+        String string = UUID.randomUUID().toString();
         if (lastCourse != null && lastCourse.getCourseId() != null) {
             String lastId = lastCourse.getCourseId();
             // 提取数字部分(COURSE000001 -> 000001 -> 1)
@@ -64,7 +67,7 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
         }
 
         // 格式化为6位数字
-        return String.format("COURSE%06d", nextNum);
+        return "COURSE" + string.substring(string.length() - 5).replace("-", "") + nextNum;
     }
 
     /**
