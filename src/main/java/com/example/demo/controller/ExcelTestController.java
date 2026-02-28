@@ -3,12 +3,15 @@ package com.example.demo.controller;
 import com.alibaba.excel.EasyExcel;
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.listener.ClassCourseExperimentExcelListener;
 import com.example.demo.listener.StudentClassImportListener;
 import com.example.demo.listener.UserImportListener;
+import com.example.demo.pojo.excel.ClassCourseExperimentExcel;
 import com.example.demo.pojo.excel.StudentClassImportExcel;
 import com.example.demo.pojo.excel.UserImportExcel;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.service.AuthService;
+import com.example.demo.service.ClassCourseExperimentImportService;
 import com.example.demo.service.StudentClassImportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,7 @@ public class ExcelTestController {
 
     private final AuthService authService;
     private final StudentClassImportService studentClassImportService;
+    private final ClassCourseExperimentImportService classCourseExperimentImportService;
 
     /**
      * 批量导入用户
@@ -292,6 +296,160 @@ public class ExcelTestController {
 
         } catch (Exception e) {
             log.error("获取学生班级导入模板失败", e);
+            response.setStatus(500);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":500,\"message\":\"获取模板失败: " + e.getMessage() + "\"}");
+        }
+    }
+
+    /**
+     * 批量导入班级课程实验
+     * 通过上传 Excel 文件一次性导入班级、课程、实验、课次信息
+     * 支持合班上课（同一时间多个班级）
+     *
+     * @param file Excel 文件
+     * @return 导入结果
+     */
+    @PostMapping("/import/class-course-experiments")
+    @RequireRole(value = UserRole.ADMIN)
+    public ApiResponse<String> importClassCourseExperiments(@RequestParam("file") MultipartFile file) {
+        long startTime = System.currentTimeMillis();
+        try {
+            // 验证文件
+            if (file == null || file.isEmpty()) {
+                return ApiResponse.error(400, "请上传Excel文件");
+            }
+
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
+                return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
+            }
+
+            // 创建监听器
+            ClassCourseExperimentExcelListener listener = new ClassCourseExperimentExcelListener(classCourseExperimentImportService);
+
+            // 使用EasyExcel读取Excel文件
+            EasyExcel.read(file.getInputStream(), ClassCourseExperimentExcel.class, listener)
+                    .sheet()
+                    .doRead();
+
+            // 获取导入结果
+            ClassCourseExperimentExcelListener.ImportResult result = listener.getResult();
+
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+
+            // 构建返回消息
+            StringBuilder message = new StringBuilder();
+            message.append("导入完成！耗时:").append(duration).append("ms\n");
+            message.append("【班级】成功:").append(result.getClassSuccessCount())
+                   .append(" 重复:").append(result.getClassDuplicateCount())
+                   .append(" 失败:").append(result.getClassFailCount()).append("\n");
+            message.append("【课程】成功:").append(result.getCourseSuccessCount())
+                   .append(" 重复:").append(result.getCourseDuplicateCount())
+                   .append(" 失败:").append(result.getCourseFailCount()).append("\n");
+            message.append("【实验】成功:").append(result.getExperimentSuccessCount())
+                   .append(" 重复:").append(result.getExperimentDuplicateCount())
+                   .append(" 失败:").append(result.getExperimentFailCount()).append("\n");
+            message.append("【课次】成功:").append(result.getClassExperimentSuccessCount())
+                   .append(" 重复:").append(result.getClassExperimentDuplicateCount())
+                   .append(" 失败:").append(result.getClassExperimentFailCount());
+
+            // 如果有错误信息，添加到返回消息中
+            if (!result.getErrorMessages().isEmpty()) {
+                message.append("\n\n错误详情：\n");
+                result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
+            }
+
+            // 判断返回码：全部成功返回200，有失败则抛出异常返回500
+            int totalFailures = result.getClassFailCount() + result.getCourseFailCount()
+                    + result.getExperimentFailCount() + result.getClassExperimentFailCount();
+            if (totalFailures > 0) {
+                throw new com.example.demo.exception.BusinessException(500, message.toString());
+            }
+            return ApiResponse.success(message.toString());
+
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            log.error("批量导入班级课程实验失败", e);
+            return ApiResponse.error(500, "批量导入失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取班级课程实验导入模板
+     *
+     * @return Excel 文件
+     */
+    @GetMapping("/template/class-course-experiments")
+    @RequireRole(value = UserRole.ADMIN)
+    public void getClassCourseExperimentImportTemplate(jakarta.servlet.http.HttpServletResponse response) throws IOException {
+        try {
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("utf-8");
+            String fileName = java.net.URLEncoder.encode("班级课程实验导入模板", "UTF-8").replaceAll("\\+", "%20");
+            response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+            // 创建示例数据
+            List<ClassCourseExperimentExcel> data = new ArrayList<>();
+
+            // 示例1：单班上课
+            ClassCourseExperimentExcel example1 = new ClassCourseExperimentExcel();
+            example1.setClassName("计算机科学与技术1班");
+            example1.setCourseName("数据结构");
+            example1.setExperimentName("链表操作实验");
+            example1.setData("2024-03-15");
+            example1.setTime("8:00-10:00");
+            example1.setLaboratory("实验楼A");
+            example1.setLaboratory2("101");
+            example1.setTeacherName("张老师");
+            data.add(example1);
+
+            // 示例2：同一课程不同实验
+            ClassCourseExperimentExcel example2 = new ClassCourseExperimentExcel();
+            example2.setClassName("计算机科学与技术1班");
+            example2.setCourseName("数据结构");
+            example2.setExperimentName("树遍历实验");
+            example2.setData("2024-03-22");
+            example2.setTime("14:00-16:00");
+            example2.setLaboratory("实验楼A");
+            example2.setLaboratory2("102");
+            example2.setTeacherName("张老师");
+            data.add(example2);
+
+            // 示例3：合班上课（与示例4同时段）
+            ClassCourseExperimentExcel example3 = new ClassCourseExperimentExcel();
+            example3.setClassName("软件工程1班");
+            example3.setCourseName("操作系统");
+            example3.setExperimentName("进程调度实验");
+            example3.setData("2024-03-20");
+            example3.setTime("10:00-12:00");
+            example3.setLaboratory("实验楼B");
+            example3.setLaboratory2("201");
+            example3.setTeacherName("李老师");
+            data.add(example3);
+
+            // 示例4：合班上课（与示例3同时段）
+            ClassCourseExperimentExcel example4 = new ClassCourseExperimentExcel();
+            example4.setClassName("软件工程2班");
+            example4.setCourseName("操作系统");
+            example4.setExperimentName("进程调度实验");
+            example4.setData("2024-03-20");
+            example4.setTime("10:00-12:00");
+            example4.setLaboratory("实验楼B");
+            example4.setLaboratory2("201");
+            example4.setTeacherName("李老师");
+            data.add(example4);
+
+            // 写入 Excel
+            EasyExcel.write(response.getOutputStream(), ClassCourseExperimentExcel.class)
+                    .sheet("班级课程实验导入模板")
+                    .doWrite(data);
+
+        } catch (Exception e) {
+            log.error("获取班级课程实验导入模板失败", e);
             response.setStatus(500);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":500,\"message\":\"获取模板失败: " + e.getMessage() + "\"}");

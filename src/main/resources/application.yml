@@ -67,3 +67,4 @@ management:
 logging:
   level:
     org.apache.ibatis: DEBUG
+    com.example.demo.mapper: DEBUG
