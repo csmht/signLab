@@ -75,6 +75,6 @@ public class StudentProcedureAttachment {
 
     /** 是否删除：0-未删除，1-已删除 */
     @TableLogic
-    @Column(comment = "是否删除：0-未删除，1-已删除", type = "int")
+    @Column(comment = "是否删除：0-未删除，1-已删除", type = "int", defaultValue = "0")
     private Integer isDeleted;
 }
