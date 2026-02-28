@@ -32,7 +32,7 @@ public class Experiment {
     @Column(comment = "实验名称", type = "varchar(200)", notNull = true)
     private String experimentName;
 
-    @Column(comment = "分数占比,%",type = "int")
+    @Column(comment = "分数占比,%",type = "int",defaultValue = "0")
     private Integer percentage;
 
     /** 创建时间 */
@@ -40,7 +40,7 @@ public class Experiment {
     private LocalDateTime createdTime;
 
     /** 实验结束填写时间 */
-    @Column(comment = "实验结束填写时间", type = "datetime", notNull = true)
+    @Column(comment = "实验结束填写时间", type = "datetime")
     private LocalDateTime endTime;
 
     /** 更新时间 */

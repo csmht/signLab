@@ -7,6 +7,7 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.entity.Experiment;
 import com.example.demo.pojo.request.ClassExperimentQueryByClassRequest;
 import com.example.demo.pojo.request.ClassExperimentQueryRequest;
+import com.example.demo.pojo.request.ExperimentQueryRequest;
 import com.example.demo.pojo.request.teacher.CreateExperimentRequest;
 import com.example.demo.pojo.request.teacher.UpdateExperimentRequest;
 import com.example.demo.pojo.response.ApiResponse;
@@ -228,6 +229,24 @@ public class TeacherExperimentController {
             }).collect(Collectors.toList());
 
             return ApiResponse.success(responses, "查询成功");
+        } catch (Exception e) {
+            log.error("查询实验列表失败", e);
+            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 分页组合查询实验列表
+     *
+     * @param request 查询请求
+     * @return 分页结果
+     */
+    @GetMapping("/query")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<PageResponse<ExperimentResponse>> queryExperiments(ExperimentQueryRequest request) {
+        try {
+            PageResponse<ExperimentResponse> response = experimentService.queryExperiments(request);
+            return ApiResponse.success(response, "查询成功");
         } catch (Exception e) {
             log.error("查询实验列表失败", e);
             return ApiResponse.error(500, "查询失败: " + e.getMessage());
