@@ -158,16 +158,16 @@ public class ClassController {
     /**
      * 更新班级信息
      *
-     * @param id 班级ID
+     * @param classCode 班级代码
      * @param request 更新班级请求
      * @return 更新结果
      */
-    @PutMapping("/{id}")
+    @PutMapping("/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Void> update(@PathVariable Long id, @RequestBody UpdateClassRequest request) {
+    public ApiResponse<Void> update(@PathVariable String classCode, @RequestBody UpdateClassRequest request) {
         try {
             // 查询班级是否存在
-            Class existingClass = classService.getById(id);
+            Class existingClass = classService.getByClassCode(classCode);
             if (existingClass == null) {
                 return ApiResponse.error(404, "班级不存在");
             }
