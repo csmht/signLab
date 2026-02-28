@@ -565,7 +565,7 @@ public class StudentProcedureQueryService {
 
     /**
      * 解析题目选项字符串为List<TopicChoice>
-     * 格式：A:选项A内容$B:选项B内容$C:选项C内容$D:选项D内容
+     * 格式：JSON格式 {"A":"选项A内容","B":"选项B内容","C":"选项C内容","D":"选项D内容"}
      * @param choices 选项字符串
      * @return 选项列表
      */
@@ -574,30 +574,15 @@ public class StudentProcedureQueryService {
             return new ArrayList<>();
         }
 
-        List<TopicChoice> choiceList = new ArrayList<>();
         try {
-            // 按 $ 分割各个选项
-            String[] options = choices.split("\\$");
-            for (String option : options) {
-                // 每个选项格式为 "A:选项内容"
-                if (option.contains(":")) {
-                    String[] parts = option.split(":", 2);
-                    if (parts.length == 2) {
-                        String key = parts[0].trim();
-                        String value = parts[1].trim();
-                        TopicChoice choice = new TopicChoice();
-                        choice.setOptionKey(key);
-                        choice.setOptionContent(value);
-                        choiceList.add(choice);
-                    }
-                }
-            }
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, String> map = mapper.readValue(choices,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+            return TopicChoice.fromMap(map);
         } catch (Exception e) {
             log.error("解析题目选项失败, choices: {}", choices, e);
             return new ArrayList<>();
         }
-
-        return choiceList;
     }
 
     /**

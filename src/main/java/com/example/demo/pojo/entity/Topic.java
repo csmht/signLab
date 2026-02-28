@@ -49,8 +49,7 @@ public class Topic {
 
     /**
      * 选项内容
-     * 规定：选择题：每个选项之间用 $ 隔开，每个选项的格式为 "选项字母:选项内容"
-     * 例如："A:这是a选项$B:这是b选项$C:这是c选项$D:这是d选项"
+     * 格式：JSON格式 {"A":"选项A内容","B":"选项B内容","C":"选项C内容","D":"选项D内容"}
      */
     @Column(comment = "选项内容", type = "varchar(255)")
     private String choices;
