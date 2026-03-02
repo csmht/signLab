@@ -24,7 +24,7 @@ public class CreateDataCollectionProcedureRequest {
     /** 步骤描述 */
     private String remark;
 
-    /** 数据类型：1-填空类型（关键数据），2-表格类型 */
+    /** 数据类型：1-填空类型（关键数据），2-表格类型，3-文件数据类型 */
     private Integer dataType;
 
     /** 收集数据字段列表，当dataType=1时使用，只对数字类型数据进行自动判分 */

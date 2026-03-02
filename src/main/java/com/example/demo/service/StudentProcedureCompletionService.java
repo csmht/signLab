@@ -158,14 +158,52 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是数据收集类型");
         }
 
-        // 3. 创建学生步骤答案记录
+        // 3. 查询数据收集配置，判断数据类型
+        LambdaQueryWrapper<DataCollection> dcQuery = new LambdaQueryWrapper<>();
+        dcQuery.eq(DataCollection::getExperimentalProcedureId, procedureId);
+        DataCollection dataCollectionConfig = dataCollectionMapper.selectOne(dcQuery);
+
+        if (dataCollectionConfig == null) {
+            throw new BusinessException(400, "数据收集配置不存在");
+        }
+
+        Long dataType = dataCollectionConfig.getType();
+
+        // 4. 根据数据类型验证答案数据
+        if (dataType == 1) {
+            // 填空类型必须有填空答案
+            if (fillBlankAnswers == null || fillBlankAnswers.isEmpty()) {
+                throw new BusinessException(400, "填空类型必须提交填空答案");
+            }
+        } else if (dataType == 2) {
+            // 表格类型必须有表格答案
+            if (tableCellAnswers == null || tableCellAnswers.isEmpty()) {
+                throw new BusinessException(400, "表格类型必须提交表格答案");
+            }
+        } else if (dataType == 3) {
+            // 文件数据类型：只需上传文件，无需填空或表格数据
+            // 验证至少上传了一个文件
+            boolean hasPhotos = photos != null && !photos.isEmpty();
+            boolean hasDocuments = documents != null && !documents.isEmpty();
+            if (!hasPhotos && !hasDocuments) {
+                throw new BusinessException(400, "文件数据类型至少需要上传一个文件");
+            }
+        }
+
+        // 5. 创建学生步骤答案记录
         StudentExperimentalProcedure studentProcedure = new StudentExperimentalProcedure();
         studentProcedure.setExperimentId(procedure.getExperimentId());
         studentProcedure.setStudentUsername(studentUsername);
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(procedureId);
         studentProcedure.setNumber(procedure.getNumber());
-        studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
+
+        // 根据数据类型生成不同的答案 JSON
+        if (dataType == 3) {
+            studentProcedure.setAnswer(AnswerMapJSONUntil.toFileUploadJson());
+        } else {
+            studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
+        }
         studentProcedure.setCreatedTime(LocalDateTime.now());
 
         boolean saved = studentExperimentalProcedureService.save(studentProcedure);
@@ -173,11 +211,13 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "提交数据收集失败");
         }
 
-        // 4. 自动判分（如果有正确答案）
-        autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
-                                         fillBlankAnswers, tableCellAnswers);
+        // 6. 自动判分（只有 dataType 为 1 或 2 时才进行自动判分）
+        if (dataType != 3) {
+            autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
+                                             fillBlankAnswers, tableCellAnswers);
+        }
 
-        // 5. 保存照片文件
+        // 7. 保存照片文件
 
         // 4. 保存照片文件
         if (photos != null && !photos.isEmpty()) {
@@ -492,12 +532,44 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(400, "该步骤不是数据收集类型");
         }
 
-        // 4. 查询现有记录并更新
+        // 3. 查询数据收集配置，判断数据类型
+        LambdaQueryWrapper<DataCollection> dcQuery = new LambdaQueryWrapper<>();
+        dcQuery.eq(DataCollection::getExperimentalProcedureId, procedureId);
+        DataCollection dataCollectionConfig = dataCollectionMapper.selectOne(dcQuery);
+
+        if (dataCollectionConfig == null) {
+            throw new BusinessException(400, "数据收集配置不存在");
+        }
+
+        Long dataType = dataCollectionConfig.getType();
+
+        // 4. 根据数据类型验证答案数据
+        if (dataType == 1) {
+            // 填空类型必须有填空答案
+            if (fillBlankAnswers == null || fillBlankAnswers.isEmpty()) {
+                throw new BusinessException(400, "填空类型必须提交填空答案");
+            }
+        } else if (dataType == 2) {
+            // 表格类型必须有表格答案
+            if (tableCellAnswers == null || tableCellAnswers.isEmpty()) {
+                throw new BusinessException(400, "表格类型必须提交表格答案");
+            }
+        } else if (dataType == 3) {
+            // 文件数据类型：只需上传文件，无需填空或表格数据
+            // 修改时可以只删除或添加文件，不强制要求上传新文件
+        }
+
+        // 5. 查询现有记录并更新
         StudentExperimentalProcedure studentProcedure =
                 studentExperimentalProcedureService.getByStudentAndProcedure(
                         studentUsername, classCode, procedureId);
 
-        studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
+        // 根据数据类型生成不同的答案 JSON
+        if (dataType == 3) {
+            studentProcedure.setAnswer(AnswerMapJSONUntil.toFileUploadJson());
+        } else {
+            studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
+        }
         studentProcedure.setScore(null);
         studentProcedure.setIsGraded(0);
         studentProcedure.setTeacherComment(null);
@@ -507,7 +579,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "修改数据收集失败");
         }
 
-        // 5. 删除指定的旧附件
+        // 6. 删除指定的旧附件
         if (attachmentIdsToDelete != null && !attachmentIdsToDelete.isEmpty()) {
             for (Long attachmentId : attachmentIdsToDelete) {
                 deleteAttachment(attachmentId, studentUsername, classCode, procedureId);
@@ -528,9 +600,11 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 8. 重新自动判分
-        autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
-                                         fillBlankAnswers, tableCellAnswers);
+        // 8. 重新自动判分（只有 dataType 为 1 或 2 时才进行自动判分）
+        if (dataType != 3) {
+            autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
+                                             fillBlankAnswers, tableCellAnswers);
+        }
 
         log.info("学生 {} 在班级 {} 修改数据收集，步骤：{}", studentUsername, classCode, procedureId);
     }

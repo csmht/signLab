@@ -337,6 +337,28 @@ public class AnswerMapJSONUntil {
         }
     }
 
+    /**
+     * 构建文件上传类型的答案 JSON 字符串（数据收集 type=3）
+     * 文件数据类型只需要上传文件，答案 JSON 中只包含 dataType 标识
+     *
+     * @return JSON 字符串
+     */
+    public static String toFileUploadJson() {
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("dataType", 3);
+
+        Map<String, Object> answerMap = new HashMap<>();
+        answerMap.put("type", TYPE_DATA_COLLECTION);
+        answerMap.put("data", dataMap);
+
+        try {
+            return MAPPER.writeValueAsString(answerMap);
+        } catch (Exception e) {
+            log.error("转换文件上传答案 JSON 失败", e);
+            return null;
+        }
+    }
+
     // ==================== DTO 列表便捷构建方法 ====================
 
     /**

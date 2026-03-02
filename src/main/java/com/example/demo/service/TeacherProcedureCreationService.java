@@ -150,6 +150,10 @@ public class TeacherProcedureCreationService {
             if (request.getTableCellAnswers() == null || request.getTableCellAnswers().isEmpty()) {
                 throw new com.example.demo.exception.BusinessException(400, "表格类型必须提供单元格答案");
             }
+        } else if (request.getDataType() == 3) {
+            // 文件数据类型：不需要额外验证字段
+            // 学生只需上传文件，无需填写填空或表格数据
+            // 不需要自动判分，由教师手动评分
         }
 
         // 自动计算步骤号

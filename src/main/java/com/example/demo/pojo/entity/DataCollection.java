@@ -29,8 +29,8 @@ public class DataCollection {
     @Column(comment = "实验步骤ID", type = "bigint", notNull = true)
     private Long experimentalProcedureId;
 
-    /** 数据类型（1--关键数据，2--表格数据） */
-    @Column(comment = "数据类型（1--关键数据，2--表格数据）" , type = "int", notNull = true)
+    /** 数据类型（1--关键数据，2--表格数据，3--文件数据） */
+    @Column(comment = "数据类型（1--关键数据，2--表格数据，3--文件数据）" , type = "int", notNull = true)
     private Long type;
 
     /** 数据描述（JSON格式，存储填空和表格的结构化数据） */
