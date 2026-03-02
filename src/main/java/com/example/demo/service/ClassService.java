@@ -51,6 +51,28 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
     }
 
     /**
+     * 根据班级名称查询班级
+     */
+    public Class getByClassName(String className) {
+        LambdaQueryWrapper<Class> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Class::getClassName, className);
+        queryWrapper.last("LIMIT 1");
+        return getOne(queryWrapper);
+    }
+
+    /**
+     * 检查班级名称是否已存在，如果存在则抛出异常
+     * @param className 班级名称
+     * @throws BusinessException 如果班级名称已存在
+     */
+    public void checkClassNameExists(String className) {
+        Class existingClass = getByClassName(className);
+        if (existingClass != null) {
+            throw new BusinessException(400, "班级名称已存在: " + className);
+        }
+    }
+
+    /**
      * 生成班级编号
      * 格式: CLASS + 6位数字(如 CLASS000001)
      *
@@ -285,6 +307,16 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
             result.setClassName(classInfo.getClassName());
 
             try {
+                // 检查班级名称是否已存在
+                Class existingClassByName = getByClassName(classInfo.getClassName());
+                if (existingClassByName != null) {
+                    result.setSuccess(false);
+                    result.setMessage("班级名称已存在");
+                    response.getFailList().add(result);
+                    response.setFailCount(response.getFailCount() + 1);
+                    continue;
+                }
+
                 // 如果传入了班级编号,检查是否已存在
                 if (StringUtils.hasText(classInfo.getClassCode())) {
                     Class existingClass = getByClassCode(classCode);

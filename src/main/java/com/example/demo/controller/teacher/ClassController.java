@@ -98,6 +98,12 @@ public class ClassController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Class> create(@RequestBody CreateClassRequest request) {
         try {
+            // 检查班级名称是否已存在
+            Class existingClassByName = classService.getByClassName(request.getClassName());
+            if (existingClassByName != null) {
+                return ApiResponse.error(400, "班级名称已存在");
+            }
+
             // 如果未传入班级编号,则自动生成
             String classCode = request.getClassCode();
             if (!org.springframework.util.StringUtils.hasText(classCode)) {

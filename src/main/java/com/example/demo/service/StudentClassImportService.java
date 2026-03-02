@@ -66,12 +66,14 @@ public class StudentClassImportService {
         for (String className : uniqueClassNames) {
             LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(com.example.demo.pojo.entity.Class::getClassName, className);
+            queryWrapper.last("LIMIT 1");
             com.example.demo.pojo.entity.Class existingClass = classService.getOne(queryWrapper);
 
             if (existingClass != null) {
-                // 班级已存在，使用已有编号
-                classNameToCodeMap.put(className, existingClass.getClassCode());
-                log.info("班级 [{}] 已存在，使用编号: {}", className, existingClass.getClassCode());
+                // 班级已存在，记录错误并跳过
+                response.setClassFailCount(response.getClassFailCount() + 1);
+                response.getErrorMessages().add("班级 [" + className + "] 已存在，无法重复导入");
+                log.warn("班级 [{}] 已存在，跳过导入", className);
             } else {
                 // 班级不存在，记录下来稍后生成编号
                 newClassNames.add(className);

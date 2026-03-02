@@ -30,7 +30,7 @@ public class StudentClassRelationsResponse {
     /** 绑定时间 */
     private LocalDateTime bindTime;
 
-    /** 学生姓名(学号) */
+    /** 学生姓名 */
     private String studentName;
 
 
@@ -40,7 +40,7 @@ public class StudentClassRelationsResponse {
         List<User> users ;
 
         if (!ids.isEmpty()) {
-            users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, ids));
+            users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getUsername, ids));
         }else {
             users = List.of();
         }

@@ -39,18 +39,18 @@ public class WebMvcInterceptorConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 添加认证拦截器,优先级最高(order=0)
+        // 添加认证拦截器,优先级次之(order=1)
         registry.addInterceptor(authenticationInterceptor)
-                .order(0)
+                .order(1)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                     "/error",
                     "/api/download/**"
                 );
 
-        // 添加日志拦截器,优先级次之(order=1)
+        // 添加日志拦截器,优先级最高(order=0)
         registry.addInterceptor(httpLoggingInterceptor)
-                .order(1)
+                .order(0)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                     "/error",

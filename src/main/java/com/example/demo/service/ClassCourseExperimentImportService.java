@@ -85,12 +85,14 @@ public class ClassCourseExperimentImportService {
                 // 检查班级是否已存在
                 LambdaQueryWrapper<com.example.demo.pojo.entity.Class> query = new LambdaQueryWrapper<>();
                 query.eq(com.example.demo.pojo.entity.Class::getClassName, className);
+                query.last("LIMIT 1");
                 com.example.demo.pojo.entity.Class existingClass = classService.getOne(query);
 
                 if (existingClass != null) {
-                    classNameToCodeMap.put(className, existingClass.getClassCode());
-                    response.setClassDuplicateCount(response.getClassDuplicateCount() + 1);
-                    log.debug("班级 [{}] 已存在，使用编号: {}", className, existingClass.getClassCode());
+                    // 班级已存在，抛出错误
+                    response.setClassFailCount(response.getClassFailCount() + 1);
+                    response.getErrorMessages().add("班级 [" + className + "] 已存在，无法重复导入");
+                    log.warn("班级 [{}] 已存在，跳过导入", className);
                 } else {
                     // 创建新班级
                     String classCode = classService.generateClassCode();
