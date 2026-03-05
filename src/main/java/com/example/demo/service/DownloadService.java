@@ -1,10 +1,8 @@
 package com.example.demo.service;
 
 import com.example.demo.exception.BusinessException;
-import com.example.demo.mapper.ProcedureSubmissionMapper;
 import com.example.demo.mapper.StudentProcedureAttachmentMapper;
 import com.example.demo.mapper.VideoFileMapper;
-import com.example.demo.pojo.entity.ProcedureSubmission;
 import com.example.demo.pojo.entity.StudentProcedureAttachment;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.util.CryptoUtil;
@@ -36,7 +34,6 @@ public class DownloadService {
 
     private final CryptoUtil cryptoUtil;
     private final VideoFileMapper videoFileMapper;
-    private final ProcedureSubmissionMapper procedureSubmissionMapper;
     private final StudentProcedureAttachmentMapper studentProcedureAttachmentMapper;
 
     @Value("${slz.download.sign-secret:slz_video_sign_secret_2024}")
@@ -50,8 +47,6 @@ public class DownloadService {
 
     /** 文件类型：视频 */
     public static final String TYPE_VIDEO = "video";
-    /** 文件类型：步骤提交文件 */
-    public static final String TYPE_SUBMISSION = "submission";
     /** 文件类型：步骤附件 */
     public static final String TYPE_ATTACHMENT = "attachment";
 
@@ -133,20 +128,7 @@ public class DownloadService {
         String fileType = fileKey.getType();
         FileDownloadInfo downloadInfo = new FileDownloadInfo();
 
-        if (TYPE_SUBMISSION.equals(fileType)) {
-            ProcedureSubmission submission = procedureSubmissionMapper.selectById(fileKey.getId());
-            if (submission == null) {
-                throw new BusinessException(404, "文件不存在");
-            }
-            String fullPath = FILE_BASE_PATH + submission.getFilePath();
-            File file = new File(fullPath);
-            if (!file.exists()) {
-                throw new BusinessException(404, "文件不存在");
-            }
-            downloadInfo.setFilePath(fullPath);
-            downloadInfo.setFileName(submission.getFileName());
-            downloadInfo.setFileSize(submission.getFileSize());
-        } else if (TYPE_ATTACHMENT.equals(fileType)) {
+        if (TYPE_ATTACHMENT.equals(fileType)) {
             StudentProcedureAttachment attachment = studentProcedureAttachmentMapper.selectById(fileKey.getId());
             if (attachment == null) {
                 throw new BusinessException(404, "文件不存在");

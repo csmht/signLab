@@ -7,15 +7,15 @@ import com.example.demo.pojo.request.CompleteDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.CompleteTopicProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.CourseSessionResponse;
-import com.example.demo.pojo.response.ProcedureSubmissionResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
+import com.example.demo.pojo.response.StudentProcedureSubmissionResponse;
 import com.example.demo.service.ClassExperimentService;
-import com.example.demo.service.ProcedureSubmissionService;
 import com.example.demo.service.StudentClassRelationService;
 import com.example.demo.service.StudentExperimentalProcedureService;
 import com.example.demo.service.StudentProcedureCompletionService;
 import com.example.demo.service.StudentProcedureQueryService;
+import com.example.demo.service.StudentProcedureSubmissionService;
 import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,25 +35,26 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class StudentProcedureController {
 
-    private final ProcedureSubmissionService procedureSubmissionService;
     private final StudentExperimentalProcedureService studentExperimentalProcedureService;
     private final StudentProcedureCompletionService studentProcedureCompletionService;
     private final StudentProcedureQueryService studentProcedureQueryService;
     private final ClassExperimentService classExperimentService;
     private final StudentClassRelationService studentClassRelationService;
+    private final StudentProcedureSubmissionService studentProcedureSubmissionService;
 
-    public StudentProcedureController(ProcedureSubmissionService procedureSubmissionService,
+    public StudentProcedureController(
                                       StudentExperimentalProcedureService studentExperimentalProcedureService,
                                       StudentProcedureCompletionService studentProcedureCompletionService,
                                       StudentProcedureQueryService studentProcedureQueryService,
                                       ClassExperimentService classExperimentService,
-                                      StudentClassRelationService studentClassRelationService){
-        this.procedureSubmissionService = procedureSubmissionService;
+                                      StudentClassRelationService studentClassRelationService,
+                                      StudentProcedureSubmissionService studentProcedureSubmissionService){
         this.studentExperimentalProcedureService = studentExperimentalProcedureService;
         this.studentProcedureCompletionService = studentProcedureCompletionService;
         this.studentProcedureQueryService = studentProcedureQueryService;
         this.classExperimentService = classExperimentService;
         this.studentClassRelationService = studentClassRelationService;
+        this.studentProcedureSubmissionService = studentProcedureSubmissionService;
 
     }
 
@@ -96,21 +97,19 @@ public class StudentProcedureController {
     /**
      * 查询学生的步骤提交列表
      *
-     * @param courseId 课程ID（可选）
      * @param experimentId 实验ID（可选）
      * @return 步骤列表
      */
     @GetMapping
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<List<ProcedureSubmissionResponse>> getProcedureSubmissions(
-            @RequestParam(value = "courseId", required = false) String courseId,
-            @RequestParam(value = "experimentId", required = false) String experimentId) {
+    public ApiResponse<List<StudentProcedureSubmissionResponse>> getProcedureSubmissions(
+            @RequestParam(value = "experimentId", required = false) Long experimentId) {
         try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+            String studentUsername = SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<ProcedureSubmissionResponse> submissions = procedureSubmissionService.getStudentSubmissions(
-                    studentUsername, courseId, experimentId
+            List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getStudentSubmissions(
+                    studentUsername, experimentId
             );
 
             return ApiResponse.success(submissions, "查询成功");
@@ -121,21 +120,21 @@ public class StudentProcedureController {
     }
 
     /**
-     * 按课程查询步骤提交
+     * 按实验查询步骤提交
      *
-     * @param courseId 课程ID
+     * @param experimentId 实验ID
      * @return 步骤列表
      */
-    @GetMapping("/course/{courseId}")
+    @GetMapping("/experiment/{experimentId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<List<ProcedureSubmissionResponse>> getProcedureSubmissionsByCourse(
-            @PathVariable("courseId") String courseId) {
+    public ApiResponse<List<StudentProcedureSubmissionResponse>> getProcedureSubmissionsByExperiment(
+            @PathVariable("experimentId") Long experimentId) {
         try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+            String studentUsername = SecurityUtil.getCurrentUsername()
                     .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<ProcedureSubmissionResponse> submissions = procedureSubmissionService.getStudentSubmissions(
-                    studentUsername, courseId, null
+            List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getStudentSubmissions(
+                    studentUsername, experimentId
             );
 
             return ApiResponse.success(submissions, "查询成功");

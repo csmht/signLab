@@ -6,25 +6,31 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 实验步骤提交响应
+ * 学生步骤提交响应
+ * 基于 StudentExperimentalProcedure 实体
  */
 @Data
-public class ProcedureSubmissionResponse {
+public class StudentProcedureSubmissionResponse {
 
     /**
-     * 步骤提交ID
+     * 提交记录ID
      */
     private Long id;
 
     /**
-     * 课程ID
-     */
-    private String courseId;
-
-    /**
      * 实验ID
      */
-    private String experimentId;
+    private Long experimentId;
+
+    /**
+     * 实验步骤ID
+     */
+    private Long procedureId;
+
+    /**
+     * 步骤序号
+     */
+    private Integer number;
 
     /**
      * 学生用户名
@@ -37,22 +43,12 @@ public class ProcedureSubmissionResponse {
     private String studentName;
 
     /**
-     * 提交类型（实验报告、数据文件等）
+     * 班级编号
      */
-    private String submissionType;
+    private String classCode;
 
     /**
-     * 文件名（原始文件名）
-     */
-    private String fileName;
-
-    /**
-     * 文件大小（字节）
-     */
-    private Long fileSize;
-
-    /**
-     * 提交状态（0-未批改，1-已批改）
+     * 提交状态（0-未评分，1-教师人工评分，2-系统自动评分）
      */
     private Integer submissionStatus;
 
@@ -77,7 +73,7 @@ public class ProcedureSubmissionResponse {
     private LocalDateTime createTime;
 
     /**
-     * 文件下载密钥
+     * 更新时间
      */
-    private String downloadKey;
+    private LocalDateTime updateTime;
 }
