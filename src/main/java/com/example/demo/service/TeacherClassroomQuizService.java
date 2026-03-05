@@ -3,12 +3,15 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.demo.pojo.entity.ClassroomQuiz;
 import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequest;
+import com.example.demo.pojo.response.ClassroomQuizHistoryResponse;
 import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
+import org.springframework.stereotype.Service;
 
 /**
  * 教师课堂小测服务
  */
+@Service
 public interface TeacherClassroomQuizService extends IService<ClassroomQuiz> {
 
     /**
@@ -56,5 +59,5 @@ public interface TeacherClassroomQuizService extends IService<ClassroomQuiz> {
      * @param classExperimentId 班级实验ID（可选，不传则查询所有）
      * @return 历史小测列表
      */
-    java.util.List<com.example.demo.pojo.entity.ClassroomQuiz> getHistoryQuizzes(Long classExperimentId);
+    java.util.List<ClassroomQuizHistoryResponse> getHistoryQuizzes(Long classExperimentId);
 }

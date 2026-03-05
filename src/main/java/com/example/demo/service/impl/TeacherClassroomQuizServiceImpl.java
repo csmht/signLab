@@ -6,10 +6,13 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequest;
+import com.example.demo.pojo.response.ClassroomQuizHistoryResponse;
 import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.TeacherClassroomQuizService;
+import com.example.demo.util.AnswerMapJSONUntil;
+import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -50,16 +53,15 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             throw new BusinessException(404, "班级实验不存在");
         }
 
-        // 验证题库配置ID是否存在
-        ProcedureTopic procedureTopic = procedureTopicMapper.selectById(request.getProcedureTopicId());
-        if (procedureTopic == null) {
-            throw new BusinessException(404, "题库配置不存在");
-        }
+        // 如果没有传入已有的题库配置ID，则创建新的题库配置
+        Long procedureTopicId = createProcedureTopicForQuiz(request);
+        log.info("为课堂小测创建新的题库配置，ID: {}", procedureTopicId);
+
 
         // 创建小测记录
         ClassroomQuiz quiz = new ClassroomQuiz();
         quiz.setClassExperimentId(request.getClassExperimentId());
-        quiz.setProcedureTopicId(request.getProcedureTopicId());
+        quiz.setProcedureTopicId(procedureTopicId);
         quiz.setQuizTitle(request.getQuizTitle());
         quiz.setQuizDescription(request.getQuizDescription());
         quiz.setQuizTimeLimit(request.getQuizTimeLimit());
@@ -71,6 +73,91 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
 
         log.info("课堂小测创建成功，ID: {}", quiz.getId());
         return quiz.getId();
+    }
+
+    /**
+     * 为课堂小测创建题库配置
+     */
+    private Long createProcedureTopicForQuiz(CreateClassroomQuizRequest request) {
+        // 验证题库配置字段
+        if (request.getIsRandom() == null) {
+            throw new BusinessException(400, "是否随机抽取不能为空");
+        }
+
+        // 验证随机模式的字段
+        if (Boolean.TRUE.equals(request.getIsRandom())) {
+            if (request.getTopicNumber() == null || request.getTopicNumber() <= 0) {
+                throw new BusinessException(400, "随机模式下题目数量必须大于0");
+            }
+        } else {
+            // 验证老师选定模式的字段
+            if (request.getTeacherSelectedTopicIds() == null || request.getTeacherSelectedTopicIds().isEmpty()) {
+                throw new BusinessException(400, "非随机模式下必须选择题目");
+            }
+        }
+
+        // 创建题库配置记录（experimentalProcedureId 设为 null，表示这是课堂小测专用的配置）
+        ProcedureTopic procedureTopic = new ProcedureTopic();
+        procedureTopic.setExperimentalProcedureId(null); // 课堂小测不关联实验步骤
+        procedureTopic.setIsRandom(request.getIsRandom());
+        procedureTopic.setNumber(request.getTopicNumber());
+        procedureTopic.setTags(joinListToString(request.getTopicTags()));
+        procedureTopic.setTopicTypes(joinIntegerListToString(request.getTopicTypes()));
+        procedureTopic.setCreatedTime(LocalDateTime.now());
+        procedureTopic.setIsDeleted(false);
+
+        procedureTopicMapper.insert(procedureTopic);
+
+        // 如果是老师选定模式，创建题目映射记录
+        if (!Boolean.TRUE.equals(request.getIsRandom())) {
+            List<Long> topicIds = request.getTeacherSelectedTopicIds();
+
+            // 验证题目是否存在
+            LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+            topicQueryWrapper.in(Topic::getId, topicIds);
+            long existingTopicCount = topicMapper.selectCount(topicQueryWrapper);
+
+            if (existingTopicCount != topicIds.size()) {
+                throw new BusinessException(400,
+                        String.format("有%d道题目不存在或已删除", topicIds.size() - existingTopicCount));
+            }
+
+            // 创建题目映射记录
+            for (Long topicId : topicIds) {
+                ProcedureTopicMap topicMap = new ProcedureTopicMap();
+                topicMap.setExperimentalProcedureId(null); // 课堂小测不关联实验步骤
+                topicMap.setTopicId(topicId);
+                topicMap.setProcedureTopicId(procedureTopic.getId());
+                procedureTopicMapMapper.insert(topicMap);
+            }
+            log.info("为课堂小测创建了{}道题目的映射记录", topicIds.size());
+        }
+
+        return procedureTopic.getId();
+    }
+
+    /**
+     * 将 Long 列表拼接成逗号分隔的字符串
+     */
+    private String joinListToString(List<Long> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+    }
+
+    /**
+     * 将 Integer 列表拼接成逗号分隔的字符串
+     */
+    private String joinIntegerListToString(List<Integer> list) {
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        return list.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
     }
 
     @Override
@@ -396,18 +483,18 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
      * 解析题库答案JSON
      */
     private Map<Long, String> parseTopicAnswers(String answerJson) {
-        return com.example.demo.util.AnswerMapJSONUntil.parseTopicData(answerJson);
+        return AnswerMapJSONUntil.parseTopicData(answerJson);
     }
 
     /**
      * 获取当前用户名
      */
     private String getCurrentUsername() {
-        return com.example.demo.util.SecurityUtil.getCurrentUsername().orElse("system");
+        return SecurityUtil.getCurrentUsername().orElse("system");
     }
 
     @Override
-    public java.util.List<ClassroomQuiz> getHistoryQuizzes(Long classExperimentId) {
+    public List<ClassroomQuizHistoryResponse> getHistoryQuizzes(Long classExperimentId) {
         log.info("查询教师历史小测列表，班级实验ID: {}", classExperimentId);
 
         // 获取当前教师用户名
@@ -425,6 +512,37 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         // 按创建时间倒序排列
         queryWrapper.orderByDesc(ClassroomQuiz::getCreatedTime);
 
-        return classroomQuizMapper.selectList(queryWrapper);
+        List<ClassroomQuiz> quizzes = classroomQuizMapper.selectList(queryWrapper);
+
+        // 转换为响应对象
+        return quizzes.stream().map(quiz -> {
+            ClassroomQuizHistoryResponse response = new ClassroomQuizHistoryResponse();
+            response.setId(quiz.getId());
+            response.setClassExperimentId(quiz.getClassExperimentId());
+            response.setQuizTitle(quiz.getQuizTitle());
+            response.setQuizDescription(quiz.getQuizDescription());
+            response.setQuizTimeLimit(quiz.getQuizTimeLimit());
+            response.setStatus(quiz.getStatus());
+            response.setStartTime(quiz.getStartTime());
+            response.setEndTime(quiz.getEndTime());
+            response.setCreatedBy(quiz.getCreatedBy());
+            response.setCreatedTime(quiz.getCreatedTime());
+
+            // 查询题库配置信息
+            ProcedureTopic procedureTopic = procedureTopicMapper.selectById(quiz.getProcedureTopicId());
+            if (procedureTopic != null) {
+                // 非随机模式下，查询选定的题目数量
+                Integer selectedTopicCount = null;
+                if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
+                    LambdaQueryWrapper<ProcedureTopicMap> mapWrapper = new LambdaQueryWrapper<>();
+                    mapWrapper.eq(ProcedureTopicMap::getProcedureTopicId, procedureTopic.getId());
+                    selectedTopicCount = Math.toIntExact(procedureTopicMapMapper.selectCount(mapWrapper));
+                }
+                response.setProcedureTopic(
+                        ClassroomQuizHistoryResponse.ProcedureTopicInfo.fromEntity(procedureTopic, selectedTopicCount));
+            }
+
+            return response;
+        }).collect(Collectors.toList());
     }
 }

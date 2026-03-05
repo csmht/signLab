@@ -23,8 +23,8 @@ public class ProcedureTopicMap {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 实验步骤ID */
-    @Column(comment = "实验步骤ID", type = "bigint", notNull = true)
+    /** 实验步骤ID（课堂小测时为空） */
+    @Column(comment = "实验步骤ID（课堂小测时为空）", type = "bigint")
     private Long experimentalProcedureId;
 
     /** 题目ID */

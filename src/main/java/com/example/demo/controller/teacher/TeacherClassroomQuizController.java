@@ -5,6 +5,7 @@ import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.entity.ClassroomQuiz;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequest;
+import com.example.demo.pojo.response.ClassroomQuizHistoryResponse;
 import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.TeacherClassroomQuizService;
@@ -110,10 +111,10 @@ public class TeacherClassroomQuizController {
      */
     @GetMapping("/history")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<ClassroomQuiz>> getHistoryQuizzes(
+    public ApiResponse<List<ClassroomQuizHistoryResponse>> getHistoryQuizzes(
             @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
         try {
-            List<ClassroomQuiz> quizzes = teacherClassroomQuizService.getHistoryQuizzes(classExperimentId);
+            List<ClassroomQuizHistoryResponse> quizzes = teacherClassroomQuizService.getHistoryQuizzes(classExperimentId);
             return ApiResponse.success(quizzes, "查询成功");
         } catch (Exception e) {
             log.error("查询历史小测列表失败", e);
