@@ -7,6 +7,7 @@ import com.example.demo.pojo.entity.ExperimentalProcedure;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
 import com.example.demo.pojo.vo.CourseGradeResult;
 import com.example.demo.pojo.vo.ExperimentGradeResult;
+import com.example.demo.util.ScoreCalculationUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -61,38 +62,12 @@ public class GradeCalculationService {
         }
 
         // 5. 检查是否有未批改的步骤（占比>0且未批改）
-        boolean hasUngradedProcedure = false;
-        for (ExperimentalProcedure procedure : procedures) {
-            if (procedure.getProportion() != null && procedure.getProportion() > 0) {
-                StudentExperimentalProcedure studentAnswer = studentAnswerMap.get(procedure.getId());
-                // 未提交或未批改（isGraded == 0 或 null）
-                if (studentAnswer == null || studentAnswer.getIsGraded() == null || studentAnswer.getIsGraded() == 0) {
-                    hasUngradedProcedure = true;
-                    break;
-                }
-            }
-        }
-
-        // 6. 如果有未批改的步骤，返回未批改结果
-        if (hasUngradedProcedure) {
+        if (!ScoreCalculationUtil.isAllProceduresGraded(procedures, studentProcedures)) {
             return ExperimentGradeResult.ungraded(experimentId, experiment.getExperimentName());
         }
 
-        // 7. 计算实验成绩 = Σ(步骤得分 × 步骤占比 / 100)
-        BigDecimal experimentScore = BigDecimal.ZERO;
-        for (ExperimentalProcedure procedure : procedures) {
-            if (procedure.getProportion() != null && procedure.getProportion() > 0) {
-                StudentExperimentalProcedure studentAnswer = studentAnswerMap.get(procedure.getId());
-                if (studentAnswer != null && studentAnswer.getScore() != null) {
-                    BigDecimal procedureScore = studentAnswer.getScore();
-                    BigDecimal proportion = new BigDecimal(procedure.getProportion());
-                    // 步骤得分 × 步骤占比 / 100
-                    BigDecimal weightedScore = procedureScore.multiply(proportion)
-                            .divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
-                    experimentScore = experimentScore.add(weightedScore);
-                }
-            }
-        }
+        // 6. 计算实验成绩（使用工具类）
+        BigDecimal experimentScore = ScoreCalculationUtil.calculateExperimentScore(procedures, studentProcedures);
 
         // 确保分数不超过100
         if (experimentScore.compareTo(new BigDecimal("100")) > 0) {

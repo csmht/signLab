@@ -16,6 +16,8 @@ import java.lang.Class;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import com.example.demo.util.ScoreCalculationUtil;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -426,7 +428,7 @@ public class TeacherStudentProcedureQueryService {
         int validStudentCount = 0;  // 非 0 分学生数量
         for (String username : studentUserName) {
             List<StudentExperimentalProcedure> studentProcList = studentProcedureMap.getOrDefault(username, Collections.emptyList());
-            BigDecimal studentScore = calculateStudentTotalScore(username, requiredProcedureIds, studentProcList);
+            BigDecimal studentScore = ScoreCalculationUtil.calculateExperimentScore(procedures, studentProcList);
             // 只统计非 0 分的学生
             if (studentScore.compareTo(BigDecimal.ZERO) > 0) {
                 totalScoreSum = totalScoreSum.add(studentScore);
@@ -497,7 +499,7 @@ public class TeacherStudentProcedureQueryService {
             info.setProgress(completedCount + "/" + totalProcedures);
 
             // 使用业务规则计算总得分
-            BigDecimal totalScore = calculateStudentTotalScore(username, requiredProcedureIds, studentProcList);
+            BigDecimal totalScore = ScoreCalculationUtil.calculateExperimentScore(procedures, studentProcList);
             info.setTotalScore(totalScore);
 
             // 最后提交时间
@@ -518,58 +520,6 @@ public class TeacherStudentProcedureQueryService {
         response.setStudentCompletions(studentCompletions);
 
         return response;
-    }
-
-    /**
-     * 计算学生实验总分
-     * 规则：如果任意一个占比不为零的步骤未完成或未批改，则总分为0
-     *
-     * @param studentUsername 学生用户名
-     * @param requiredProcedureIds 必须完成的步骤ID列表
-     * @param studentProcedures 学生的步骤提交记录
-     * @return 学生总分
-     */
-    private BigDecimal calculateStudentTotalScore(
-            String studentUsername,
-            List<Long> requiredProcedureIds,
-            List<StudentExperimentalProcedure> studentProcedures) {
-
-        // 按步骤ID分组
-        Map<Long, StudentExperimentalProcedure> procedureMap = studentProcedures.stream()
-            .filter(sp -> sp.getStudentUsername().equals(studentUsername))
-            .collect(Collectors.toMap(
-                StudentExperimentalProcedure::getExperimentalProcedureId,
-                sp -> sp,
-                (a, b) -> a
-            ));
-
-        // 检查是否所有必须完成的步骤都已完成并批改
-        for (Long requiredId : requiredProcedureIds) {
-            StudentExperimentalProcedure sp = procedureMap.get(requiredId);
-            // 未完成：没有记录
-            if (sp == null) {
-                return BigDecimal.ZERO;
-            }
-            // 未完成：answer 为空
-            if (sp.getAnswer() == null || sp.getAnswer().trim().isEmpty()) {
-                return BigDecimal.ZERO;
-            }
-            // 未批改：score 为 null
-            if (sp.getScore() == null) {
-                return BigDecimal.ZERO;
-            }
-            // 未批改：isGraded 为 0 或 null
-            if (sp.getIsGraded() == null || sp.getIsGraded() == 0) {
-                return BigDecimal.ZERO;
-            }
-        }
-
-        // 所有必须步骤都已完成并批改，计算总分
-        return studentProcedures.stream()
-            .filter(sp -> sp.getStudentUsername().equals(studentUsername))
-            .map(StudentExperimentalProcedure::getScore)
-            .filter(Objects::nonNull)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
