@@ -103,6 +103,7 @@ public class TeacherStudentProcedureQueryService {
                 if (studentProcedure.getScore() != null) {
                     totalScore = totalScore.add(studentProcedure.getScore());
                 }
+                completion.setSubmissionId(studentProcedure.getId());
             } else {
                 completion.setIsCompleted(false);
             }

@@ -91,5 +91,10 @@ public class StudentProcedureCompletionResponse {
          * 步骤分数占比
          */
         private Integer proportion;
+
+        /**
+         * 提交记录ID（学生完成该步骤后才有值）
+         */
+        private Long submissionId;
     }
 }
