@@ -100,6 +100,7 @@ public class TeacherStudentProcedureQueryService {
                 completion.setIsCompleted(true);
                 completion.setSubmissionTime(studentProcedure.getCreatedTime());
                 completion.setScore(studentProcedure.getScore());
+                completion.setIsGraded(studentProcedure.getIsGraded());
                 if (studentProcedure.getScore() != null) {
                     totalScore = totalScore.add(studentProcedure.getScore());
                 }
@@ -184,6 +185,7 @@ public class TeacherStudentProcedureQueryService {
             response.setSubmissionTime(studentProcedure.getCreatedTime());
             response.setScore(studentProcedure.getScore());
             response.setTeacherComment(studentProcedure.getTeacherComment());
+            response.setIsGraded(studentProcedure.getIsGraded());
 
             // 根据步骤类型查询详细信息
             fillProcedureCompletionDetail(response, procedure, studentProcedure);
@@ -618,6 +620,7 @@ public class TeacherStudentProcedureQueryService {
         response.setSubmissionTime(studentProcedure.getCreatedTime());
         response.setScore(studentProcedure.getScore());
         response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsGraded(studentProcedure.getIsGraded());
         response.setIsAfterEndTime(isAfterEndTime);
 
         // 根据步骤类型填充详细信息
@@ -1078,6 +1081,7 @@ public class TeacherStudentProcedureQueryService {
         response.setSubmissionTime(studentProcedure.getCreatedTime());
         response.setScore(studentProcedure.getScore());
         response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsGraded(studentProcedure.getIsGraded());
 
         // 填充视频详情
         if (procedure.getVideoId() != null) {
@@ -1179,6 +1183,7 @@ public class TeacherStudentProcedureQueryService {
         response.setSubmissionTime(studentProcedure.getCreatedTime());
         response.setScore(studentProcedure.getScore());
         response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsGraded(studentProcedure.getIsGraded());
 
         // 填充数据收集详情
         if (procedure.getDataCollectionId() != null) {
@@ -1345,6 +1350,7 @@ public class TeacherStudentProcedureQueryService {
         response.setSubmissionTime(studentProcedure.getCreatedTime());
         response.setScore(studentProcedure.getScore());
         response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsGraded(studentProcedure.getIsGraded());
 
         // 填充题库详情
         if (procedure.getProcedureTopicId() != null) {
@@ -1494,6 +1500,7 @@ public class TeacherStudentProcedureQueryService {
         response.setSubmissionTime(studentProcedure.getCreatedTime());
         response.setScore(studentProcedure.getScore());
         response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsGraded(studentProcedure.getIsGraded());
 
         // 填充限时答题详情
         if (procedure.getTimedQuizId() != null) {

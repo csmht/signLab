@@ -53,6 +53,11 @@ public class StudentTopicProcedureDetailResponse {
     private String teacherComment;
 
     /**
+     * 评分状态（0-未评分，1-教师人工评分，2-系统自动评分）
+     */
+    private Integer isGraded;
+
+    /**
      * 题库详情
      */
     @Data

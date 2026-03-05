@@ -48,9 +48,9 @@ public class StudentProcedureSubmissionResponse {
     private String classCode;
 
     /**
-     * 提交状态（0-未评分，1-教师人工评分，2-系统自动评分）
+     * 评分状态（0-未评分，1-教师人工评分，2-系统自动评分）
      */
-    private Integer submissionStatus;
+    private Integer isGraded;
 
     /**
      * 教师评语

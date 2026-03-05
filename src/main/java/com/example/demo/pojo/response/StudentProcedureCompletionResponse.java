@@ -96,5 +96,11 @@ public class StudentProcedureCompletionResponse {
          * 提交记录ID（学生完成该步骤后才有值）
          */
         private Long submissionId;
+
+        /**
+         * 评分状态（0-未评分，1-教师人工评分，2-系统自动评分）
+         * 学生完成该步骤后才有值
+         */
+        private Integer isGraded;
     }
 }

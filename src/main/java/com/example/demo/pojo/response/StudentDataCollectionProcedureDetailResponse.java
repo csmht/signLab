@@ -54,6 +54,11 @@ public class StudentDataCollectionProcedureDetailResponse {
     private String teacherComment;
 
     /**
+     * 评分状态（0-未评分，1-教师人工评分，2-系统自动评分）
+     */
+    private Integer isGraded;
+
+    /**
      * 数据收集详情
      */
     @Data

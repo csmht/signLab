@@ -18,11 +18,11 @@ import java.util.Map;
 
 /**
  * 题目表
- * 存储试卷中的题目信息
+ * 存储题目信息
  */
 @Data
 @AutoTable
-@Table(value = "topics", comment = "题目表 - 存储试卷中的题目信息")
+@Table(value = "topics", comment = "题目表 - 存储题目信息")
 @TableName("topics")
 @TableIndex(name = "idx_paper_id", fields = {"paperId"})
 public class Topic {

@@ -138,7 +138,7 @@ public class StudentProcedureSubmissionService {
         response.setNumber(submission.getNumber());
         response.setStudentUsername(submission.getStudentUsername());
         response.setClassCode(submission.getClassCode());
-        response.setSubmissionStatus(submission.getIsGraded());
+        response.setIsGraded(submission.getIsGraded());
         response.setTeacherComment(submission.getTeacherComment());
         response.setScore(submission.getScore());
         response.setCreateTime(submission.getCreatedTime());

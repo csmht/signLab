@@ -82,6 +82,12 @@ public class ClassStudentProcedureDetailResponse<T> {
         private String teacherComment;
 
         /**
+         * 评分状态（0-未评分，1-教师人工评分，2-系统自动评分）
+         * 已提交时有值
+         */
+        private Integer isGraded;
+
+        /**
          * 具体步骤详情
          */
         private T detail;

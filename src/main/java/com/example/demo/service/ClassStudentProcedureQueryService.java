@@ -176,6 +176,7 @@ public class ClassStudentProcedureQueryService {
             item.setSubmissionTime(submission.getCreatedTime());
             item.setScore(submission.getScore());
             item.setTeacherComment(submission.getTeacherComment());
+            item.setIsGraded(submission.getIsGraded());
 
             // 根据类型填充详情
             T detail = (T) fillCompletedDetail(procedure, submission, submission.getStudentUsername(), isAfterEndTime, procedureType);

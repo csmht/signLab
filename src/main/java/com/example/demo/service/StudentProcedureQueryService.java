@@ -114,6 +114,7 @@ public class StudentProcedureQueryService {
         response.setSubmissionTime(studentProcedure.getCreatedTime());
         response.setScore(studentProcedure.getScore());
         response.setTeacherComment(studentProcedure.getTeacherComment());
+        response.setIsGraded(studentProcedure.getIsGraded());
         response.setIsAfterEndTime(isAfterEndTime);
 
         // 根据步骤类型填充详细信息

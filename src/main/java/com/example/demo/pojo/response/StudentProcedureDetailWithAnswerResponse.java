@@ -67,6 +67,11 @@ public class StudentProcedureDetailWithAnswerResponse {
     private String teacherComment;
 
     /**
+     * 评分状态（0-未评分，1-教师人工评分，2-系统自动评分）
+     */
+    private Integer isGraded;
+
+    /**
      * 是否已过答题时间
      * 如果true，表示当前时间已超过步骤答题时间，可以显示正确答案
      * 如果false，表示还在答题时间内，不显示正确答案
