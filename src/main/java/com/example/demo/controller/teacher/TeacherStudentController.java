@@ -286,7 +286,7 @@ public class TeacherStudentController {
      */
     @GetMapping("/{studentUsername}/procedures/{procedureId}/completed")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Object> getStudentCompletedProcedureDetail(
+    public ApiResponse<StudentProcedureDetailWithAnswerResponse> getStudentCompletedProcedureDetail(
             @PathVariable("studentUsername") String studentUsername,
             @RequestParam("courseId") String courseId,
             @RequestParam("experimentId") Long experimentId,
@@ -316,7 +316,7 @@ public class TeacherStudentController {
      */
     @GetMapping("/{studentUsername}/procedures/{procedureId}/uncompleted")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Object> getStudentUncompletedProcedureDetail(
+    public ApiResponse<StudentProcedureDetailWithoutAnswerResponse> getStudentUncompletedProcedureDetail(
             @PathVariable("studentUsername") String studentUsername,
             @RequestParam("courseId") String courseId,
             @RequestParam("experimentId") Long experimentId,

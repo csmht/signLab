@@ -161,7 +161,7 @@ public class TeacherStudentProcedureQueryService {
             // 通过关联表查询班级实验ID列表
             List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
             for (StudentExperimentalProcedure sp : studentProcedures) {
-                if (experimentIds.contains(sp.getClassExperimentId())) {
+                if (experimentIds.contains(sp.getId())) {
                     studentProcedure = sp;
                     break;
                 }
@@ -183,7 +183,6 @@ public class TeacherStudentProcedureQueryService {
             response.setSubmissionTime(studentProcedure.getCreatedTime());
             response.setScore(studentProcedure.getScore());
             response.setTeacherComment(studentProcedure.getTeacherComment());
-            response.setAnswer(studentProcedure.getAnswer());
 
             // 根据步骤类型查询详细信息
             fillProcedureCompletionDetail(response, procedure, studentProcedure);
@@ -229,6 +228,23 @@ public class TeacherStudentProcedureQueryService {
             ExperimentalProcedure procedure,
             StudentExperimentalProcedure studentProcedure) {
 
+        // 1. 解析学生答案 JSON，设置 fillBlankAnswers 和 tableCellAnswers
+        String answerString = studentProcedure.getAnswer();
+        if (answerString != null && !answerString.trim().isEmpty()) {
+            // 使用工具类解析 data 字段（支持嵌套对象）
+            java.util.Map<String, Object> dataMap = com.example.demo.util.AnswerMapJSONUntil.parseDataAsObject(answerString);
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, String> fillBlankAnswers = (java.util.Map<String, String>) dataMap.get("fillBlankAnswers");
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, String> tableCellAnswers = (java.util.Map<String, String>) dataMap.get("tableCellAnswers");
+
+            response.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+            response.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
+        }
+
+        // 2. 查询附件信息
         LambdaQueryWrapper<StudentProcedureAttachment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(StudentProcedureAttachment::getProcedureId, procedure.getId())
                 .eq(StudentProcedureAttachment::getStudentUsername, response.getStudentUsername())
@@ -853,11 +869,7 @@ public class TeacherStudentProcedureQueryService {
                     // 教师始终可以查看正确答案和是否正确
                     item.setCorrectAnswer(topic.getCorrectAnswer());
 
-                    if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
-                        item.setIsCorrect(true);
-                    } else {
-                        item.setIsCorrect(false);
-                    }
+                    item.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
 
                     topicItems.add(item);
                 }

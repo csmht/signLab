@@ -1,5 +1,7 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -65,9 +67,14 @@ public class StudentProcedureDetailCompletionResponse {
     // ===== 类型2：数据收集提交内容 =====
 
     /**
-     * 文本答案（类型2、3有效）
+     * 填空答案列表（类型2有效）
      */
-    private String answer;
+    private List<FillBlankAnswer> fillBlankAnswers;
+
+    /**
+     * 表格答案列表（类型2有效）
+     */
+    private List<TableCellAnswer> tableCellAnswers;
 
     /**
      * 提交的照片列表（类型2有效）
