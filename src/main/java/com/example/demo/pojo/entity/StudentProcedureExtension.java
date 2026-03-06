@@ -1,6 +1,7 @@
 package com.example.demo.pojo.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.tangzc.autotable.annotation.AutoTable;
@@ -28,6 +29,10 @@ public class StudentProcedureExtension {
     /** 学生用户名(学号) */
     @Column(comment = "学生用户名", type = "varchar(50)", notNull = true)
     private String studentUsername;
+
+    /** 学生姓名（非数据库字段，查询时填充） */
+    @TableField(exist = false)
+    private String studentName;
 
     /** 实验步骤ID */
     @Column(comment = "实验步骤ID", type = "bigint", notNull = true)

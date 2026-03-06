@@ -531,15 +531,34 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             // 查询题库配置信息
             ProcedureTopic procedureTopic = procedureTopicMapper.selectById(quiz.getProcedureTopicId());
             if (procedureTopic != null) {
-                // 非随机模式下，查询选定的题目数量
+                // 非随机模式下，查询选定的题���数量
                 Integer selectedTopicCount = null;
                 if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
                     LambdaQueryWrapper<ProcedureTopicMap> mapWrapper = new LambdaQueryWrapper<>();
                     mapWrapper.eq(ProcedureTopicMap::getProcedureTopicId, procedureTopic.getId());
                     selectedTopicCount = Math.toIntExact(procedureTopicMapMapper.selectCount(mapWrapper));
                 }
-                response.setProcedureTopic(
-                        ClassroomQuizHistoryResponse.ProcedureTopicInfo.fromEntity(procedureTopic, selectedTopicCount));
+                ClassroomQuizHistoryResponse.ProcedureTopicInfo procedureTopicInfo =
+                        ClassroomQuizHistoryResponse.ProcedureTopicInfo.fromEntity(procedureTopic, selectedTopicCount);
+
+                // 查询题目列表
+                List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
+                List<ClassroomQuizHistoryResponse.ProcedureTopicInfo.TopicInfo> topicInfos = topics.stream()
+                        .map(topic -> {
+                            ClassroomQuizHistoryResponse.ProcedureTopicInfo.TopicInfo topicInfo =
+                                new ClassroomQuizHistoryResponse.ProcedureTopicInfo.TopicInfo();
+                            topicInfo.setTopicId(topic.getId());
+                            topicInfo.setNumber(topic.getNumber());
+                            topicInfo.setType(topic.getType());
+                            topicInfo.setContent(topic.getContent());
+                            topicInfo.setChoices(topic.getChoices());
+                            topicInfo.setCorrectAnswer(topic.getCorrectAnswer());
+                            return topicInfo;
+                        })
+                        .collect(Collectors.toList());
+                procedureTopicInfo.setTopics(topicInfos);
+
+                response.setProcedureTopic(procedureTopicInfo);
             }
 
             return response;

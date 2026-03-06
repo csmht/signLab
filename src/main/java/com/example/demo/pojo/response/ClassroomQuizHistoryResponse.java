@@ -4,6 +4,7 @@ import com.example.demo.pojo.entity.ProcedureTopic;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 教师历史小测响应
@@ -49,9 +50,6 @@ public class ClassroomQuizHistoryResponse {
      */
     @Data
     public static class ProcedureTopicInfo {
-        /** 题库配置ID */
-        private Long id;
-
         /** 是否随机抽取 */
         private Boolean isRandom;
 
@@ -67,15 +65,41 @@ public class ClassroomQuizHistoryResponse {
         /** 选定的题目数量（非随机模式下） */
         private Integer selectedTopicCount;
 
+        /** 题目列表 */
+        private List<TopicInfo> topics;
+
         /**
-         * 从 ProcedureTopic 实体创建
+         * 题目信息
+         */
+        @Data
+        public static class TopicInfo {
+            /** 题目ID */
+            private Long topicId;
+
+            /** 题号 */
+            private Integer number;
+
+            /** 题目类型 */
+            private Integer type;
+
+            /** 题目内容 */
+            private String content;
+
+            /** 选项内容 */
+            private String choices;
+
+            /** 正确答案 */
+            private String correctAnswer;
+        }
+
+        /**
+         * 从 ProcedureTopic 实体创建（不包含题目列表）
          */
         public static ProcedureTopicInfo fromEntity(ProcedureTopic entity, Integer selectedTopicCount) {
             if (entity == null) {
                 return null;
             }
             ProcedureTopicInfo info = new ProcedureTopicInfo();
-            info.setId(entity.getId());
             info.setIsRandom(entity.getIsRandom());
             info.setNumber(entity.getNumber());
             info.setTags(entity.getTags());

@@ -181,12 +181,33 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 throw new BusinessException(400, "表格类型必须提交表格答案");
             }
         } else if (dataType == 3) {
-            // 文件数据类型：只需上传文件，无需填空或表格数据
-            // 验证至少上传了一个文件
+            // 文件数据类型：根据老师配置验证上传文件
+            boolean needPhoto = Boolean.TRUE.equals(dataCollectionConfig.getNeedPhoto());
+            boolean needDoc = Boolean.TRUE.equals(dataCollectionConfig.getNeedDoc());
             boolean hasPhotos = photos != null && !photos.isEmpty();
             boolean hasDocuments = documents != null && !documents.isEmpty();
-            if (!hasPhotos && !hasDocuments) {
-                throw new BusinessException(400, "文件数据类型至少需要上传一个文件");
+
+            // 根据老师配置验证上传要求
+            if (needPhoto && needDoc) {
+                // 老师要求图片和文档都需要，必须同时上传
+                if (!hasPhotos || !hasDocuments) {
+                    throw new BusinessException(400, "请同时上传图片和文档");
+                }
+            } else if (needPhoto) {
+                // 老师只要求图片
+                if (!hasPhotos) {
+                    throw new BusinessException(400, "请上传图片");
+                }
+            } else if (needDoc) {
+                // 老师只要求文档
+                if (!hasDocuments) {
+                    throw new BusinessException(400, "请上传文档");
+                }
+            } else {
+                // 老师未指定具体类型，至少上传一个文件
+                if (!hasPhotos && !hasDocuments) {
+                    throw new BusinessException(400, "请至少上传图片或文档");
+                }
             }
         }
 
@@ -555,8 +576,60 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 throw new BusinessException(400, "表格类型必须提交表格答案");
             }
         } else if (dataType == 3) {
-            // 文件数据类型：只需上传文件，无需填空或表格数据
-            // 修改时可以只删除或添加文件，不强制要求上传新文件
+            // 文件数据类型：根据老师配置验证上传文件
+            boolean needPhoto = Boolean.TRUE.equals(dataCollectionConfig.getNeedPhoto());
+            boolean needDoc = Boolean.TRUE.equals(dataCollectionConfig.getNeedDoc());
+
+            // 修改时需验证是否满足上传要求
+            if (needPhoto || needDoc) {
+                // 查询现有附件
+                LambdaQueryWrapper<StudentProcedureAttachment> attachQuery = new LambdaQueryWrapper<>();
+                attachQuery.eq(StudentProcedureAttachment::getProcedureId, procedureId)
+                        .eq(StudentProcedureAttachment::getStudentUsername, studentUsername)
+                        .eq(StudentProcedureAttachment::getClassCode, classCode);
+                List<StudentProcedureAttachment> existingAttachments = list(attachQuery);
+
+                boolean hasNewPhotos = photos != null && !photos.isEmpty();
+                boolean hasNewDocs = documents != null && !documents.isEmpty();
+
+                // 计算删除后剩余的附件
+                long remainingPhotoCount = existingAttachments.stream()
+                        .filter(a -> a.getFileType() == 1)
+                        .count();
+                long remainingDocCount = existingAttachments.stream()
+                        .filter(a -> a.getFileType() == 2)
+                        .count();
+
+                if (attachmentIdsToDelete != null && !attachmentIdsToDelete.isEmpty()) {
+                    // 统计要删除的各类型附件数量
+                    for (Long attachId : attachmentIdsToDelete) {
+                        StudentProcedureAttachment attach = baseMapper.selectById(attachId);
+                        if (attach != null) {
+                            if (attach.getFileType() == 1) remainingPhotoCount--;
+                            else if (attach.getFileType() == 2) remainingDocCount--;
+                        }
+                    }
+                }
+
+                boolean hasPhotos = remainingPhotoCount > 0 || hasNewPhotos;
+                boolean hasDocs = remainingDocCount > 0 || hasNewDocs;
+
+                // 根据老师配置验证上传要求
+                if (needPhoto && needDoc) {
+                    // 老师要求图片和文档都需要，必须同时上传
+                    if (!hasPhotos || !hasDocs) {
+                        throw new BusinessException(400, "请同时上传图片和文档");
+                    }
+                } else if (needPhoto) {
+                    if (!hasPhotos) {
+                        throw new BusinessException(400, "请上传图片");
+                    }
+                } else if (needDoc) {
+                    if (!hasDocs) {
+                        throw new BusinessException(400, "请上传文档");
+                    }
+                }
+            }
         }
 
         // 5. 查询现有记录并更新

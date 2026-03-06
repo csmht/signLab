@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.StudentProcedureExtensionMapper;
+import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.entity.StudentProcedureExtension;
+import com.example.demo.pojo.entity.User;
 import com.example.demo.pojo.request.teacher.ExtensionQueryRequest;
 import com.example.demo.pojo.response.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
 public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedureExtensionMapper, StudentProcedureExtension> {
 
     private final ExperimentalProcedureService experimentalProcedureService;
+    private final UserMapper userMapper;
 
     /**
      * 计算延长后的结束时间（核心方法）
@@ -189,15 +193,45 @@ public class StudentProcedureExtensionService extends ServiceImpl<StudentProcedu
 
         wrapper.orderByDesc(StudentProcedureExtension::getId);
 
+        List<StudentProcedureExtension> records;
+        long total;
+        long current = 1;
+        long size = 10;
+
         // 分页查询
         if (Boolean.TRUE.equals(request.getPageable())) {
             Page<StudentProcedureExtension> page = new Page<>(request.getCurrent(), request.getSize());
             Page<StudentProcedureExtension> result = page(page, wrapper);
-            return PageResponse.of(result.getCurrent(), result.getSize(), result.getTotal(), result.getRecords());
+            records = result.getRecords();
+            total = result.getTotal();
+            current = result.getCurrent();
+            size = result.getSize();
         } else {
-            List<StudentProcedureExtension> list = list(wrapper);
-            return PageResponse.of(1L, (long) list.size(), (long) list.size(), list);
+            records = list(wrapper);
+            total = records.size();
         }
+
+        // 批量查询学生信息填充姓名
+        if (!records.isEmpty()) {
+            List<String> studentUsernames = records.stream()
+                    .map(StudentProcedureExtension::getStudentUsername)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            LambdaQueryWrapper<User> userQuery = new LambdaQueryWrapper<>();
+            userQuery.in(User::getUsername, studentUsernames);
+            List<User> students = userMapper.selectList(userQuery);
+
+            Map<String, String> studentNameMap = students.stream()
+                    .collect(Collectors.toMap(User::getUsername, User::getName, (a, b) -> a));
+
+            // 填充学生姓名
+            for (StudentProcedureExtension record : records) {
+                record.setStudentName(studentNameMap.get(record.getStudentUsername()));
+            }
+        }
+
+        return PageResponse.of(current, size, total, records);
     }
 
     /**
