@@ -148,6 +148,11 @@ public class TeacherProcedureDetailResponse {
     private List<Long> topicIds;
 
     /**
+     * 随机抽题题型
+     */
+    private String topicTypes;
+
+    /**
      * 题目详情列表（类型3时有效）
      */
     private List<TopicDetail> topics;

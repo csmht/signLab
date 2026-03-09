@@ -250,6 +250,7 @@ public class TeacherProcedureQueryService {
             response.setTopicIsRandom(procedureTopic.getIsRandom());
             response.setTopicNumber(procedureTopic.getNumber());
             response.setTopicTags(procedureTopic.getTags());
+            response.setTopicTypes(procedureTopic.getTopicTypes());
         }
 
         // 查询题目映射
