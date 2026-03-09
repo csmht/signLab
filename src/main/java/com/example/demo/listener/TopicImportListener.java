@@ -7,6 +7,7 @@ import com.example.demo.pojo.entity.Tag;
 import com.example.demo.pojo.excel.TopicImportExcel;
 import com.example.demo.service.TagService;
 import com.example.demo.service.TopicService;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -211,16 +212,12 @@ public class TopicImportListener extends AnalysisEventListener<TopicImportExcel>
         }
 
         String type = topicType.trim();
-        switch (type) {
-            case "单选题":
-                return 1;
-            case "多选题":
-                return 2;
-            case "判断题":
-                return 3;
-            default:
-                throw new BusinessException(400, "不支持的题目类型: " + type + "，仅支持：单选题、多选题、判断题");
-        }
+        return switch (type) {
+            case "单选题" -> 1;
+            case "多选题" -> 2;
+            case "判断题" -> 3;
+            default -> throw new BusinessException(400, "不支持的题目类型: " + type + "，仅支持：单选题、多选题、判断题");
+        };
     }
 
     /**
@@ -232,16 +229,11 @@ public class TopicImportListener extends AnalysisEventListener<TopicImportExcel>
         if (type == 3) {
             // 判断题：A/B 或 正确/错误
             String upperAnswer = answer.toUpperCase();
-            switch (upperAnswer) {
-                case "A":
-                case "正确":
-                    return "A";
-                case "B":
-                case "错误":
-                    return "B";
-                default:
-                    throw new BusinessException(400, "判断题答案格式错误，请使用 A/B 或 正确/错误");
-            }
+            return switch (upperAnswer) {
+                case "A", "正确" -> "T";
+                case "B", "错误" -> "F";
+                default -> throw new BusinessException(400, "判断题答案格式错误，请使用 A/B 或 正确/错误");
+            };
         }
 
         // 单选题或多选题：验证答案格式
@@ -340,6 +332,7 @@ public class TopicImportListener extends AnalysisEventListener<TopicImportExcel>
     /**
      * 导入结果
      */
+    @Getter
     public static class ImportResult {
         private final int successCount;
         private final int failCount;
@@ -349,18 +342,6 @@ public class TopicImportListener extends AnalysisEventListener<TopicImportExcel>
             this.successCount = successCount;
             this.failCount = failCount;
             this.errorMessages = errorMessages;
-        }
-
-        public int getSuccessCount() {
-            return successCount;
-        }
-
-        public int getFailCount() {
-            return failCount;
-        }
-
-        public List<String> getErrorMessages() {
-            return errorMessages;
         }
 
         public boolean hasErrors() {
