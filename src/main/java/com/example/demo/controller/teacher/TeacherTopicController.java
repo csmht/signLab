@@ -283,16 +283,29 @@ public class TeacherTopicController {
             topic2.setChoices("{\"A\":\"苹果\",\"B\":\"香蕉\",\"C\":\"橙子\",\"D\":\"白菜\"}");
             demoData.add(topic2);
 
-            // 示例3：判断题
+            { // 示例3：判断题
             TopicImportExcel topic3 = new TopicImportExcel();
             topic3.setCourseTag("英语");
             topic3.setDifficultyTag("困难");
             topic3.setCustomTag("考题");
             topic3.setTopicType("判断题");
             topic3.setContent("地球是圆的。");
-            topic3.setCorrectAnswer("A");
+            topic3.setCorrectAnswer("正确");
             topic3.setChoices(null);
             demoData.add(topic3);
+            }
+
+            { // 示例3：判断题
+                TopicImportExcel topic3 = new TopicImportExcel();
+                topic3.setCourseTag("地理");
+                topic3.setDifficultyTag("困难");
+                topic3.setCustomTag("考题");
+                topic3.setTopicType("判断题");
+                topic3.setContent("地球是方的。");
+                topic3.setCorrectAnswer("错误");
+                topic3.setChoices(null);
+                demoData.add(topic3);
+            }
 
             // 写入Excel
             EasyExcel.write(response.getOutputStream(), TopicImportExcel.class)
