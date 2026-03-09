@@ -7,6 +7,7 @@ import com.example.demo.pojo.request.*;
 import com.example.demo.pojo.response.*;
 import com.example.demo.service.AuthService;
 import com.example.demo.util.SecurityUtil;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -212,6 +213,20 @@ public class AuthController {
 
             LoginResponse response = authService.loginByCode(code);
             return ApiResponse.success(response, "登录成功");
+        } catch (com.example.demo.exception.BusinessException e) {
+            return ApiResponse.error(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            return ApiResponse.error(500, "登录失败: " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/user")
+    @RequireRole(value = UserRole.STUDENT)
+    public ApiResponse<PageResponse<UserResponse>> getUser(GetUserRequest getUserRequest){
+        try {
+            PageResponse<UserResponse> pageResponse = authService.getUserPage(getUserRequest);
+           return ApiResponse.success(pageResponse);
         } catch (com.example.demo.exception.BusinessException e) {
             return ApiResponse.error(e.getCode(), e.getMessage());
         } catch (Exception e) {

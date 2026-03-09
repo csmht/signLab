@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.request.*;
 import com.example.demo.pojo.response.*;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -670,5 +672,56 @@ public class AuthService{
             }
         }
         return successCount;
+    }
+
+    public PageResponse<UserResponse> getUserPage(GetUserRequest request) {
+        Page<User> userPage ;
+        if(request.getCurrent()!=null&& request.getCurrent()>0){
+            userPage = new Page<>(request.getCurrent(),request.getSize());
+        }else {
+            userPage = new Page<>();
+        }
+
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+
+        if(request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
+            queryWrapper.eq(User::getUsername, request.getUsername().trim());
+        }
+        if(request.getRole() != null && !request.getRole().trim().isEmpty()) {
+            queryWrapper.like(User::getRole, request.getRole().trim().toLowerCase());
+        }
+        if(request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+            queryWrapper.like(User::getDepartment, request.getDepartment().trim().toLowerCase());
+        }
+        if(request.getMajor() != null && !request.getMajor().trim().isEmpty()) {
+            queryWrapper.like(User::getMajor, request.getMajor().trim().toLowerCase());
+        }
+        if(request.getName() != null && !request.getName().trim().isEmpty()) {
+            queryWrapper.like(User::getName, request.getName().trim().toLowerCase());
+        }
+
+        Page<User> page = userMapper.selectPage(userPage, queryWrapper);
+
+        PageResponse<UserResponse> ans = new PageResponse<>();
+
+        ans.setPages(page.getPages());
+        ans.setTotal(page.getTotal());
+        ans.setSize(page.getSize());
+        ans.setCurrent(page.getCurrent());
+
+        List<UserResponse> res = new ArrayList<>();
+        page.getRecords().forEach(record -> {
+            UserResponse userResponse = new UserResponse();
+            userResponse.setId(record.getId());
+            userResponse.setUsername(record.getUsername());
+            userResponse.setRole(record.getRole());
+            userResponse.setDepartment(record.getDepartment());
+            userResponse.setMajor(record.getMajor());
+            userResponse.setName(record.getName());
+            userResponse.setCreateTime(record.getCreateTime());
+            res.add(userResponse);
+        });
+        ans.setRecords(res);
+        return ans;
     }
 }

@@ -38,7 +38,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
      * 支持通配符 * 匹配单级路径,** 匹配多级路径
      */
     private static final List<String> PERMITTED_PATTERNS = Arrays.asList(
-            "/api/auth/**",
+            "/api/auth/login",
+            "/api/auth/test-db",
+            "api/auth//login-by-code",
+            "/api/auth/login-by-openid",
             "/api/test/**",
             "/api/health/**",
             "/api/student/bind-class",
