@@ -26,7 +26,7 @@ public class CreateTopicRequest {
 
     /**
      * 选项内容
-     * 格式："A:选项A$B:选项B"
+     * 格式：JSON{"A":"选项A"}
      */
     private String choices;
 

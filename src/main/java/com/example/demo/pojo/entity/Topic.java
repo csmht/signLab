@@ -51,7 +51,7 @@ public class Topic {
      * 选项内容
      * 格式：JSON格式 {"A":"选项A内容","B":"选项B内容","C":"选项C内容","D":"选项D内容"}
      */
-    @Column(comment = "选项内容", type = "varchar(255)")
+    @Column(comment = "选项内容", type = "text")
     private String choices;
 
     /**
