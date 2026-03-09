@@ -2,13 +2,16 @@ package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.example.demo.enums.UserRole;
-import com.example.demo.pojo.request.*;
-import com.example.demo.pojo.response.*;
-import com.example.demo.pojo.entity.User;
 import com.example.demo.enums.ResponseCode;
+import com.example.demo.enums.UserRole;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.entity.User;
+import com.example.demo.pojo.request.BatchAddUserRequest;
+import com.example.demo.pojo.request.GetUserRequest;
+import com.example.demo.pojo.request.LoginRequest;
+import com.example.demo.pojo.request.SetPasswordRequest;
+import com.example.demo.pojo.response.*;
 import com.example.demo.util.JwtUtil;
 import com.example.demo.util.PasswordUtil;
 import com.example.demo.util.SecurityUtil;
@@ -28,7 +31,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService{
+public class AuthService {
 
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
@@ -107,7 +110,7 @@ public class AuthService{
      * 绑定微信OpenID
      * 将用户账号与微信账号关联，支持获取微信用户信息
      *
-     * @param user 用户对象
+     * @param user   用户对象
      * @param wxCode 微信授权code
      * @throws BusinessException 微信已绑定其他账号或绑定失败时抛出
      */
@@ -177,7 +180,7 @@ public class AuthService{
                 .orElseThrow(() -> new BusinessException(401, "未登录，请先登录"));
 
 
-        if (request.getPassword() == null || request.getPassword().length()<= 5) {
+        if (request.getPassword() == null || request.getPassword().length() <= 5) {
             throw new BusinessException(400, "密码至少是6位数");
         }
 
@@ -204,6 +207,7 @@ public class AuthService{
 
         log.info("用户 {} 密码设置成功", user.getUsername());
     }
+
     /**
      * 根据用户名查询用户信息
      *
@@ -215,6 +219,7 @@ public class AuthService{
         queryWrapper.eq(User::getUsername, username);
         return userMapper.selectOne(queryWrapper);
     }
+
     /**
      * 检查用户是否存在
      *
@@ -226,6 +231,7 @@ public class AuthService{
         queryWrapper.eq(User::getUsername, username);
         return userMapper.selectCount(queryWrapper) > 0;
     }
+
     /**
      * 检查用户状态
      * 返回用户是否存在、是否已设置密码、用户角色等信息
@@ -249,6 +255,7 @@ public class AuthService{
 
         return status;
     }
+
     /**
      * 检查用户微信绑定状态
      * 返回用户是否已绑定微信、微信昵称、头像等信息
@@ -287,6 +294,7 @@ public class AuthService{
 
         return status;
     }
+
     /**
      * 解绑微信
      * 清除用户与微信的绑定关系
@@ -317,6 +325,7 @@ public class AuthService{
 
         log.info("用户 {} 成功解绑微信", username);
     }
+
     /**
      * 获取所有已绑定微信的用户
      *
@@ -325,9 +334,10 @@ public class AuthService{
     public List<User> getAllUsersWithWeChat() {
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.isNotNull(User::getWxOpenid)
-                   .ne(User::getWxOpenid, "");
+                .ne(User::getWxOpenid, "");
         return userMapper.selectList(queryWrapper);
     }
+
     /**
      * 调试方法：获取用户详细信息
      * 用于开发调试，返回用户的完整信息字符串
@@ -371,6 +381,7 @@ public class AuthService{
             return "查询失败: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
     }
+
     /**
      * 测试数据库连接
      * 用于检查数据库连接是否正常
@@ -390,6 +401,7 @@ public class AuthService{
             return "数据库连接失败: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
         }
     }
+
     /**
      * 通过微信openid登录
      * 适用于已绑定微信的用户快速登录
@@ -438,6 +450,7 @@ public class AuthService{
             throw new BusinessException(500, "登录失败: " + e.getMessage());
         }
     }
+
     /**
      * 通过微信授权code登录
      * 推荐方式：通过微信授权code获取openid后登录
@@ -467,6 +480,7 @@ public class AuthService{
             throw new BusinessException(500, "登录失败: " + e.getMessage());
         }
     }
+
     /**
      * 根据openid查找用户
      *
@@ -478,7 +492,7 @@ public class AuthService{
             log.info("根据openid查找用户，openid: {}", openid);
 
             com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<User> queryWrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
             queryWrapper.eq(User::getWxOpenid, openid);
 
             User user = userMapper.selectOne(queryWrapper);
@@ -496,6 +510,7 @@ public class AuthService{
             return null;
         }
     }
+
     /**
      * 重置用户密码
      * 仅管理员可调用，密码重置为"syjx@学号后四位"
@@ -513,7 +528,7 @@ public class AuthService{
 
         // 只有管理员可以重置密码
         if (UserRole.ADMIN.equals(currentUserRole)) {
-            for(String username : usernames) {
+            for (String username : usernames) {
                 LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<User>().eq(User::getUsername, username);
                 User user = userMapper.selectOne(queryWrapper);
                 if (user == null) {
@@ -530,7 +545,7 @@ public class AuthService{
                 userMapper.updateById(user);
             }
         } else {
-                throw new BusinessException(404, "无权限重置密码");
+            throw new BusinessException(404, "无权限重置密码");
 
         }
     }
@@ -586,16 +601,13 @@ public class AuthService{
 
                 // 生成密码
                 String rawPassword;
-                if ("teacher".equals(role)) {
-                    // 教师：syjx@ + 工号后四位
-                    String lastFourDigits = userRequest.getUsername().length() >= 4 ?
-                            userRequest.getUsername().substring(userRequest.getUsername().length() - 4) :
-                            userRequest.getUsername();
-                    rawPassword = "syjx@" + lastFourDigits;
-                } else {
-                    // 学生：学号
-                    rawPassword = userRequest.getUsername();
-                }
+
+                // 教师：syjx@ + 工号后四位
+                String lastFourDigits = userRequest.getUsername().length() >= 4 ?
+                        userRequest.getUsername().substring(userRequest.getUsername().length() - 4) :
+                        userRequest.getUsername();
+                rawPassword = "syjx@" + lastFourDigits;
+
 
                 // BCrypt加密密码
                 String encodedPassword = passwordUtil.encode(rawPassword);
@@ -675,28 +687,28 @@ public class AuthService{
     }
 
     public PageResponse<UserResponse> getUserPage(GetUserRequest request) {
-        Page<User> userPage ;
-        if(request.getCurrent()!=null&& request.getCurrent()>0){
-            userPage = new Page<>(request.getCurrent(),request.getSize());
-        }else {
+        Page<User> userPage;
+        if (request.getCurrent() != null && request.getCurrent() > 0) {
+            userPage = new Page<>(request.getCurrent(), request.getSize());
+        } else {
             userPage = new Page<>();
         }
 
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
 
-        if(request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
+        if (request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
             queryWrapper.eq(User::getUsername, request.getUsername().trim());
         }
-        if(request.getRole() != null && !request.getRole().trim().isEmpty()) {
+        if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
             queryWrapper.like(User::getRole, request.getRole().trim().toLowerCase());
         }
-        if(request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+        if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
             queryWrapper.like(User::getDepartment, request.getDepartment().trim().toLowerCase());
         }
-        if(request.getMajor() != null && !request.getMajor().trim().isEmpty()) {
+        if (request.getMajor() != null && !request.getMajor().trim().isEmpty()) {
             queryWrapper.like(User::getMajor, request.getMajor().trim().toLowerCase());
         }
-        if(request.getName() != null && !request.getName().trim().isEmpty()) {
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
             queryWrapper.like(User::getName, request.getName().trim().toLowerCase());
         }
 
