@@ -174,6 +174,9 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             throw new BusinessException(400, "小测状态不正确，无法开始");
         }
 
+        // 检查该班级实验是否有正在进行的小测，如果有则先停止
+        stopOngoingQuiz(quiz.getClassExperimentId());
+
         // 更新状态为进行中
         quiz.setStatus(1);
         quiz.setStartTime(LocalDateTime.now());
@@ -184,6 +187,27 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
 
         classroomQuizMapper.updateById(quiz);
         log.info("课堂小测已开始，ID: {}", quizId);
+    }
+
+    /**
+     * 停止班级实验中正在进行的小测
+     *
+     * @param classExperimentId 班级实验ID
+     */
+    private void stopOngoingQuiz(Long classExperimentId) {
+        LambdaQueryWrapper<ClassroomQuiz> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ClassroomQuiz::getClassExperimentId, classExperimentId);
+        wrapper.eq(ClassroomQuiz::getStatus, 1);
+        wrapper.last("LIMIT 1");
+
+        ClassroomQuiz ongoingQuiz = classroomQuizMapper.selectOne(wrapper);
+        if (ongoingQuiz != null) {
+            log.info("发现班级实验 {} 有正在进行的小测 {}，先停止", classExperimentId, ongoingQuiz.getId());
+            ongoingQuiz.setStatus(2);
+            ongoingQuiz.setEndTime(LocalDateTime.now());
+            classroomQuizMapper.updateById(ongoingQuiz);
+            log.info("已停止小测，ID: {}", ongoingQuiz.getId());
+        }
     }
 
     @Override

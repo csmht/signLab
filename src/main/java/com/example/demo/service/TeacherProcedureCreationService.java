@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.dto.mapvo.DataField;
 import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.mapper.DataCollectionMapper;
@@ -863,7 +864,7 @@ public class TeacherProcedureCreationService {
      */
     private String joinTopicTags(List<Long> topicTags) {
         if (topicTags == null || topicTags.isEmpty()) {
-            return null;
+            throw new BusinessException(400,"至少添加一个标签");
         }
 
         StringBuilder sb = new StringBuilder();
