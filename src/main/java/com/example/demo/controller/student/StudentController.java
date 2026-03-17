@@ -35,15 +35,10 @@ public class StudentController {
     @GetMapping("/classes")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<List<ClassInfoResponse>> getClasses() {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<ClassInfoResponse> classes = studentClassRelationService.getStudentClassInfoList(studentUsername);
-            return ApiResponse.success(classes, "获取班级列表成功");
-        } catch (Exception e) {
-            log.error("查询班级列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        List<ClassInfoResponse> classes = studentClassRelationService.getStudentClassInfoList(studentUsername);
+        return ApiResponse.success(classes, "获取班级列表成功");
     }
 }
