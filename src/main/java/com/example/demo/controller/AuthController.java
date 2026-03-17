@@ -76,12 +76,8 @@ public class AuthController {
      */
     @PostMapping("/set-password")
     public ApiResponse<Void> setPassword(@RequestBody SetPasswordRequest request) {
-        try {
-            authService.setPassword(request);
-            return ApiResponse.success(null, "密码设置成功");
-        } catch (Exception e) {
-            return ApiResponse.error(500, e.getMessage());
-        }
+        authService.setPassword(request);
+        return ApiResponse.success(null, "密码设置成功");
     }
 
     /**
@@ -128,20 +124,15 @@ public class AuthController {
     @RequireRole(value = UserRole.STUDENT)
     @PostMapping("/unbind-wechat")
     public ApiResponse<Void> unbindWeChat() {
-        try {
-
-            Optional<String> currentUsername = SecurityUtil.getCurrentUsername();
-            if(currentUsername.isEmpty()) {
-                throw new BusinessException("尚未登录");
-            }
-
-            String username = currentUsername.get();
-
-            authService.unbindWeChat(username);
-            return ApiResponse.success(null, "微信解绑成功");
-        } catch (Exception e) {
-            return ApiResponse.error(500, e.getMessage());
+        Optional<String> currentUsername = SecurityUtil.getCurrentUsername();
+        if(currentUsername.isEmpty()) {
+            throw new BusinessException("尚未登录");
         }
+
+        String username = currentUsername.get();
+
+        authService.unbindWeChat(username);
+        return ApiResponse.success(null, "微信解绑成功");
     }
     /**
      * 调试接口：查询用户详细信息
