@@ -52,13 +52,13 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
 
         ClassroomQuiz quiz = classroomQuizMapper.selectOne(quizWrapper);
         if (quiz == null) {
-            throw new BusinessException(404, "暂无进行中的小测");
+            return null;
         }
 
         // 查询题库配置
         ProcedureTopic procedureTopic = procedureTopicMapper.selectById(quiz.getProcedureTopicId());
         if (procedureTopic == null) {
-            throw new BusinessException(404, "题库配置不存在");
+            return null;
         }
 
         // 查询题目列表
@@ -66,7 +66,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
 
         // 检查时间限制
         if (quiz.getEndTime() != null && LocalDateTime.now().isAfter(quiz.getEndTime())) {
-            throw new BusinessException(400, "小测已结束");
+            return null;
         }
 
         // 查询学生是否已提交答案
