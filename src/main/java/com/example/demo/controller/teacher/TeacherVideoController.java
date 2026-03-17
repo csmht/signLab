@@ -41,27 +41,19 @@ public class TeacherVideoController {
             @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("file") MultipartFile file) {
-        try {
-            // 获取当前登录教师用户名
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        // 获取当前登录教师用户名
+        String teacherUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            // 上传视频
-            VideoFile videoFile = videoService.uploadTeacherVideo(
-                    teacherUsername, title, description,  file
-            );
+        // 上传视频
+        VideoFile videoFile = videoService.uploadTeacherVideo(
+                teacherUsername, title, description,  file
+        );
 
-            // 转换为响应对象
-            VideoUploadResponse response = VideoUploadResponse.fromEntity(videoFile);
+        // 转换为响应对象
+        VideoUploadResponse response = VideoUploadResponse.fromEntity(videoFile);
 
-            return ApiResponse.success(response, "视频上传成功");
-
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("上传视频失败", e);
-            return ApiResponse.error(500, "上传失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "视频上传成功");
     }
 
     /**
@@ -73,18 +65,11 @@ public class TeacherVideoController {
     @DeleteMapping("/{videoId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> deleteVideo(@PathVariable Long videoId) {
-        try {
-            boolean deleted = videoService.deleteVideo(videoId);
-            if (deleted) {
-                return ApiResponse.success(null, "视频删除成功");
-            } else {
-                return ApiResponse.error(404, "视频不存在");
-            }
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("删除视频失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
+        boolean deleted = videoService.deleteVideo(videoId);
+        if (deleted) {
+            return ApiResponse.success(null, "视频删除成功");
+        } else {
+            return ApiResponse.error(404, "视频不存在");
         }
     }
 
@@ -97,19 +82,13 @@ public class TeacherVideoController {
     @GetMapping("/{videoId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<VideoUploadResponse> getVideoInfo(@PathVariable Long videoId) {
-        try {
-            com.example.demo.pojo.entity.VideoFile videoFile = videoService.getById(videoId);
-            if (videoFile == null) {
-                return ApiResponse.error(404, "视频不存在");
-            }
-
-            VideoUploadResponse response = VideoUploadResponse.fromEntity(videoFile);
-            return ApiResponse.success(response, "查询成功");
-
-        } catch (Exception e) {
-            log.error("查询视频信息失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        com.example.demo.pojo.entity.VideoFile videoFile = videoService.getById(videoId);
+        if (videoFile == null) {
+            return ApiResponse.error(404, "视频不存在");
         }
+
+        VideoUploadResponse response = VideoUploadResponse.fromEntity(videoFile);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -121,12 +100,7 @@ public class TeacherVideoController {
     @PostMapping("/query")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<VideoUploadResponse>> queryVideos(@RequestBody VideoQueryRequest request) {
-        try {
-            PageResponse<VideoUploadResponse> response = videoService.queryVideos(request);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询视频列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        PageResponse<VideoUploadResponse> response = videoService.queryVideos(request);
+        return ApiResponse.success(response, "查询成功");
     }
 }
