@@ -41,16 +41,11 @@ public class TeacherProcedureController {
             @PathVariable("classCode") String classCode,
             @RequestParam(value = "experimentId", required = false) Long experimentId,
             @RequestParam(value = "submissionStatus", required = false) Integer submissionStatus) {
-        try {
-            List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getCourseSubmissions(
-                    classCode, experimentId, submissionStatus
-            );
+        List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getCourseSubmissions(
+                classCode, experimentId, submissionStatus
+        );
 
-            return ApiResponse.success(submissions, "查询成功");
-        } catch (Exception e) {
-            log.error("查询班级实验步骤失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(submissions, "查询成功");
     }
 
     /**
@@ -62,15 +57,8 @@ public class TeacherProcedureController {
     @GetMapping("/{submissionId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<StudentProcedureSubmissionResponse> getProcedureSubmissionById(@PathVariable("submissionId") Long submissionId) {
-        try {
-            StudentProcedureSubmissionResponse submission = studentProcedureSubmissionService.getSubmissionById(submissionId);
-            return ApiResponse.success(submission);
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查看实验步骤详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        StudentProcedureSubmissionResponse submission = studentProcedureSubmissionService.getSubmissionById(submissionId);
+        return ApiResponse.success(submission);
     }
 
     /**
@@ -85,20 +73,13 @@ public class TeacherProcedureController {
     public ApiResponse<Void> gradeProcedure(
             @PathVariable("submissionId") Long submissionId,
             @RequestBody GradeProcedureRequest request) {
-        try {
-            studentProcedureSubmissionService.gradeProcedure(
-                    submissionId,
-                    request.getTeacherComment(),
-                    request.getScore()
-            );
+        studentProcedureSubmissionService.gradeProcedure(
+                submissionId,
+                request.getTeacherComment(),
+                request.getScore()
+        );
 
-            return ApiResponse.success(null, "批改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("批改实验步骤失败", e);
-            return ApiResponse.error(500, "批改失败: " + e.getMessage());
-        }
+        return ApiResponse.success(null, "批改成功");
     }
 
     /**
