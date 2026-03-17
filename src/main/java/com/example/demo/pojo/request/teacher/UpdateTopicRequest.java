@@ -29,7 +29,6 @@ public class UpdateTopicRequest {
 
     /**
      * 选项内容
-     * 格式："A:选项A$B:选项B"
      */
     private String choices;
 

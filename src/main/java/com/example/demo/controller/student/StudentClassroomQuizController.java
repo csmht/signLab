@@ -31,8 +31,9 @@ public class StudentClassroomQuizController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<StudentClassroomQuizDetailResponse> getCurrentQuiz(
             @RequestParam("classExperimentId") Long classExperimentId) {
+        String studentUsername = getCurrentStudentUsername();
         StudentClassroomQuizDetailResponse response =
-            studentClassroomQuizService.getCurrentQuiz(classExperimentId);
+            studentClassroomQuizService.getCurrentQuiz(classExperimentId, studentUsername);
         return ApiResponse.success(response, "查询成功");
     }
 

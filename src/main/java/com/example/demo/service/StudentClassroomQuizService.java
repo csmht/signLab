@@ -11,12 +11,13 @@ import java.util.List;
 public interface StudentClassroomQuizService {
 
     /**
-     * 查询当前课次的���行中小测
+     * 查询当前课次的进行中小测
      *
      * @param classExperimentId 班级实验ID
+     * @param studentUsername   学生用户名
      * @return 小测详情
      */
-    StudentClassroomQuizDetailResponse getCurrentQuiz(Long classExperimentId);
+    StudentClassroomQuizDetailResponse getCurrentQuiz(Long classExperimentId, String studentUsername);
 
     /**
      * 提交小测答案

@@ -40,8 +40,8 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
     private final StudentClassRelationMapper studentClassRelationMapper;
 
     @Override
-    public StudentClassroomQuizDetailResponse getCurrentQuiz(Long classExperimentId) {
-        log.info("查询当前进行中的小测，班级实验ID: {}", classExperimentId);
+    public StudentClassroomQuizDetailResponse getCurrentQuiz(Long classExperimentId, String studentUsername) {
+        log.info("查询当前进行中的小测，班级实验ID: {}, 学生: {}", classExperimentId, studentUsername);
 
         // 查询进行中的小测
         LambdaQueryWrapper<ClassroomQuiz> quizWrapper = new LambdaQueryWrapper<>();
@@ -69,7 +69,16 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
             throw new BusinessException(400, "小测已结束");
         }
 
-        // 构建响应（不包含正确答案）
+        // 查询学生是否已提交答案
+        LambdaQueryWrapper<ClassroomQuizAnswer> answerWrapper = new LambdaQueryWrapper<>();
+        answerWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, quiz.getId());
+        answerWrapper.eq(ClassroomQuizAnswer::getStudentUsername, studentUsername);
+        ClassroomQuizAnswer existAnswer = classroomQuizAnswerMapper.selectOne(answerWrapper);
+
+        // 解析学生答案
+        Map<Long, String> studentAnswers = parseTopicAnswers(existAnswer != null ? existAnswer.getAnswer() : null);
+
+        // 构建响应
         StudentClassroomQuizDetailResponse response = new StudentClassroomQuizDetailResponse();
         response.setQuizId(quiz.getId());
         response.setQuizTitle(quiz.getQuizTitle());
@@ -78,10 +87,11 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         response.setStartTime(quiz.getStartTime());
         response.setEndTime(quiz.getEndTime());
         response.setStatus(quiz.getStatus());
-        response.setIsSubmitted(false);
-        response.setScore(null);
+        response.setIsSubmitted(existAnswer != null);
+        response.setSubmissionTime(existAnswer != null ? existAnswer.getSubmissionTime() : null);
+        response.setScore(existAnswer != null ? existAnswer.getScore() : null);
 
-        // 构建题目详情（不包含正确答案）
+        // 构建题目详情（不包含正确答案，但包含学生已提交的答案）
         List<StudentClassroomQuizDetailResponse.TopicDetail> topicDetails = topics.stream()
                 .map(topic -> {
                     StudentClassroomQuizDetailResponse.TopicDetail detail =
@@ -91,9 +101,10 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setType(topic.getType());
                     detail.setContent(topic.getContent());
                     detail.setChoices(topic.getChoices());
-                    detail.setStudentAnswer(null);
+                    // 如果学生已提交，返回学生答案
+                    detail.setStudentAnswer(studentAnswers.get(topic.getId()));
                     detail.setCorrectAnswer(null); // 进行中不返回正确答案
-                    detail.setIsCorrect(null);
+                    detail.setIsCorrect(null); // 进行中不返回是否正确
                     return detail;
                 })
                 .collect(Collectors.toList());
