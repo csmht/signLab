@@ -48,15 +48,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/video")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createVideoProcedure(@RequestBody CreateVideoProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.createVideoProcedure(request);
-            return ApiResponse.success(procedureId, "创建成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("创建视频观看步骤失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.createVideoProcedure(request);
+        return ApiResponse.success(procedureId, "创建成功");
     }
 
     /**
@@ -69,15 +62,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/data-collection")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createDataCollectionProcedure(@RequestBody CreateDataCollectionProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.createDataCollectionProcedure(request);
-            return ApiResponse.success(procedureId, "创建成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("创建数据收集步骤失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.createDataCollectionProcedure(request);
+        return ApiResponse.success(procedureId, "创建成功");
     }
 
     /**
@@ -90,15 +76,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/topic")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createTopicProcedure(@RequestBody CreateTopicProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.createTopicProcedure(request);
-            return ApiResponse.success(procedureId, "创建成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("创建题库练习步骤失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.createTopicProcedure(request);
+        return ApiResponse.success(procedureId, "创建成功");
     }
 
     /**
@@ -111,15 +90,8 @@ public class TeacherProcedureCreationController {
     @PutMapping("/video")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> updateVideoProcedure(@RequestBody UpdateVideoProcedureRequest request) {
-        try {
-            teacherProcedureCreationService.updateVideoProcedure(request);
-            return ApiResponse.success(null, "修改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("修改视频观看步骤失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
-        }
+        teacherProcedureCreationService.updateVideoProcedure(request);
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -132,15 +104,8 @@ public class TeacherProcedureCreationController {
     @PutMapping("/data-collection")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> updateDataCollectionProcedure(@RequestBody UpdateDataCollectionProcedureRequest request) {
-        try {
-            teacherProcedureCreationService.updateDataCollectionProcedure(request);
-            return ApiResponse.success(null, "修改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("修改数据收集步骤失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
-        }
+        teacherProcedureCreationService.updateDataCollectionProcedure(request);
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -153,15 +118,8 @@ public class TeacherProcedureCreationController {
     @PutMapping("/topic")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> updateTopicProcedure(@RequestBody UpdateTopicProcedureRequest request) {
-        try {
-            teacherProcedureCreationService.updateTopicProcedure(request);
-            return ApiResponse.success(null, "修改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("修改题库练习步骤失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
-        }
+        teacherProcedureCreationService.updateTopicProcedure(request);
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -174,15 +132,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/video/insert")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> insertVideoProcedure(@RequestBody InsertVideoProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.insertVideoProcedure(request);
-            return ApiResponse.success(procedureId, "插入成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("插入视频观看步骤失败", e);
-            return ApiResponse.error(500, "插入失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.insertVideoProcedure(request);
+        return ApiResponse.success(procedureId, "插入成功");
     }
 
     /**
@@ -195,15 +146,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/data-collection/insert")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> insertDataCollectionProcedure(@RequestBody InsertDataCollectionProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.insertDataCollectionProcedure(request);
-            return ApiResponse.success(procedureId, "插入成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("插入数据收集步骤失败", e);
-            return ApiResponse.error(500, "插入失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.insertDataCollectionProcedure(request);
+        return ApiResponse.success(procedureId, "插入成功");
     }
 
     /**
@@ -216,15 +160,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/topic/insert")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> insertTopicProcedure(@RequestBody InsertTopicProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.insertTopicProcedure(request);
-            return ApiResponse.success(procedureId, "插入成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("插入题库练习步骤失败", e);
-            return ApiResponse.error(500, "插入失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.insertTopicProcedure(request);
+        return ApiResponse.success(procedureId, "插入成功");
     }
 
     /**
@@ -237,15 +174,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/timed-quiz")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createTimedQuizProcedure(@RequestBody CreateTimedQuizProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.createTimedQuizProcedure(request);
-            return ApiResponse.success(procedureId, "创建成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("创建限时答题步骤失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.createTimedQuizProcedure(request);
+        return ApiResponse.success(procedureId, "创建成功");
     }
 
     /**
@@ -258,15 +188,8 @@ public class TeacherProcedureCreationController {
     @PutMapping("/timed-quiz")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> updateTimedQuizProcedure(@RequestBody UpdateTimedQuizProcedureRequest request) {
-        try {
-            teacherProcedureCreationService.updateTimedQuizProcedure(request);
-            return ApiResponse.success(null, "修改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("修改限时答题步骤失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
-        }
+        teacherProcedureCreationService.updateTimedQuizProcedure(request);
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -279,15 +202,8 @@ public class TeacherProcedureCreationController {
     @PostMapping("/timed-quiz/insert")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> insertTimedQuizProcedure(@RequestBody InsertTimedQuizProcedureRequest request) {
-        try {
-            Long procedureId = teacherProcedureCreationService.insertTimedQuizProcedure(request);
-            return ApiResponse.success(procedureId, "插入成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("插入限时答题步骤失败", e);
-            return ApiResponse.error(500, "插入失败: " + e.getMessage());
-        }
+        Long procedureId = teacherProcedureCreationService.insertTimedQuizProcedure(request);
+        return ApiResponse.success(procedureId, "插入成功");
     }
 
     /**
@@ -299,15 +215,8 @@ public class TeacherProcedureCreationController {
     @DeleteMapping("/{procedureId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> deleteProcedure(@PathVariable("procedureId") Long procedureId) {
-        try {
-            teacherProcedureCreationService.deleteProcedure(procedureId);
-            return ApiResponse.success(null, "删除成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("删除步骤失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
-        }
+        teacherProcedureCreationService.deleteProcedure(procedureId);
+        return ApiResponse.success(null, "删除成功");
     }
 
     /**
@@ -322,15 +231,8 @@ public class TeacherProcedureCreationController {
     public ApiResponse<TeacherProcedureDetailResponse> getProcedureDetail(
             @PathVariable("procedureId") Long procedureId,
             @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
-        try {
-            TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId, classExperimentId);
-            return ApiResponse.success(response, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询步骤详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId, classExperimentId);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -345,14 +247,7 @@ public class TeacherProcedureCreationController {
     public ApiResponse<List<TeacherProcedureDetailResponse>> getExperimentProcedures(
             @PathVariable("experimentId") Long experimentId,
             @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
-        try {
-            List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId, classExperimentId);
-            return ApiResponse.success(responses, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询实验步骤列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId, classExperimentId);
+        return ApiResponse.success(responses, "查询成功");
     }
 }

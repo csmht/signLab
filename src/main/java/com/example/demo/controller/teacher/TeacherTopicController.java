@@ -52,18 +52,11 @@ public class TeacherTopicController {
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createTopic(@RequestBody CreateTopicRequest request) {
-        try {
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String teacherUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            Long topicId = topicService.createTopic(request, teacherUsername);
-            return ApiResponse.success(topicId, "创建成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("创建题目失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        Long topicId = topicService.createTopic(request, teacherUsername);
+        return ApiResponse.success(topicId, "创建成功");
     }
 
     /**
@@ -75,15 +68,8 @@ public class TeacherTopicController {
     @PutMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> updateTopic(@RequestBody UpdateTopicRequest request) {
-        try {
-            topicService.updateTopic(request);
-            return ApiResponse.success(null, "更新��功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("更新题目失败", e);
-            return ApiResponse.error(500, "更新失败: " + e.getMessage());
-        }
+        topicService.updateTopic(request);
+        return ApiResponse.success(null, "更新成功");
     }
 
     /**
@@ -95,18 +81,11 @@ public class TeacherTopicController {
     @DeleteMapping("/{topicId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> deleteTopic(@PathVariable("topicId") Long topicId) {
-        try {
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            topicService.deleteTopic(topicId, username);
-            return ApiResponse.success(null, "删除成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("删除题目失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
-        }
+        topicService.deleteTopic(topicId, username);
+        return ApiResponse.success(null, "删除成功");
     }
 
     /**
@@ -118,18 +97,11 @@ public class TeacherTopicController {
     @DeleteMapping("/batch")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> batchDeleteTopics(@RequestBody BatchDeleteTopicRequest request) {
-        try {
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            topicService.batchDeleteTopics(request.getTopicIds(), username);
-            return ApiResponse.success(null, "批量删除成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("批量删除题目失败", e);
-            return ApiResponse.error(500, "批量删除失败: " + e.getMessage());
-        }
+        topicService.batchDeleteTopics(request.getTopicIds(), username);
+        return ApiResponse.success(null, "批量删除成功");
     }
 
     /**
@@ -141,13 +113,8 @@ public class TeacherTopicController {
     @PostMapping("/query")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<TopicDetailResponse>> queryTopics(@RequestBody TopicQueryRequest request) {
-        try {
-            PageResponse<TopicDetailResponse> response = topicService.queryTopics(request);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询题目列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        PageResponse<TopicDetailResponse> response = topicService.queryTopics(request);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -159,15 +126,8 @@ public class TeacherTopicController {
     @GetMapping("/{topicId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<TopicDetailResponse> getTopicDetail(@PathVariable("topicId") Long topicId) {
-        try {
-            TopicDetailResponse response = topicService.getTopicDetail(topicId);
-            return ApiResponse.success(response, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询题目详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        TopicDetailResponse response = topicService.getTopicDetail(topicId);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -178,13 +138,8 @@ public class TeacherTopicController {
     @GetMapping("/statistics")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<TopicStatisticsResponse> getStatistics() {
-        try {
-            TopicStatisticsResponse response = topicService.getStatistics();
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("获取题目统计失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        TopicStatisticsResponse response = topicService.getStatistics();
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -196,50 +151,42 @@ public class TeacherTopicController {
     @PostMapping("/upload")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Map<String, Object>> uploadTopicsByExcel(@RequestParam("file") MultipartFile file) {
-        try {
-            // 校验文件
-            if (file.isEmpty()) {
-                return ApiResponse.error(400, "上传文件不能为空");
-            }
+        // 校验文件
+        if (file.isEmpty()) {
+            return ApiResponse.error(400, "上传文件不能为空");
+        }
 
-            String filename = file.getOriginalFilename();
-            if (filename == null || (!filename.endsWith(".xlsx") && !filename.endsWith(".xls"))) {
-                return ApiResponse.error(400, "文件格式错误，仅支持Excel文件（.xlsx 或 .xls）");
-            }
+        String filename = file.getOriginalFilename();
+        if (filename == null || (!filename.endsWith(".xlsx") && !filename.endsWith(".xls"))) {
+            return ApiResponse.error(400, "文件格式错误，仅支持Excel文件（.xlsx 或 .xls）");
+        }
 
-            // 获取当前用户
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        // 获取当前用户
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            // 创建监听器
-            TopicImportListener listener = new TopicImportListener(topicService, tagService, username);
+        // 创建监听器
+        TopicImportListener listener = new TopicImportListener(topicService, tagService, username);
 
-            // 读取Excel文件
-            EasyExcel.read(file.getInputStream(), TopicImportExcel.class, listener).sheet().doRead();
+        // 读取Excel文件
+        EasyExcel.read(file.getInputStream(), TopicImportExcel.class, listener).sheet().doRead();
 
-            // 获取导入结果
-            TopicImportListener.ImportResult result = listener.getResult();
+        // 获取导入结果
+        TopicImportListener.ImportResult result = listener.getResult();
 
-            // 构建返回数据
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("successCount", result.getSuccessCount());
-            responseData.put("failCount", result.getFailCount());
-            responseData.put("total", result.getSuccessCount() + result.getFailCount());
+        // 构建返回数据
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("successCount", result.getSuccessCount());
+        responseData.put("failCount", result.getFailCount());
+        responseData.put("total", result.getSuccessCount() + result.getFailCount());
 
-            if (result.hasErrors()) {
-                responseData.put("errors", result.getErrorMessages());
-                return ApiResponse.success(responseData,
-                    String.format("导入完成，成功%d条，失败%d条", result.getSuccessCount(), result.getFailCount()));
-            } else {
-                return ApiResponse.success(responseData,
-                    String.format("导入成功，共导入%d道题目", result.getSuccessCount()));
-            }
-
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("Excel上传题目失败", e);
-            return ApiResponse.error(500, "上传失败: " + e.getMessage());
+        if (result.hasErrors()) {
+            responseData.put("errors", result.getErrorMessages());
+            return ApiResponse.success(responseData,
+                String.format("导入完成，成功%d条，失败%d条", result.getSuccessCount(), result.getFailCount()));
+        } else {
+            return ApiResponse.success(responseData,
+                String.format("导入成功，共导入%d道题目", result.getSuccessCount()));
         }
     }
 

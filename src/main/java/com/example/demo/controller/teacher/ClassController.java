@@ -2,7 +2,6 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.request.*;
@@ -41,13 +40,8 @@ public class ClassController {
     @PostMapping("/query")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<ClassResponse>> queryClasses(@RequestBody ClassQueryRequest request) {
-        try {
-            PageResponse<ClassResponse> response = classService.queryClasses(request);
-            return ApiResponse.success(response);
-        } catch (Exception e) {
-            log.error("查询班级列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        PageResponse<ClassResponse> response = classService.queryClasses(request);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -59,14 +53,8 @@ public class ClassController {
     @GetMapping("/{id}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ClassWithExperimentsResponse> getById(@PathVariable Long id) {
-        try {
-            ClassWithExperimentsResponse response = classService.getClassWithExperimentsById(id);
-            return ApiResponse.success(response);
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        ClassWithExperimentsResponse response = classService.getClassWithExperimentsById(id);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -78,14 +66,8 @@ public class ClassController {
     @GetMapping("/code/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ClassWithExperimentsResponse> getByClassCode(@PathVariable String classCode) {
-        try {
-            ClassWithExperimentsResponse response = classService.getClassWithExperimentsByCode(classCode);
-            return ApiResponse.success(response);
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        ClassWithExperimentsResponse response = classService.getClassWithExperimentsByCode(classCode);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -97,42 +79,38 @@ public class ClassController {
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Class> create(@RequestBody CreateClassRequest request) {
-        try {
-            // 检查班级名称是否已存在
-            Class existingClassByName = classService.getByClassName(request.getClassName());
-            if (existingClassByName != null) {
-                return ApiResponse.error(400, "班级名称已存在");
+        // 检查班级名称是否已存在
+        Class existingClassByName = classService.getByClassName(request.getClassName());
+        if (existingClassByName != null) {
+            return ApiResponse.error(400, "班级名称已存在");
+        }
+
+        // 如果未传入班级编号,则自动生成
+        String classCode = request.getClassCode();
+        if (!org.springframework.util.StringUtils.hasText(classCode)) {
+            classCode = classService.generateClassCode();
+        } else {
+            // 如果传入了班级编号,检查是否已存在
+            Class existingClass = classService.getByClassCode(classCode);
+            if (existingClass != null) {
+                return ApiResponse.error(400, "班级编号已存在");
             }
+        }
 
-            // 如果未传入班级编号,则自动生成
-            String classCode = request.getClassCode();
-            if (!org.springframework.util.StringUtils.hasText(classCode)) {
-                classCode = classService.generateClassCode();
-            } else {
-                // 如果传入了班级编号,检查是否已存在
-                Class existingClass = classService.getByClassCode(classCode);
-                if (existingClass != null) {
-                    return ApiResponse.error(400, "班级编号已存在");
-                }
-            }
+        // 创建班级
+        Class clazz = new Class();
+        clazz.setClassCode(classCode);
+        clazz.setClassName(request.getClassName());
 
-            // 创建班级
-            Class clazz = new Class();
-            clazz.setClassCode(classCode);
-            clazz.setClassName(request.getClassName());
+        // 设置创建者
+        String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+        clazz.setCreator(currentUsername);
 
-            // 设置创建者
-            String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
-            clazz.setCreator(currentUsername);
-
-            boolean success = classService.save(clazz);
-            if (success) {
-                return ApiResponse.success(clazz, "班级创建成功");
-            } else {
-                return ApiResponse.error(500, "班级创建失败");
-            }
-        } catch (Exception e) {
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
+        boolean success = classService.save(clazz);
+        if (success) {
+            return ApiResponse.success(clazz, "班级创建成功");
+        } else {
+            return ApiResponse.error(500, "班级创建失败");
         }
     }
 
@@ -145,19 +123,14 @@ public class ClassController {
     @PostMapping("/batch")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<BatchAddClassResponse> batchAddClasses(@RequestBody BatchAddClassRequest request) {
-        try {
-            BatchAddClassResponse response = classService.batchAddClasses(request);
-            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
-            if (response.getSuccessCount() > 0 && response.getFailCount() > 0) {
-                return new ApiResponse<BatchAddClassResponse>(201, "部分成功，成功: " + response.getSuccessCount() + "，失败: " + response.getFailCount(), response);
-            } else if (response.getSuccessCount() == 0) {
-                return ApiResponse.error(400, "批量添加失败，全部" + response.getFailCount() + "条记录失败");
-            } else {
-                return ApiResponse.success(response, "批量添加完成");
-            }
-        } catch (Exception e) {
-            log.error("批量添加班级失败", e);
-            return ApiResponse.error(500, "批量添加失败: " + e.getMessage());
+        BatchAddClassResponse response = classService.batchAddClasses(request);
+        // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+        if (response.getSuccessCount() > 0 && response.getFailCount() > 0) {
+            return new ApiResponse<BatchAddClassResponse>(201, "部分成功，成功: " + response.getSuccessCount() + "，失败: " + response.getFailCount(), response);
+        } else if (response.getSuccessCount() == 0) {
+            return ApiResponse.error(400, "批量添加失败，全部" + response.getFailCount() + "条记录失败");
+        } else {
+            return ApiResponse.success(response, "批量添加完成");
         }
     }
 
@@ -171,26 +144,22 @@ public class ClassController {
     @PutMapping("/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> update(@PathVariable String classCode, @RequestBody UpdateClassRequest request) {
-        try {
-            // 查询班级是否存在
-            Class existingClass = classService.getByClassCode(classCode);
-            if (existingClass == null) {
-                return ApiResponse.error(404, "班级不存在");
-            }
+        // 查询班级是否存在
+        Class existingClass = classService.getByClassCode(classCode);
+        if (existingClass == null) {
+            return ApiResponse.error(404, "班级不存在");
+        }
 
-            // 更新班级信息
-            if (request.getClassName() != null) {
-                existingClass.setClassName(request.getClassName());
-            }
+        // 更新班级信息
+        if (request.getClassName() != null) {
+            existingClass.setClassName(request.getClassName());
+        }
 
-            boolean success = classService.updateById(existingClass);
-            if (success) {
-                return ApiResponse.success(null, "班级更新成功");
-            } else {
-                return ApiResponse.error(500, "班级更新失败");
-            }
-        } catch (Exception e) {
-            return ApiResponse.error(500, "更新失败: " + e.getMessage());
+        boolean success = classService.updateById(existingClass);
+        if (success) {
+            return ApiResponse.success(null, "班级更新成功");
+        } else {
+            return ApiResponse.error(500, "班级更新失败");
         }
     }
 
@@ -203,19 +172,15 @@ public class ClassController {
     @DeleteMapping("/{classCode}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> delete(@PathVariable String classCode) {
-        try {
-            Class clazz = classService.getByClassCode(classCode);
-            if (clazz == null) {
-                return ApiResponse.error(404, "班级不存在");
-            }
-            boolean success = classService.removeById(clazz.getId());
-            if (success) {
-                return ApiResponse.success(null, "班级删除成功");
-            } else {
-                return ApiResponse.error(500, "班级删除失败");
-            }
-        } catch (Exception e) {
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
+        Class clazz = classService.getByClassCode(classCode);
+        if (clazz == null) {
+            return ApiResponse.error(404, "班级不存在");
+        }
+        boolean success = classService.removeById(clazz.getId());
+        if (success) {
+            return ApiResponse.success(null, "班级删除成功");
+        } else {
+            return ApiResponse.error(500, "班级删除失败");
         }
     }
 
@@ -231,14 +196,9 @@ public class ClassController {
     public ApiResponse<PageResponse<StudentClassRelationsResponse>> getStudents(
             @PathVariable String classCode,
             @RequestBody com.example.demo.pojo.request.StudentQueryRequest request) {
-        try {
-            PageResponse<StudentClassRelationsResponse> response = studentClassRelationService.getStudentsByClassCodePage(
-                    classCode, request);
-            return ApiResponse.success(response);
-        } catch (Exception e) {
-            log.error("查询学生列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        PageResponse<StudentClassRelationsResponse> response = studentClassRelationService.getStudentsByClassCodePage(
+                classCode, request);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -252,20 +212,15 @@ public class ClassController {
     public ApiResponse<BatchBindStudentsResponse> batchBindStudents(
             @PathVariable String classCode,
             @RequestBody BatchBindStudentsRequest request) {
-        try {
-            request.setClassCode(classCode);
-            BatchBindStudentsResponse response = studentClassRelationService.batchBindStudents(request);
-            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
-            if (response.getSuccessCount() > 0 && response.getFailCount() > 0) {
-                return new ApiResponse<BatchBindStudentsResponse>(201, "部分成功，成功: " + response.getSuccessCount() + "，失败: " + response.getFailCount(), response);
-            } else if (response.getSuccessCount() == 0) {
-                return ApiResponse.error(400, "批量绑定失败，全部" + response.getFailCount() + "条记录失败");
-            } else {
-                return ApiResponse.success(response, "批量绑定完成");
-            }
-        } catch (Exception e) {
-            log.error("批量绑定学生失败", e);
-            return ApiResponse.error(500, "批量绑定失败: " + e.getMessage());
+        request.setClassCode(classCode);
+        BatchBindStudentsResponse response = studentClassRelationService.batchBindStudents(request);
+        // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+        if (response.getSuccessCount() > 0 && response.getFailCount() > 0) {
+            return new ApiResponse<BatchBindStudentsResponse>(201, "部分成功，成功: " + response.getSuccessCount() + "，失败: " + response.getFailCount(), response);
+        } else if (response.getSuccessCount() == 0) {
+            return ApiResponse.error(400, "批量绑定失败，全部" + response.getFailCount() + "条记录失败");
+        } else {
+            return ApiResponse.success(response, "批量绑定完成");
         }
     }
 
@@ -281,12 +236,8 @@ public class ClassController {
     public ApiResponse<Integer> batchUnbindStudents(
             @PathVariable String classCode,
             @RequestBody List<String> studentUsernames) {
-        try {
-            int count = studentClassRelationService.batchUnbindStudents(classCode, studentUsernames);
-            return ApiResponse.success(count, "解绑成功，共解绑 " + count + " 名学生");
-        } catch (Exception e) {
-            return ApiResponse.error(500, "解绑失败: " + e.getMessage());
-        }
+        int count = studentClassRelationService.batchUnbindStudents(classCode, studentUsernames);
+        return ApiResponse.success(count, "解绑成功，共解绑 " + count + " 名学生");
     }
 
     /**
@@ -299,13 +250,8 @@ public class ClassController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<BatchBindClassesToExperimentResponse> batchBindClassesToExperiment(
             @RequestBody BatchBindClassesToExperimentRequest request) {
-        try {
-            BatchBindClassesToExperimentResponse response = classExperimentService.batchBindClassesToExperiment(request);
-            return ApiResponse.success(response, "批量绑定完成");
-        } catch (Exception e) {
-            log.error("批量绑定班级到实验失败", e);
-            return ApiResponse.error(500, "批量绑定失败: " + e.getMessage());
-        }
+        BatchBindClassesToExperimentResponse response = classExperimentService.batchBindClassesToExperiment(request);
+        return ApiResponse.success(response, "批量绑定完成");
     }
 
     /**
@@ -319,20 +265,13 @@ public class ClassController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<CourseSessionResponse>> getCourseSessions(
             @RequestBody com.example.demo.pojo.request.CourseSessionQueryRequest request) {
-        try {
-            String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            PageResponse<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForTeacher(
-                    teacherUsername, request);
+        PageResponse<CourseSessionResponse> sessions = classExperimentService.getCourseSessionsForTeacher(
+                teacherUsername, request);
 
-            return ApiResponse.success(sessions, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询课次列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(sessions, "查询成功");
     }
 
     /**
@@ -347,12 +286,8 @@ public class ClassController {
     public ApiResponse<Integer> batchUnbindClasses(
             @PathVariable Long experimentId,
             @RequestBody List<String> classCodes) {
-        try {
-            int count = classExperimentService.batchUnbindClasses(experimentId, classCodes);
-            return ApiResponse.success(count, "解绑成功，共解绑 " + count + " 个班级");
-        } catch (Exception e) {
-            return ApiResponse.error(500, "解绑失败: " + e.getMessage());
-        }
+        int count = classExperimentService.batchUnbindClasses(experimentId, classCodes);
+        return ApiResponse.success(count, "解绑成功，共解绑 " + count + " 个班级");
     }
 
     /**
@@ -364,13 +299,8 @@ public class ClassController {
     @GetMapping("/by-experiment/{experimentId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<Class>> getClassesByExperimentId(@PathVariable Long experimentId) {
-        try {
-            List<Class> classes = classService.getClassesByExperimentId(experimentId);
-            return ApiResponse.success(classes, "查询成功");
-        } catch (Exception e) {
-            log.error("查询实验班级列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        List<Class> classes = classService.getClassesByExperimentId(experimentId);
+        return ApiResponse.success(classes, "查询成功");
     }
 
 }

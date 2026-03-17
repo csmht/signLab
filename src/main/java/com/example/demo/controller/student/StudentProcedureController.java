@@ -69,29 +69,22 @@ public class StudentProcedureController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<com.example.demo.pojo.response.PageResponse<CourseSessionResponse>> getCourseSessions(
             @RequestBody com.example.demo.pojo.request.CourseSessionQueryRequest request) {
-        try {
-            String studentUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            // 获取学生加入的班级列表
-            List<com.example.demo.pojo.entity.StudentClassRelation> relations =
-                    studentClassRelationService.getByStudentUsername(studentUsername);
-            List<String> classCodeList = relations.stream()
-                    .map(com.example.demo.pojo.entity.StudentClassRelation::getClassCode)
-                    .collect(java.util.stream.Collectors.toList());
+        // 获取学生加入的班级列表
+        List<com.example.demo.pojo.entity.StudentClassRelation> relations =
+                studentClassRelationService.getByStudentUsername(studentUsername);
+        List<String> classCodeList = relations.stream()
+                .map(com.example.demo.pojo.entity.StudentClassRelation::getClassCode)
+                .collect(java.util.stream.Collectors.toList());
 
-            // 查询课次列表
-            com.example.demo.pojo.response.PageResponse<CourseSessionResponse> sessions =
-                    classExperimentService.getCourseSessionsForStudent(
-                            studentUsername, classCodeList, request);
+        // 查询课次列表
+        com.example.demo.pojo.response.PageResponse<CourseSessionResponse> sessions =
+                classExperimentService.getCourseSessionsForStudent(
+                        studentUsername, classCodeList, request);
 
-            return ApiResponse.success(sessions, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询课次列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(sessions, "查询成功");
     }
 
     /**
@@ -104,19 +97,14 @@ public class StudentProcedureController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<List<StudentProcedureSubmissionResponse>> getProcedureSubmissions(
             @RequestParam(value = "experimentId", required = false) Long experimentId) {
-        try {
-            String studentUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getStudentSubmissions(
-                    studentUsername, experimentId
-            );
+        List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getStudentSubmissions(
+                studentUsername, experimentId
+        );
 
-            return ApiResponse.success(submissions, "查询成功");
-        } catch (Exception e) {
-            log.error("查询步骤列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(submissions, "查询成功");
     }
 
     /**
@@ -129,19 +117,14 @@ public class StudentProcedureController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<List<StudentProcedureSubmissionResponse>> getProcedureSubmissionsByExperiment(
             @PathVariable("experimentId") Long experimentId) {
-        try {
-            String studentUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getStudentSubmissions(
-                    studentUsername, experimentId
-            );
+        List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getStudentSubmissions(
+                studentUsername, experimentId
+        );
 
-            return ApiResponse.success(submissions, "查询成功");
-        } catch (Exception e) {
-            log.error("查询步骤提交失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(submissions, "查询成功");
     }
 
     /**
@@ -163,21 +146,14 @@ public class StudentProcedureController {
             @RequestParam("courseId") String courseId,
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId) {
-        try {
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            StudentProcedureDetailWithAnswerResponse response =
-                    studentProcedureQueryService.getCompletedProcedureDetail(
-                            courseId, experimentId, procedureId, username);
+        StudentProcedureDetailWithAnswerResponse response =
+                studentProcedureQueryService.getCompletedProcedureDetail(
+                        courseId, experimentId, procedureId, username);
 
-            return ApiResponse.success(response, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询已提交步骤详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -194,21 +170,14 @@ public class StudentProcedureController {
             @RequestParam("courseId") String courseId,
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId) {
-        try {
-            String username = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String username = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            StudentProcedureDetailWithoutAnswerResponse response =
-                    studentProcedureQueryService.getUncompletedProcedureDetail(
-                            courseId, experimentId, procedureId, username);
+        StudentProcedureDetailWithoutAnswerResponse response =
+                studentProcedureQueryService.getUncompletedProcedureDetail(
+                        courseId, experimentId, procedureId, username);
 
-            return ApiResponse.success(response, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询未提交步骤详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -225,20 +194,13 @@ public class StudentProcedureController {
     public ApiResponse<Void> markVideoAsViewed(
             @PathVariable("procedureId") Long procedureId,
             @RequestParam("classCode") String classCode) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            studentExperimentalProcedureService.markVideoAsViewed(
-                    studentUsername, classCode, procedureId);
+        studentExperimentalProcedureService.markVideoAsViewed(
+                studentUsername, classCode, procedureId);
 
-            return ApiResponse.success(null, "标记成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("标记视频观看失败", e);
-            return ApiResponse.error(500, "标记失败: " + e.getMessage());
-        }
+        return ApiResponse.success(null, "标记成功");
     }
 
     /**
@@ -252,24 +214,17 @@ public class StudentProcedureController {
     @PostMapping("/topic/complete")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Void> completeTopicProcedure(@RequestBody CompleteTopicProcedureRequest request) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            studentProcedureCompletionService.completeTopicProcedure(
-                    studentUsername,
-                    request.getClassCode(),
-                    request.getProcedureId(),
-                    TopicAnswerItem.toMap(request.getAnswers())
-            );
+        studentProcedureCompletionService.completeTopicProcedure(
+                studentUsername,
+                request.getClassCode(),
+                request.getProcedureId(),
+                TopicAnswerItem.toMap(request.getAnswers())
+        );
 
-            return ApiResponse.success(null, "提交成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("完成题库练习失败", e);
-            return ApiResponse.error(500, "提交失败: " + e.getMessage());
-        }
+        return ApiResponse.success(null, "提交成功");
     }
 
     /**
@@ -294,43 +249,36 @@ public class StudentProcedureController {
             @RequestParam(value = "tableCellAnswers", required = false) String tableCellAnswersJson,
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
             @RequestParam(value = "documents", required = false) List<MultipartFile> documents) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            // 解析JSON字符串为Map
-            java.util.Map<String, String> fillBlankAnswers = null;
-            java.util.Map<String, String> tableCellAnswers = null;
+        // 解析JSON字符串为Map
+        java.util.Map<String, String> fillBlankAnswers = null;
+        java.util.Map<String, String> tableCellAnswers = null;
 
-            if (fillBlankAnswersJson != null && !fillBlankAnswersJson.trim().isEmpty()) {
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                fillBlankAnswers = objectMapper.readValue(fillBlankAnswersJson,
-                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
-            }
-
-            if (tableCellAnswersJson != null && !tableCellAnswersJson.trim().isEmpty()) {
-                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                tableCellAnswers = objectMapper.readValue(tableCellAnswersJson,
-                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
-            }
-
-            studentProcedureCompletionService.completeDataCollectionProcedure(
-                    studentUsername,
-                    classCode,
-                    procedureId,
-                    fillBlankAnswers,
-                    tableCellAnswers,
-                    photos,
-                    documents
-            );
-
-            return ApiResponse.success(null, "提交成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("完成数据收集失败", e);
-            return ApiResponse.error(500, "提交失败: " + e.getMessage());
+        if (fillBlankAnswersJson != null && !fillBlankAnswersJson.trim().isEmpty()) {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            fillBlankAnswers = objectMapper.readValue(fillBlankAnswersJson,
+                new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
         }
+
+        if (tableCellAnswersJson != null && !tableCellAnswersJson.trim().isEmpty()) {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tableCellAnswers = objectMapper.readValue(tableCellAnswersJson,
+                new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {});
+        }
+
+        studentProcedureCompletionService.completeDataCollectionProcedure(
+                studentUsername,
+                classCode,
+                procedureId,
+                fillBlankAnswers,
+                tableCellAnswers,
+                photos,
+                documents
+        );
+
+        return ApiResponse.success(null, "提交成功");
     }
 
     /**
@@ -344,24 +292,17 @@ public class StudentProcedureController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Void> updateTopicProcedure(
             @RequestBody com.example.demo.pojo.request.student.UpdateTopicProcedureRequest request) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            studentProcedureCompletionService.updateTopicProcedure(
-                    studentUsername,
-                    request.getClassCode(),
-                    request.getProcedureId(),
-                    TopicAnswerItem.toMap(request.getAnswers())
-            );
+        studentProcedureCompletionService.updateTopicProcedure(
+                studentUsername,
+                request.getClassCode(),
+                request.getProcedureId(),
+                TopicAnswerItem.toMap(request.getAnswers())
+        );
 
-            return ApiResponse.success(null, "修改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("修改题库练习失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
-        }
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -387,33 +328,26 @@ public class StudentProcedureController {
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
             @RequestParam(value = "documents", required = false) List<MultipartFile> documents,
             @RequestParam(value = "attachmentIdsToDelete", required = false) String attachmentIdsToDeleteJson) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            // 解析JSON字符串为Map
-            Map<String, String> fillBlankAnswers = parseJsonToMap(fillBlankAnswersJson);
-            Map<String, String> tableCellAnswers = parseJsonToMap(tableCellAnswersJson);
-            List<Long> attachmentIdsToDelete = parseJsonToList(attachmentIdsToDeleteJson);
+        // 解析JSON字符串为Map
+        Map<String, String> fillBlankAnswers = parseJsonToMap(fillBlankAnswersJson);
+        Map<String, String> tableCellAnswers = parseJsonToMap(tableCellAnswersJson);
+        List<Long> attachmentIdsToDelete = parseJsonToList(attachmentIdsToDeleteJson);
 
-            studentProcedureCompletionService.updateDataCollectionProcedure(
-                    studentUsername,
-                    classCode,
-                    procedureId,
-                    fillBlankAnswers,
-                    tableCellAnswers,
-                    photos,
-                    documents,
-                    attachmentIdsToDelete
-            );
+        studentProcedureCompletionService.updateDataCollectionProcedure(
+                studentUsername,
+                classCode,
+                procedureId,
+                fillBlankAnswers,
+                tableCellAnswers,
+                photos,
+                documents,
+                attachmentIdsToDelete
+        );
 
-            return ApiResponse.success(null, "修改成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("修改数据收集失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
-        }
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -459,19 +393,12 @@ public class StudentProcedureController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Void> completeTimedQuizProcedure(
             @RequestBody com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest request) {
-        try {
-            String studentUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            studentProcedureCompletionService.completeTimedQuizProcedure(
-                    studentUsername, request.getClassCode(), request);
+        studentProcedureCompletionService.completeTimedQuizProcedure(
+                studentUsername, request.getClassCode(), request);
 
-            return ApiResponse.success(null, "提交成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("提交限时答题失败", e);
-            return ApiResponse.error(500, "提交失败: " + e.getMessage());
-        }
+        return ApiResponse.success(null, "提交成功");
     }
 }

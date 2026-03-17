@@ -38,23 +38,16 @@ public class TeacherProcedureExtensionController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> batchExtendProcedureTime(
             @Valid @RequestBody BatchExtendProcedureTimeRequest request) {
-        try {
-            String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new BusinessException(401, "未登录"));
+        String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            studentProcedureExtensionService.batchExtend(
-                    request.getExperimentalProcedureId(),
-                    request.getStudentUsernames(),
-                    request.getExtendedMinutes(),
-                    teacherUsername
-            );
-            return ApiResponse.success(null, "设置延长时间成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("批量延长步骤时间失败", e);
-            return ApiResponse.error(500, "设置失败: " + e.getMessage());
-        }
+        studentProcedureExtensionService.batchExtend(
+                request.getExperimentalProcedureId(),
+                request.getStudentUsernames(),
+                request.getExtendedMinutes(),
+                teacherUsername
+        );
+        return ApiResponse.success(null, "设置延长时间成功");
     }
 
     /**
@@ -67,23 +60,16 @@ public class TeacherProcedureExtensionController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> batchExtendByExperiment(
             @Valid @RequestBody BatchExtendByExperimentRequest request) {
-        try {
-            String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new BusinessException(401, "未登录"));
+        String teacherUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            studentProcedureExtensionService.batchExtendByExperiment(
-                    request.getExperimentId(),
-                    request.getStudentUsernames(),
-                    request.getExtendedMinutes(),
-                    teacherUsername
-            );
-            return ApiResponse.success(null, "设置延长时间成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("按实验批量延长步骤时间失败", e);
-            return ApiResponse.error(500, "设置失败: " + e.getMessage());
-        }
+        studentProcedureExtensionService.batchExtendByExperiment(
+                request.getExperimentId(),
+                request.getStudentUsernames(),
+                request.getExtendedMinutes(),
+                teacherUsername
+        );
+        return ApiResponse.success(null, "设置延长时间成功");
     }
 
     /**
@@ -98,15 +84,8 @@ public class TeacherProcedureExtensionController {
     public ApiResponse<Void> updateExtensionTime(
             @PathVariable("id") Long id,
             @RequestParam("extendedMinutes") Integer extendedMinutes) {
-        try {
-            studentProcedureExtensionService.updateExtension(id, extendedMinutes);
-            return ApiResponse.success(null, "更新延长时间成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("更新延长时间失败", e);
-            return ApiResponse.error(500, "更新失败: " + e.getMessage());
-        }
+        studentProcedureExtensionService.updateExtension(id, extendedMinutes);
+        return ApiResponse.success(null, "更新延长时间成功");
     }
 
     /**
@@ -118,15 +97,8 @@ public class TeacherProcedureExtensionController {
     @DeleteMapping("/{id}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> deleteExtension(@PathVariable("id") Long id) {
-        try {
-            studentProcedureExtensionService.deleteExtension(id);
-            return ApiResponse.success(null, "删除延长记录成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("删除延长记录失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
-        }
+        studentProcedureExtensionService.deleteExtension(id);
+        return ApiResponse.success(null, "删除延长记录成功");
     }
 
     /**
@@ -138,12 +110,7 @@ public class TeacherProcedureExtensionController {
     @GetMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<StudentProcedureExtension>> queryExtensions(ExtensionQueryRequest request) {
-        try {
-            PageResponse<StudentProcedureExtension> result = studentProcedureExtensionService.queryExtensions(request);
-            return ApiResponse.success(result, "查询成功");
-        } catch (Exception e) {
-            log.error("查询延长记录失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        PageResponse<StudentProcedureExtension> result = studentProcedureExtensionService.queryExtensions(request);
+        return ApiResponse.success(result, "查询成功");
     }
 }

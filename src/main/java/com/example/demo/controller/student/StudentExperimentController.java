@@ -47,21 +47,14 @@ public class StudentExperimentController {
     public ApiResponse<StudentExperimentDetailResponse> getExperimentDetail(
             @PathVariable("experimentId") Long experimentId,
             @RequestParam("classCode") String classCode) {
-        try {
-            // 获取当前登录学生用户名
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        // 获取当前登录学生用户名
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            StudentExperimentDetailResponse response = studentExperimentService.getStudentExperimentDetail(
-                    experimentId, classCode, studentUsername);
+        StudentExperimentDetailResponse response = studentExperimentService.getStudentExperimentDetail(
+                experimentId, classCode, studentUsername);
 
-            return ApiResponse.success(response, "查询成功");
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询实验详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -74,27 +67,20 @@ public class StudentExperimentController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<PageResponse<ClassExperimentDetailResponse>> queryClassExperiments(
             ClassExperimentQueryRequest request) {
-        try {
-            // 获取当前登录学生用户名
-            String studentUsername = SecurityUtil.getCurrentUsername()
-                .orElseThrow(() -> new BusinessException(401, "未登录"));
+        // 获取当前登录学生用户名
+        String studentUsername = SecurityUtil.getCurrentUsername()
+            .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            // 查询学生所属的班级列表
-            List<StudentClassRelation> relations = studentClassRelationService
-                .getByStudentUsername(studentUsername);
-            List<String> classCodeList = relations.stream()
-                .map(StudentClassRelation::getClassCode)
-                .collect(java.util.stream.Collectors.toList());
+        // 查询学生所属的班级列表
+        List<StudentClassRelation> relations = studentClassRelationService
+            .getByStudentUsername(studentUsername);
+        List<String> classCodeList = relations.stream()
+            .map(StudentClassRelation::getClassCode)
+            .collect(java.util.stream.Collectors.toList());
 
-            PageResponse<ClassExperimentDetailResponse> response = classExperimentService
-                .queryClassExperimentsForStudent(classCodeList, request);
+        PageResponse<ClassExperimentDetailResponse> response = classExperimentService
+            .queryClassExperimentsForStudent(classCodeList, request);
 
-            return ApiResponse.success(response, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("学生查询班级实验失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "查询成功");
     }
 }

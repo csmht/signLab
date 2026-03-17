@@ -36,18 +36,13 @@ public class StudentAttendanceController {
     @GetMapping("/records")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<List<AttendanceRecord>> getAttendanceRecords() {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            java.util.List<com.example.demo.pojo.entity.AttendanceRecord> records =
-                    attendanceRecordService.getStudentAttendanceRecords(studentUsername);
+        java.util.List<com.example.demo.pojo.entity.AttendanceRecord> records =
+                attendanceRecordService.getStudentAttendanceRecords(studentUsername);
 
-            return ApiResponse.success(records, "查询签到记录成功");
-        } catch (Exception e) {
-            log.error("查询签到记录失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(records, "查询签到记录成功");
     }
 
     /**
@@ -59,17 +54,12 @@ public class StudentAttendanceController {
     @GetMapping("/stats")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<StudentAttendanceStats> getAttendanceStats() {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            StudentAttendanceStats stats = attendanceRecordService.getStudentAttendanceStats(studentUsername);
+        StudentAttendanceStats stats = attendanceRecordService.getStudentAttendanceStats(studentUsername);
 
-            return ApiResponse.success(stats, "查询签到统计成功");
-        } catch (Exception e) {
-            log.error("查询签到统计失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(stats, "查询签到统计成功");
     }
 
     /**
@@ -81,21 +71,17 @@ public class StudentAttendanceController {
     @GetMapping("/my-records")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<com.example.demo.pojo.entity.AttendanceRecord> getMyAttendanceRecord() {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            com.example.demo.pojo.entity.AttendanceRecord record =
-                    attendanceRecordService.getByStudentUsername(studentUsername);
+        com.example.demo.pojo.entity.AttendanceRecord record =
+                attendanceRecordService.getByStudentUsername(studentUsername);
 
-            if (record == null) {
-                return ApiResponse.error(404, "未找到签到记录");
-            }
-
-            return ApiResponse.success(record);
-        } catch (Exception e) {
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        if (record == null) {
+            return ApiResponse.error(404, "未找到签到记录");
         }
+
+        return ApiResponse.success(record);
     }
 
 }

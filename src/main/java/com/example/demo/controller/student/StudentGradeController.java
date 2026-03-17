@@ -34,17 +34,12 @@ public class StudentGradeController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<List<CourseGradeResponse>> getGrades(
             @RequestParam(value = "semester", required = false) String semester) {
-        try {
-            String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
+        String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
-            List<CourseGradeResponse> grades = courseGradeService.getStudentGrades(studentUsername, semester);
+        List<CourseGradeResponse> grades = courseGradeService.getStudentGrades(studentUsername, semester);
 
-            return ApiResponse.success(grades, "查询成功");
-        } catch (Exception e) {
-            log.error("查询成绩失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(grades, "查询成功");
     }
 
     /**
@@ -56,14 +51,7 @@ public class StudentGradeController {
     @GetMapping("/{gradeId}")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<CourseGradeResponse> getGradeById(@PathVariable("gradeId") Long gradeId) {
-        try {
-            CourseGradeResponse grade = courseGradeService.getGradeById(gradeId);
-            return ApiResponse.success(grade);
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询成绩详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        CourseGradeResponse grade = courseGradeService.getGradeById(gradeId);
+        return ApiResponse.success(grade);
     }
 }
