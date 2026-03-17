@@ -48,58 +48,50 @@ public class ExcelTestController {
     @RequireRole(value = UserRole.ADMIN)
     public ApiResponse<String> importUsers(@RequestParam("file") MultipartFile file) {
         long startTime = System.currentTimeMillis();
-        try {
-            // 验证文件
-            if (file == null || file.isEmpty()) {
-                return ApiResponse.error(400, "请上传Excel文件");
-            }
+        // 验证文件
+        if (file == null || file.isEmpty()) {
+            return ApiResponse.error(400, "请上传Excel文件");
+        }
 
-            String fileName = file.getOriginalFilename();
-            if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
-                return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
-            }
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
+            return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
+        }
 
-            // 创建监听器
-            UserImportListener listener = new UserImportListener(authService);
+        // 创建监听器
+        UserImportListener listener = new UserImportListener(authService);
 
-            // 使用EasyExcel读取Excel文件
-            EasyExcel.read(file.getInputStream(), UserImportExcel.class, listener)
-                    .sheet()
-                    .doRead();
+        // 使用EasyExcel读取Excel文件
+        EasyExcel.read(file.getInputStream(), UserImportExcel.class, listener)
+                .sheet()
+                .doRead();
 
-            // 获取导入结果
-            UserImportListener.ImportResult result = listener.getResult();
+        // 获取导入结果
+        UserImportListener.ImportResult result = listener.getResult();
 
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
 
-            // 构建返回消息
-            StringBuilder message = new StringBuilder();
-            message.append(String.format("导入完成！成功：%d条，重复：%d条，失败：%d条，耗时：%dms",
-                    result.getSuccessCount(), result.getDuplicateCount(),
-                    result.getFailCount(), duration));
+        // 构建返回消息
+        StringBuilder message = new StringBuilder();
+        message.append(String.format("导入完成！成功：%d条，重复：%d条，失败：%d条，耗时：%dms",
+                result.getSuccessCount(), result.getDuplicateCount(),
+                result.getFailCount(), duration));
 
-            // 如果有错误信息，添加到返回消息中
-            if (!result.getErrorMessages().isEmpty()) {
-                message.append("\n错误详情：\n");
-                result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
-            }
+        // 如果有错误信息，添加到返回消息中
+        if (!result.getErrorMessages().isEmpty()) {
+            message.append("\n错误详情：\n");
+            result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
+        }
 
-            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
-            int totalProcessed = result.getSuccessCount() + result.getDuplicateCount() + result.getFailCount();
-            if (result.getSuccessCount() > 0 && result.getFailCount() > 0) {
-                return new ApiResponse<String>(201, message.toString(), null);
-            } else if (result.getSuccessCount() == 0 && totalProcessed > 0) {
-                return ApiResponse.error(400, message.toString());
-            } else {
-                return ApiResponse.success(message.toString());
-            }
-
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("批量添加用户失败", e);
-            return ApiResponse.error(500, "批量添加失败: " + e.getMessage());
+        // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+        int totalProcessed = result.getSuccessCount() + result.getDuplicateCount() + result.getFailCount();
+        if (result.getSuccessCount() > 0 && result.getFailCount() > 0) {
+            return new ApiResponse<String>(201, message.toString(), null);
+        } else if (result.getSuccessCount() == 0 && totalProcessed > 0) {
+            return ApiResponse.error(400, message.toString());
+        } else {
+            return ApiResponse.success(message.toString());
         }
     }
 
@@ -172,65 +164,57 @@ public class ExcelTestController {
     @RequireRole(value = UserRole.ADMIN)
     public ApiResponse<String> importStudentsWithClasses(@RequestParam("file") MultipartFile file) {
         long startTime = System.currentTimeMillis();
-        try {
-            // 验证文件
-            if (file == null || file.isEmpty()) {
-                return ApiResponse.error(400, "请上传Excel文件");
-            }
+        // 验证文件
+        if (file == null || file.isEmpty()) {
+            return ApiResponse.error(400, "请上传Excel文件");
+        }
 
-            String fileName = file.getOriginalFilename();
-            if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
-                return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
-            }
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
+            return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
+        }
 
-            // 创建监听器
-            StudentClassImportListener listener = new StudentClassImportListener(studentClassImportService);
+        // 创建监听器
+        StudentClassImportListener listener = new StudentClassImportListener(studentClassImportService);
 
-            // 使用EasyExcel读取Excel文件
-            EasyExcel.read(file.getInputStream(), StudentClassImportExcel.class, listener)
-                    .sheet()
-                    .doRead();
+        // 使用EasyExcel读取Excel文件
+        EasyExcel.read(file.getInputStream(), StudentClassImportExcel.class, listener)
+                .sheet()
+                .doRead();
 
-            // 获取导入结果
-            StudentClassImportListener.ImportResult result = listener.getResult();
+        // 获取导入结果
+        StudentClassImportListener.ImportResult result = listener.getResult();
 
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
 
-            // 构建返回消息
-            StringBuilder message = new StringBuilder();
-            message.append("导入完成！耗时:").append(duration).append("ms\n");
-            message.append("【学生】成功:").append(result.getStudentSuccessCount())
-                   .append(" 重复:").append(result.getStudentDuplicateCount())
-                   .append(" 失败:").append(result.getStudentFailCount()).append("\n");
-            message.append("【班级】成功:").append(result.getClassSuccessCount())
-                   .append(" 重复:").append(result.getClassDuplicateCount())
-                   .append(" 失败:").append(result.getClassFailCount()).append("\n");
-            message.append("【绑定】成功:").append(result.getBindSuccessCount())
-                   .append(" 失败:").append(result.getBindFailCount());
+        // 构建返回消息
+        StringBuilder message = new StringBuilder();
+        message.append("导入完成！耗时:").append(duration).append("ms\n");
+        message.append("【学生】成功:").append(result.getStudentSuccessCount())
+               .append(" 重复:").append(result.getStudentDuplicateCount())
+               .append(" 失败:").append(result.getStudentFailCount()).append("\n");
+        message.append("【班级】成功:").append(result.getClassSuccessCount())
+               .append(" 重复:").append(result.getClassDuplicateCount())
+               .append(" 失败:").append(result.getClassFailCount()).append("\n");
+        message.append("【绑定】成功:").append(result.getBindSuccessCount())
+               .append(" 失败:").append(result.getBindFailCount());
 
-            // 如果有错误信息，添加到返回消息中
-            if (!result.getErrorMessages().isEmpty()) {
-                message.append("\n\n错误详情：\n");
-                result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
-            }
+        // 如果有错误信息，添加到返回消息中
+        if (!result.getErrorMessages().isEmpty()) {
+            message.append("\n\n错误详情：\n");
+            result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
+        }
 
-            // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
-            int totalFailures = result.getStudentFailCount() + result.getClassFailCount() + result.getBindFailCount();
-            int totalSuccess = result.getStudentSuccessCount() + result.getClassSuccessCount() + result.getBindSuccessCount();
-            if (totalSuccess > 0 && totalFailures > 0) {
-                return new ApiResponse<String>(201, message.toString(), null);
-            } else if (totalSuccess == 0 && totalFailures > 0) {
-                return ApiResponse.error(400, message.toString());
-            } else {
-                return ApiResponse.success(message.toString());
-            }
-
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("批量导入学生和班级失败", e);
-            return ApiResponse.error(500, "批量导入失败: " + e.getMessage());
+        // 判断返回码：全部成功返回200，部分成功返回201，全部失败返回400
+        int totalFailures = result.getStudentFailCount() + result.getClassFailCount() + result.getBindFailCount();
+        int totalSuccess = result.getStudentSuccessCount() + result.getClassSuccessCount() + result.getBindSuccessCount();
+        if (totalSuccess > 0 && totalFailures > 0) {
+            return new ApiResponse<String>(201, message.toString(), null);
+        } else if (totalSuccess == 0 && totalFailures > 0) {
+            return ApiResponse.error(400, message.toString());
+        } else {
+            return ApiResponse.success(message.toString());
         }
     }
 
@@ -314,67 +298,59 @@ public class ExcelTestController {
     @RequireRole(value = UserRole.ADMIN)
     public ApiResponse<String> importClassCourseExperiments(@RequestParam("file") MultipartFile file) {
         long startTime = System.currentTimeMillis();
-        try {
-            // 验证文件
-            if (file == null || file.isEmpty()) {
-                return ApiResponse.error(400, "请上传Excel文件");
-            }
-
-            String fileName = file.getOriginalFilename();
-            if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
-                return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
-            }
-
-            // 创建监听器
-            ClassCourseExperimentExcelListener listener = new ClassCourseExperimentExcelListener(classCourseExperimentImportService);
-
-            // 使用EasyExcel读取Excel文件
-            EasyExcel.read(file.getInputStream(), ClassCourseExperimentExcel.class, listener)
-                    .sheet()
-                    .doRead();
-
-            // 获取导入结果
-            ClassCourseExperimentExcelListener.ImportResult result = listener.getResult();
-
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
-
-            // 构建返回消息
-            StringBuilder message = new StringBuilder();
-            message.append("导入完成！耗时:").append(duration).append("ms\n");
-            message.append("【班级】成功:").append(result.getClassSuccessCount())
-                   .append(" 重复:").append(result.getClassDuplicateCount())
-                   .append(" 失败:").append(result.getClassFailCount()).append("\n");
-            message.append("【课程】成功:").append(result.getCourseSuccessCount())
-                   .append(" 重复:").append(result.getCourseDuplicateCount())
-                   .append(" 失败:").append(result.getCourseFailCount()).append("\n");
-            message.append("【实验】成功:").append(result.getExperimentSuccessCount())
-                   .append(" 重复:").append(result.getExperimentDuplicateCount())
-                   .append(" 失败:").append(result.getExperimentFailCount()).append("\n");
-            message.append("【课次】成功:").append(result.getClassExperimentSuccessCount())
-                   .append(" 重复:").append(result.getClassExperimentDuplicateCount())
-                   .append(" 失败:").append(result.getClassExperimentFailCount());
-
-            // 如果有错误信息，添加到返回消息中
-            if (!result.getErrorMessages().isEmpty()) {
-                message.append("\n\n错误详情：\n");
-                result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
-            }
-
-            // 判断返回码：全部成功返回200，有失败则抛出异常返回500
-            int totalFailures = result.getClassFailCount() + result.getCourseFailCount()
-                    + result.getExperimentFailCount() + result.getClassExperimentFailCount();
-            if (totalFailures > 0) {
-                throw new com.example.demo.exception.BusinessException(500, message.toString());
-            }
-            return ApiResponse.success(message.toString());
-
-        } catch (com.example.demo.exception.BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("批量导入班级课程实验失败", e);
-            return ApiResponse.error(500, "批量导入失败: " + e.getMessage());
+        // 验证文件
+        if (file == null || file.isEmpty()) {
+            return ApiResponse.error(400, "请上传Excel文件");
         }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.endsWith(".xls") && !fileName.endsWith(".xlsx"))) {
+            return ApiResponse.error(400, "文件格式错误，请上传 .xls 或 .xlsx 格式的Excel文件");
+        }
+
+        // 创建监听器
+        ClassCourseExperimentExcelListener listener = new ClassCourseExperimentExcelListener(classCourseExperimentImportService);
+
+        // 使用EasyExcel读取Excel文件
+        EasyExcel.read(file.getInputStream(), ClassCourseExperimentExcel.class, listener)
+                .sheet()
+                .doRead();
+
+        // 获取导入结果
+        ClassCourseExperimentExcelListener.ImportResult result = listener.getResult();
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+
+        // 构建返回消息
+        StringBuilder message = new StringBuilder();
+        message.append("导入完成！耗时:").append(duration).append("ms\n");
+        message.append("【班级】成功:").append(result.getClassSuccessCount())
+               .append(" 重复:").append(result.getClassDuplicateCount())
+               .append(" 失败:").append(result.getClassFailCount()).append("\n");
+        message.append("【课程】成功:").append(result.getCourseSuccessCount())
+               .append(" 重复:").append(result.getCourseDuplicateCount())
+               .append(" 失败:").append(result.getCourseFailCount()).append("\n");
+        message.append("【实验】成功:").append(result.getExperimentSuccessCount())
+               .append(" 重复:").append(result.getExperimentDuplicateCount())
+               .append(" 失败:").append(result.getExperimentFailCount()).append("\n");
+        message.append("【课次】成功:").append(result.getClassExperimentSuccessCount())
+               .append(" 重复:").append(result.getClassExperimentDuplicateCount())
+               .append(" 失败:").append(result.getClassExperimentFailCount());
+
+        // 如果有错误信息，添加到返回消息中
+        if (!result.getErrorMessages().isEmpty()) {
+            message.append("\n\n错误详情：\n");
+            result.getErrorMessages().forEach(error -> message.append(error).append("\n"));
+        }
+
+        // 判断返回码：全部成功返回200，有失败则抛出异常返回500
+        int totalFailures = result.getClassFailCount() + result.getCourseFailCount()
+                + result.getExperimentFailCount() + result.getClassExperimentFailCount();
+        if (totalFailures > 0) {
+            throw new com.example.demo.exception.BusinessException(500, message.toString());
+        }
+        return ApiResponse.success(message.toString());
     }
 
     /**
