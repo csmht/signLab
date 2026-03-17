@@ -340,7 +340,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                                 }
                             }
 
-                            topicWrapper.orderByAsc(Topic::getNumber);
+                            topicWrapper.last("ORDER BY RAND() LIMIT "+ procedureTopic.getNumber());
                             return topicMapper.selectList(topicWrapper);
                         }
                     }
