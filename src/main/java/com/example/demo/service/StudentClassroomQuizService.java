@@ -21,11 +21,11 @@ public interface StudentClassroomQuizService {
     /**
      * 提交小测答案
      *
-     * @param request          提交请求
-     * @param studentUsername  学生用户名
-     * @param classCode        班级编号
+     * @param request           提交请求
+     * @param studentUsername   学生用户名
+     * @param classExperimentId 班级实验ID
      */
-    void submitAnswer(SubmitClassroomQuizAnswerRequest request, String studentUsername, String classCode);
+    void submitAnswer(SubmitClassroomQuizAnswerRequest request, String studentUsername, Long classExperimentId);
 
     /**
      * 查询已结束的小测（包含正确答案和自己的答案）

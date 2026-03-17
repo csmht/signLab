@@ -7,6 +7,7 @@ import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
+import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.StudentClassroomQuizService;
 import com.example.demo.util.ClassroomQuizScorer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +36,8 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
     private final TopicMapper topicMapper;
     private final TopicTagMapMapper topicTagMapMapper;
     private final ClassroomQuizScorer classroomQuizScorer;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
+    private final StudentClassRelationMapper studentClassRelationMapper;
 
     @Override
     public StudentClassroomQuizDetailResponse getCurrentQuiz(Long classExperimentId) {
@@ -102,13 +105,18 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void submitAnswer(SubmitClassroomQuizAnswerRequest request, String studentUsername, String classCode) {
-        log.info("提交小测答案，小测ID: {}, 学生: {}", request.getQuizId(), studentUsername);
+    public void submitAnswer(SubmitClassroomQuizAnswerRequest request, String studentUsername, Long classExperimentId) {
+        log.info("提交小测答案，小测ID: {}, 学生: {}, 班级实验ID: {}", request.getQuizId(), studentUsername, classExperimentId);
 
         // 查询小测信息
         ClassroomQuiz quiz = classroomQuizMapper.selectById(request.getQuizId());
         if (quiz == null) {
             throw new BusinessException(404, "小测不存在");
+        }
+
+        // 验证小测是否属于该班级实验
+        if (!quiz.getClassExperimentId().equals(classExperimentId)) {
+            throw new BusinessException(400, "小测与班级实验不匹配");
         }
 
         // 检查小测状态
@@ -128,6 +136,18 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         ClassroomQuizAnswer existAnswer = classroomQuizAnswerMapper.selectOne(existWrapper);
         if (existAnswer != null) {
             throw new BusinessException(400, "您已提交答案，不能重复提交");
+        }
+
+        // 获取班级实验关联的班级列表
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes.isEmpty()) {
+            throw new BusinessException(404, "班级实验未关联任何班级");
+        }
+
+        // 查询学生所属的班级，从班级实验关联的班级中找到匹配的班级
+        String matchedClassCode = findStudentClassCode(studentUsername, classCodes);
+        if (matchedClassCode == null) {
+            throw new BusinessException(400, "学生不属于该班级实验的任何班级");
         }
 
         // 查询题库配置
@@ -157,7 +177,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         ClassroomQuizAnswer answer = new ClassroomQuizAnswer();
         answer.setClassroomQuizId(request.getQuizId());
         answer.setStudentUsername(studentUsername);
-        answer.setClassCode(classCode);
+        answer.setClassCode(matchedClassCode);
         answer.setAnswer(answerJson);
         answer.setScore(score);
         answer.setIsCorrect(isAllCorrect);
@@ -353,5 +373,22 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
      */
     private Map<Long, String> parseTopicAnswers(String answerJson) {
         return com.example.demo.util.AnswerMapJSONUntil.parseTopicData(answerJson);
+    }
+
+    /**
+     * 从班级列表中找到学生所属的班级
+     *
+     * @param studentUsername 学生用户名
+     * @param classCodes      班级编号列表
+     * @return 匹配的班级编号，没有匹配返回null
+     */
+    private String findStudentClassCode(String studentUsername, List<String> classCodes) {
+        LambdaQueryWrapper<StudentClassRelation> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StudentClassRelation::getStudentUsername, studentUsername);
+        wrapper.in(StudentClassRelation::getClassCode, classCodes);
+        wrapper.eq(StudentClassRelation::getIsDeleted, 0);
+        wrapper.last("LIMIT 1");
+        StudentClassRelation relation = studentClassRelationMapper.selectOne(wrapper);
+        return relation != null ? relation.getClassCode() : null;
     }
 }

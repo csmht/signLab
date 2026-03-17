@@ -2,6 +2,7 @@ package com.example.demo.controller.student;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
@@ -37,7 +38,7 @@ public class StudentClassroomQuizController {
             return ApiResponse.success(response, "查询成功");
         } catch (Exception e) {
             log.error("查询当前小测失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+            throw e;
         }
     }
 
@@ -47,12 +48,12 @@ public class StudentClassroomQuizController {
     @PostMapping("/submit")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Void> submitAnswer(@RequestBody SubmitClassroomQuizAnswerRequest request,
-                                          @RequestParam("classCode") String classCode) {
+                                          @RequestParam("classExperimentId") Long classExperimentId) {
         try {
             // 从上下文获取学生信息
             String studentUsername = getCurrentStudentUsername();
 
-            studentClassroomQuizService.submitAnswer(request, studentUsername, classCode);
+            studentClassroomQuizService.submitAnswer(request, studentUsername, classExperimentId);
             return ApiResponse.success(null, "提交成功");
         } catch (Exception e) {
             log.error("提交答案失败", e);

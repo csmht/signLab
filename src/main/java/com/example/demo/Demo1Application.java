@@ -26,7 +26,7 @@ public class Demo1Application {
                 .ignoreIfMissing()
                 .load();
 
-        if (dotenv.entries().size() > 0) {
+        if (!dotenv.entries().isEmpty()) {
             System.out.println("✅ 找到配置文件: " + currentDir + "/local-config.env");
         } else {
             System.out.println("⚠️ 未找到配置文件，将使用默认配置");
