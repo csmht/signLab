@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.service.DownloadService;
 import com.example.demo.util.SecurityUtil;
@@ -34,23 +35,16 @@ public class ResourceController {
     @GetMapping("/video/key/{videoId}")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Map<String, String>> getVideoDownloadKey(@PathVariable Long videoId) {
-        try {
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new IllegalArgumentException("未登录用户"));
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录用户"));
 
-            String downloadKey = downloadService.generateVideoKey(videoId, username);
+        String downloadKey = downloadService.generateVideoKey(videoId, username);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("downloadKey", downloadKey);
-            result.put("downloadUrl", "/api/download/video/" + downloadKey);
+        Map<String, String> result = new HashMap<>();
+        result.put("downloadKey", downloadKey);
+        result.put("downloadUrl", "/api/download/video/" + downloadKey);
 
-            return ApiResponse.success(result, "获取下载密钥成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(401, e.getMessage());
-        } catch (Exception e) {
-            log.error("获取视频下载密钥失败", e);
-            return ApiResponse.error(500, "获取下载密钥失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "获取下载密钥成功");
     }
 
     /**
@@ -65,23 +59,16 @@ public class ResourceController {
     public ApiResponse<Map<String, String>> getFileDownloadKey(
             @PathVariable String fileType,
             @PathVariable Long fileId) {
-        try {
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new IllegalArgumentException("未登录用户"));
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录用户"));
 
-            String downloadKey = downloadService.generateFileKey(fileType, fileId, username);
+        String downloadKey = downloadService.generateFileKey(fileType, fileId, username);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("downloadKey", downloadKey);
-            result.put("downloadUrl", "/api/download/file/" + downloadKey);
+        Map<String, String> result = new HashMap<>();
+        result.put("downloadKey", downloadKey);
+        result.put("downloadUrl", "/api/download/file/" + downloadKey);
 
-            return ApiResponse.success(result, "获取下载密钥成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(401, e.getMessage());
-        } catch (Exception e) {
-            log.error("获取文件下载密钥失败", e);
-            return ApiResponse.error(500, "获取下载密钥失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "获取下载密钥成功");
     }
 
     /**
@@ -93,22 +80,15 @@ public class ResourceController {
     @GetMapping("/video/playkey/{videoId}")
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Map<String, String>> getVideoPlayKey(@PathVariable Long videoId) {
-        try {
-            String username = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new IllegalArgumentException("未登录用户"));
+        String username = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录用户"));
 
-            String playKey = downloadService.generatePlayKey(videoId, username);
+        String playKey = downloadService.generatePlayKey(videoId, username);
 
-            Map<String, String> result = new HashMap<>();
-            result.put("playKey", playKey);
-            result.put("playUrl", "/api/download/play/" + playKey);
+        Map<String, String> result = new HashMap<>();
+        result.put("playKey", playKey);
+        result.put("playUrl", "/api/download/play/" + playKey);
 
-            return ApiResponse.success(result, "获取播放密钥成功");
-        } catch (IllegalArgumentException e) {
-            return ApiResponse.error(401, e.getMessage());
-        } catch (Exception e) {
-            log.error("获取视频播放密钥失败", e);
-            return ApiResponse.error(500, "获取播放密钥失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "获取播放密钥成功");
     }
 }
