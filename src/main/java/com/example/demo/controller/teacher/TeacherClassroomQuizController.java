@@ -2,7 +2,6 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.pojo.entity.ClassroomQuiz;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequest;
 import com.example.demo.pojo.response.ClassroomQuizHistoryResponse;
@@ -33,13 +32,8 @@ public class TeacherClassroomQuizController {
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createClassroomQuiz(@RequestBody CreateClassroomQuizRequest request) {
-        try {
-            Long quizId = teacherClassroomQuizService.createClassroomQuiz(request);
-            return ApiResponse.success(quizId, "创建成功");
-        } catch (Exception e) {
-            log.error("创建课堂小测失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        Long quizId = teacherClassroomQuizService.createClassroomQuiz(request);
+        return ApiResponse.success(quizId, "创建成功");
     }
 
     /**
@@ -48,13 +42,8 @@ public class TeacherClassroomQuizController {
     @PostMapping("/{quizId}/start")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> startQuiz(@PathVariable("quizId") Long quizId) {
-        try {
-            teacherClassroomQuizService.startQuiz(quizId);
-            return ApiResponse.success(null, "小测已开始");
-        } catch (Exception e) {
-            log.error("开始小测失败", e);
-            return ApiResponse.error(500, "操作失败: " + e.getMessage());
-        }
+        teacherClassroomQuizService.startQuiz(quizId);
+        return ApiResponse.success(null, "小测已开始");
     }
 
     /**
@@ -63,13 +52,8 @@ public class TeacherClassroomQuizController {
     @PostMapping("/{quizId}/end")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> endQuiz(@PathVariable("quizId") Long quizId) {
-        try {
-            teacherClassroomQuizService.endQuiz(quizId);
-            return ApiResponse.success(null, "小测已结束");
-        } catch (Exception e) {
-            log.error("结束小测失败", e);
-            return ApiResponse.error(500, "操作失败: " + e.getMessage());
-        }
+        teacherClassroomQuizService.endQuiz(quizId);
+        return ApiResponse.success(null, "小测已结束");
     }
 
     /**
@@ -79,13 +63,8 @@ public class TeacherClassroomQuizController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ClassroomQuizStatisticsResponse> getQuizStatistics(
             @PathVariable("quizId") Long quizId) {
-        try {
-            ClassroomQuizStatisticsResponse response = teacherClassroomQuizService.getQuizStatistics(quizId);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询小测统计失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        ClassroomQuizStatisticsResponse response = teacherClassroomQuizService.getQuizStatistics(quizId);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -96,14 +75,9 @@ public class TeacherClassroomQuizController {
     public ApiResponse<StudentClassroomQuizDetailResponse> getStudentAnswerDetail(
             @PathVariable("quizId") Long quizId,
             @PathVariable("studentUsername") String studentUsername) {
-        try {
-            StudentClassroomQuizDetailResponse response =
-                teacherClassroomQuizService.getStudentAnswerDetail(quizId, studentUsername);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询学生答题详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        StudentClassroomQuizDetailResponse response =
+            teacherClassroomQuizService.getStudentAnswerDetail(quizId, studentUsername);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -113,12 +87,7 @@ public class TeacherClassroomQuizController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<ClassroomQuizHistoryResponse>> getHistoryQuizzes(
             @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
-        try {
-            List<ClassroomQuizHistoryResponse> quizzes = teacherClassroomQuizService.getHistoryQuizzes(classExperimentId);
-            return ApiResponse.success(quizzes, "查询成功");
-        } catch (Exception e) {
-            log.error("查询历史小测列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        List<ClassroomQuizHistoryResponse> quizzes = teacherClassroomQuizService.getHistoryQuizzes(classExperimentId);
+        return ApiResponse.success(quizzes, "查询成功");
     }
 }
