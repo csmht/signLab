@@ -37,25 +37,18 @@ public class CourseController {
     @PostMapping("/query")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<CourseResponse>> queryCourses(@RequestBody CourseQueryRequest request) {
-        try {
-            // 如果设置只查询我的课程
-            if (request.getMyOnly() != null && request.getMyOnly()) {
-                String teacherUsername = SecurityUtil.getCurrentUsername()
-                        .orElseThrow(() -> new BusinessException(401, "未登录"));
+        // 如果设置只查询我的课程
+        if (request.getMyOnly() != null && request.getMyOnly()) {
+            String teacherUsername = SecurityUtil.getCurrentUsername()
+                    .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-                PageResponse<CourseResponse> response = courseService.queryMyCourses(teacherUsername, request);
-                return ApiResponse.success(response);
-            }
-
-            // 查询所有课程
-            PageResponse<CourseResponse> response = courseService.queryCourses(request);
+            PageResponse<CourseResponse> response = courseService.queryMyCourses(teacherUsername, request);
             return ApiResponse.success(response);
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询课程列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
         }
+
+        // 查询所有课程
+        PageResponse<CourseResponse> response = courseService.queryCourses(request);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -67,15 +60,8 @@ public class CourseController {
     @GetMapping("/{id}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<CourseResponse> getCourseById(@PathVariable Long id) {
-        try {
-            CourseResponse response = courseService.getCourseById(id);
-            return ApiResponse.success(response);
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询课程详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        CourseResponse response = courseService.getCourseById(id);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -87,18 +73,11 @@ public class CourseController {
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<CourseResponse> createCourse(@RequestBody CreateCourseRequest request) {
-        try {
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new BusinessException(401, "未登录"));
+        String teacherUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            CourseResponse response = courseService.createCourse(request, teacherUsername);
-            return ApiResponse.success(response, "创建课程成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("创建课程失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
-        }
+        CourseResponse response = courseService.createCourse(request, teacherUsername);
+        return ApiResponse.success(response, "创建课程成功");
     }
 
     /**
@@ -113,18 +92,11 @@ public class CourseController {
     public ApiResponse<CourseResponse> updateCourse(
             @PathVariable Long id,
             @RequestBody UpdateCourseRequest request) {
-        try {
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new BusinessException(401, "未登录"));
+        String teacherUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            CourseResponse response = courseService.updateCourse(id, request, teacherUsername);
-            return ApiResponse.success(response, "更新课程成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("更新课程失败", e);
-            return ApiResponse.error(500, "更新失败: " + e.getMessage());
-        }
+        CourseResponse response = courseService.updateCourse(id, request, teacherUsername);
+        return ApiResponse.success(response, "更新课程成功");
     }
 
     /**
@@ -136,21 +108,14 @@ public class CourseController {
     @DeleteMapping("/{id}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> deleteCourse(@PathVariable Long id) {
-        try {
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                    .orElseThrow(() -> new BusinessException(401, "未登录"));
+        String teacherUsername = SecurityUtil.getCurrentUsername()
+                .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            boolean deleted = courseService.deleteCourse(id, teacherUsername);
-            if (deleted) {
-                return ApiResponse.success(null, "删除课程成功");
-            } else {
-                return ApiResponse.error(500, "删除课程失败");
-            }
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("删除课程失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
+        boolean deleted = courseService.deleteCourse(id, teacherUsername);
+        if (deleted) {
+            return ApiResponse.success(null, "删除课程成功");
+        } else {
+            return ApiResponse.error(500, "删除课程失败");
         }
     }
 }
