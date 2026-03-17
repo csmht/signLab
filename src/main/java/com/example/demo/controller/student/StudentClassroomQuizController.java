@@ -2,7 +2,6 @@ package com.example.demo.controller.student;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
@@ -32,14 +31,9 @@ public class StudentClassroomQuizController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<StudentClassroomQuizDetailResponse> getCurrentQuiz(
             @RequestParam("classExperimentId") Long classExperimentId) {
-        try {
-            StudentClassroomQuizDetailResponse response =
-                studentClassroomQuizService.getCurrentQuiz(classExperimentId);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询当前小测失败", e);
-            throw e;
-        }
+        StudentClassroomQuizDetailResponse response =
+            studentClassroomQuizService.getCurrentQuiz(classExperimentId);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -49,16 +43,11 @@ public class StudentClassroomQuizController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<Void> submitAnswer(@RequestBody SubmitClassroomQuizAnswerRequest request,
                                           @RequestParam("classExperimentId") Long classExperimentId) {
-        try {
-            // 从上下文获取学生信息
-            String studentUsername = getCurrentStudentUsername();
+        // 从上下文获取学生信息
+        String studentUsername = getCurrentStudentUsername();
 
-            studentClassroomQuizService.submitAnswer(request, studentUsername, classExperimentId);
-            return ApiResponse.success(null, "提交成功");
-        } catch (Exception e) {
-            log.error("提交答案失败", e);
-            return ApiResponse.error(500, "提交失败: " + e.getMessage());
-        }
+        studentClassroomQuizService.submitAnswer(request, studentUsername, classExperimentId);
+        return ApiResponse.success(null, "提交成功");
     }
 
     /**
@@ -68,15 +57,10 @@ public class StudentClassroomQuizController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<StudentClassroomQuizDetailResponse> getFinishedQuiz(
             @PathVariable("quizId") Long quizId) {
-        try {
-            String studentUsername = getCurrentStudentUsername();
-            StudentClassroomQuizDetailResponse response =
-                studentClassroomQuizService.getFinishedQuiz(quizId, studentUsername);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询已结束小测失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        String studentUsername = getCurrentStudentUsername();
+        StudentClassroomQuizDetailResponse response =
+            studentClassroomQuizService.getFinishedQuiz(quizId, studentUsername);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -86,15 +70,10 @@ public class StudentClassroomQuizController {
     @RequireRole(value = UserRole.STUDENT)
     public ApiResponse<List<StudentClassroomQuizDetailResponse>> getHistoryQuizzes(
             @RequestParam("classExperimentId") Long classExperimentId) {
-        try {
-            String studentUsername = getCurrentStudentUsername();
-            List<StudentClassroomQuizDetailResponse> responses =
-                studentClassroomQuizService.getHistoryQuizzes(studentUsername, classExperimentId);
-            return ApiResponse.success(responses, "查询成功");
-        } catch (Exception e) {
-            log.error("查询历史小测失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        String studentUsername = getCurrentStudentUsername();
+        List<StudentClassroomQuizDetailResponse> responses =
+            studentClassroomQuizService.getHistoryQuizzes(studentUsername, classExperimentId);
+        return ApiResponse.success(responses, "查询成功");
     }
 
     // 辅助方法(实际项目中应从统一上下文获取)
