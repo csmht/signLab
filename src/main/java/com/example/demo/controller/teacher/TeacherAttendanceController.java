@@ -40,13 +40,8 @@ public class TeacherAttendanceController {
     public ApiResponse<AttendanceListResponse> getAttendanceList(
             @RequestParam("classCode") String classCode,
             @RequestParam("experimentId") String experimentId) {
-        try {
-            AttendanceListResponse response = attendanceRecordService.getAttendanceList(classCode, experimentId);
-            return ApiResponse.success(response);
-        } catch (Exception e) {
-            log.error("查询签到列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        AttendanceListResponse response = attendanceRecordService.getAttendanceList(classCode, experimentId);
+        return ApiResponse.success(response);
     }
 
     /**
@@ -59,16 +54,11 @@ public class TeacherAttendanceController {
     @PostMapping("/update")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Boolean> updateAttendanceStatus(@RequestBody UpdateAttendanceRequest request) {
-        try {
-            boolean success = attendanceRecordService.updateAttendanceStatus(request);
-            if (success) {
-                return ApiResponse.success(success, "签到状态修改成功");
-            } else {
-                return ApiResponse.error(500, "签到状态修改失败");
-            }
-        } catch (Exception e) {
-            log.error("修改签到状态失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        boolean success = attendanceRecordService.updateAttendanceStatus(request);
+        if (success) {
+            return ApiResponse.success(success, "签到状态修改成功");
+        } else {
+            return ApiResponse.error(500, "签到状态修改失败");
         }
     }
 
@@ -84,13 +74,8 @@ public class TeacherAttendanceController {
     public ApiResponse<List<AttendanceRecord>> getAttendanceRecords(
             @RequestParam("courseId") String courseId,
             @RequestParam("experimentId") String experimentId) {
-        try {
-            List<AttendanceRecord> records = attendanceRecordService.getByCourseAndExperiment(courseId, experimentId);
-            return ApiResponse.success(records);
-        } catch (Exception e) {
-            log.error("查询签到记录失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        List<AttendanceRecord> records = attendanceRecordService.getByCourseAndExperiment(courseId, experimentId);
+        return ApiResponse.success(records);
     }
 
     /**
@@ -105,13 +90,8 @@ public class TeacherAttendanceController {
     public ApiResponse<Long> countAttendance(
             @RequestParam("courseId") String courseId,
             @RequestParam("experimentId") String experimentId) {
-        try {
-            Long count = attendanceRecordService.countByCourseAndExperiment(courseId, experimentId);
-            return ApiResponse.success(count);
-        } catch (Exception e) {
-            log.error("统计签到数量失败", e);
-            return ApiResponse.error(500, "统计失败: " + e.getMessage());
-        }
+        Long count = attendanceRecordService.countByCourseAndExperiment(courseId, experimentId);
+        return ApiResponse.success(count);
     }
 
     /**
@@ -125,14 +105,9 @@ public class TeacherAttendanceController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<CrossClassAttendee>> getCrossClassAttendees(
             @RequestParam("classExperimentId") Long classExperimentId) {
-        try {
-            List<CrossClassAttendee> attendees =
-                    attendanceRecordService.getCrossClassAttendees(classExperimentId);
-            return ApiResponse.success(attendees);
-        } catch (Exception e) {
-            log.error("查询跨班签到学生失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        List<CrossClassAttendee> attendees =
+                attendanceRecordService.getCrossClassAttendees(classExperimentId);
+        return ApiResponse.success(attendees);
     }
 
     /**
@@ -145,13 +120,8 @@ public class TeacherAttendanceController {
     @GetMapping("/by-class-experiment/{classExperimentId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<AttendanceListResponse> getByClassExperimentId(@PathVariable Long classExperimentId) {
-        try {
-            AttendanceListResponse response = attendanceRecordService.getAttendanceListByClassExperimentId(classExperimentId);
-            return ApiResponse.success(response);
-        } catch (Exception e) {
-            log.error("查询签到列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        AttendanceListResponse response = attendanceRecordService.getAttendanceListByClassExperimentId(classExperimentId);
+        return ApiResponse.success(response);
     }
 
 }
