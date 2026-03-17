@@ -429,10 +429,19 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                         .map(ProcedureTopicMap::getTopicId)
                         .collect(Collectors.toList());
 
+                // 先查询所有题目
                 LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
                 topicWrapper.in(Topic::getId, topicIds);
-                topicWrapper.orderByAsc(Topic::getNumber);
-                return topicMapper.selectList(topicWrapper);
+                List<Topic> topics = topicMapper.selectList(topicWrapper);
+
+                // 按照 procedureTopicMaps 中的顺序重新排序
+                Map<Long, Topic> topicMap = topics.stream()
+                        .collect(Collectors.toMap(Topic::getId, t -> t));
+
+                return topicMaps.stream()
+                        .map(m -> topicMap.get(m.getTopicId()))
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
             }
             return new ArrayList<>();
         }
