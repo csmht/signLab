@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -150,7 +151,7 @@ public class TeacherTopicController {
      */
     @PostMapping("/upload")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<Map<String, Object>> uploadTopicsByExcel(@RequestParam("file") MultipartFile file) {
+    public ApiResponse<Map<String, Object>> uploadTopicsByExcel(@RequestParam("file") MultipartFile file) throws IOException {
         // 校验文件
         if (file.isEmpty()) {
             return ApiResponse.error(400, "上传文件不能为空");

@@ -17,6 +17,7 @@ import com.example.demo.service.StudentProcedureCompletionService;
 import com.example.demo.service.StudentProcedureQueryService;
 import com.example.demo.service.StudentProcedureSubmissionService;
 import com.example.demo.util.SecurityUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -248,7 +249,7 @@ public class StudentProcedureController {
             @RequestParam(value = "fillBlankAnswers", required = false) String fillBlankAnswersJson,
             @RequestParam(value = "tableCellAnswers", required = false) String tableCellAnswersJson,
             @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
-            @RequestParam(value = "documents", required = false) List<MultipartFile> documents) {
+            @RequestParam(value = "documents", required = false) List<MultipartFile> documents) throws JsonProcessingException {
         String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                 .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 

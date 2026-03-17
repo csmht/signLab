@@ -46,7 +46,7 @@ public class ExcelTestController {
      */
     @PostMapping("/import/users")
     @RequireRole(value = UserRole.ADMIN)
-    public ApiResponse<String> importUsers(@RequestParam("file") MultipartFile file) {
+    public ApiResponse<String> importUsers(@RequestParam("file") MultipartFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         // 验证文件
         if (file == null || file.isEmpty()) {
@@ -162,7 +162,7 @@ public class ExcelTestController {
      */
     @PostMapping("/import/students-with-classes")
     @RequireRole(value = UserRole.ADMIN)
-    public ApiResponse<String> importStudentsWithClasses(@RequestParam("file") MultipartFile file) {
+    public ApiResponse<String> importStudentsWithClasses(@RequestParam("file") MultipartFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         // 验证文件
         if (file == null || file.isEmpty()) {
@@ -296,7 +296,7 @@ public class ExcelTestController {
      */
     @PostMapping("/import/class-course-experiments")
     @RequireRole(value = UserRole.ADMIN)
-    public ApiResponse<String> importClassCourseExperiments(@RequestParam("file") MultipartFile file) {
+    public ApiResponse<String> importClassCourseExperiments(@RequestParam("file") MultipartFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         // 验证文件
         if (file == null || file.isEmpty()) {
