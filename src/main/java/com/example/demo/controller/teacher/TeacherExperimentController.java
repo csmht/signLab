@@ -50,37 +50,32 @@ public class TeacherExperimentController {
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createExperiment(@RequestBody CreateExperimentRequest request) {
-        try {
-            log.info("创建实验，课程ID: {}, 实验名称: {}", request.getCourseId(), request.getExperimentName());
+        log.info("创建实验，课程ID: {}, 实验名称: {}", request.getCourseId(), request.getExperimentName());
 
-            // 验证必填字段
-            if (request.getCourseId() == null || request.getCourseId().trim().isEmpty()) {
-                return ApiResponse.error(400, "课程ID不能为空");
-            }
-            if (request.getExperimentName() == null || request.getExperimentName().trim().isEmpty()) {
-                return ApiResponse.error(400, "实验名称不能为空");
-            }
-            if (request.getEndTime() == null) {
-                return ApiResponse.error(400, "实验结束填写时间不能为空");
-            }
-
-            // 创建实验实体
-            Experiment experiment = new Experiment();
-            experiment.setCourseId(request.getCourseId());
-            experiment.setExperimentName(request.getExperimentName());
-            experiment.setPercentage(request.getPercentage() != null ? request.getPercentage() : 0);
-            experiment.setEndTime(request.getEndTime());
-            experiment.setIsDeleted(false);
-
-            // 保存实验
-            experimentService.save(experiment);
-
-            log.info("实验创建成功，实验ID: {}", experiment.getId());
-            return ApiResponse.success(experiment.getId(), "创建成功");
-        } catch (Exception e) {
-            log.error("创建实验失败", e);
-            return ApiResponse.error(500, "创建失败: " + e.getMessage());
+        // 验证必填字段
+        if (request.getCourseId() == null || request.getCourseId().trim().isEmpty()) {
+            return ApiResponse.error(400, "课程ID不能为空");
         }
+        if (request.getExperimentName() == null || request.getExperimentName().trim().isEmpty()) {
+            return ApiResponse.error(400, "实验名称不能为空");
+        }
+        if (request.getEndTime() == null) {
+            return ApiResponse.error(400, "实验结束填写时间不能为空");
+        }
+
+        // 创建实验实体
+        Experiment experiment = new Experiment();
+        experiment.setCourseId(request.getCourseId());
+        experiment.setExperimentName(request.getExperimentName());
+        experiment.setPercentage(request.getPercentage() != null ? request.getPercentage() : 0);
+        experiment.setEndTime(request.getEndTime());
+        experiment.setIsDeleted(false);
+
+        // 保存实验
+        experimentService.save(experiment);
+
+        log.info("实验创建成功，实验ID: {}", experiment.getId());
+        return ApiResponse.success(experiment.getId(), "创建成功");
     }
 
     /**
@@ -92,39 +87,34 @@ public class TeacherExperimentController {
     @PutMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> updateExperiment(@RequestBody UpdateExperimentRequest request) {
-        try {
-            log.info("修改实验，实验ID: {}", request.getId());
+        log.info("修改实验，实验ID: {}", request.getId());
 
-            // 查询实验是否存在
-            Experiment experiment = experimentService.getById(request.getId());
-            if (experiment == null) {
-                return ApiResponse.error(404, "实验不存在");
-            }
-
-            // 验证时间
-            if (request.getEndTime() != null && experiment.getEndTime().isAfter(request.getEndTime())) {
-                // 这里可以添加业务逻辑，比如检查是否有学生已经完成实验等
-            }
-
-            // 更新实验信息
-            if (request.getExperimentName() != null) {
-                experiment.setExperimentName(request.getExperimentName());
-            }
-            if (request.getPercentage() != null) {
-                experiment.setPercentage(request.getPercentage());
-            }
-            if (request.getEndTime() != null) {
-                experiment.setEndTime(request.getEndTime());
-            }
-
-            experimentService.updateById(experiment);
-
-            log.info("实验修改成功，实验ID: {}", request.getId());
-            return ApiResponse.success(null, "修改成功");
-        } catch (Exception e) {
-            log.error("修改实验失败", e);
-            return ApiResponse.error(500, "修改失败: " + e.getMessage());
+        // 查询实验是否存在
+        Experiment experiment = experimentService.getById(request.getId());
+        if (experiment == null) {
+            return ApiResponse.error(404, "实验不存在");
         }
+
+        // 验证时间
+        if (request.getEndTime() != null && experiment.getEndTime().isAfter(request.getEndTime())) {
+            // 这里可以添加业务逻辑，比如检查是否有学生已经完成实验等
+        }
+
+        // 更新实验信息
+        if (request.getExperimentName() != null) {
+            experiment.setExperimentName(request.getExperimentName());
+        }
+        if (request.getPercentage() != null) {
+            experiment.setPercentage(request.getPercentage());
+        }
+        if (request.getEndTime() != null) {
+            experiment.setEndTime(request.getEndTime());
+        }
+
+        experimentService.updateById(experiment);
+
+        log.info("实验修改成功，实验ID: {}", request.getId());
+        return ApiResponse.success(null, "修改成功");
     }
 
     /**
@@ -136,24 +126,19 @@ public class TeacherExperimentController {
     @DeleteMapping("/{experimentId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Void> deleteExperiment(@PathVariable("experimentId") Long experimentId) {
-        try {
-            log.info("删除实验，实验ID: {}", experimentId);
+        log.info("删除实验，实验ID: {}", experimentId);
 
-            // 查询实验是否存在
-            Experiment experiment = experimentService.getById(experimentId);
-            if (experiment == null) {
-                return ApiResponse.error(404, "实验不存在");
-            }
-
-            // 软删除实验（Mybatis-Plus自动处理is_deleted字段）
-            experimentService.removeById(experimentId);
-
-            log.info("实验删除成功，实验ID: {}", experimentId);
-            return ApiResponse.success(null, "删除成功");
-        } catch (Exception e) {
-            log.error("删除实验失败", e);
-            return ApiResponse.error(500, "删除失败: " + e.getMessage());
+        // 查询实验是否存在
+        Experiment experiment = experimentService.getById(experimentId);
+        if (experiment == null) {
+            return ApiResponse.error(404, "实验不存在");
         }
+
+        // 软删除实验（Mybatis-Plus自动处理is_deleted字段）
+        experimentService.removeById(experimentId);
+
+        log.info("实验删除成功，实验ID: {}", experimentId);
+        return ApiResponse.success(null, "删除成功");
     }
 
     /**
@@ -165,20 +150,15 @@ public class TeacherExperimentController {
     @GetMapping("/{experimentId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ExperimentResponse> getExperiment(@PathVariable("experimentId") Long experimentId) {
-        try {
-            Experiment experiment = experimentService.getById(experimentId);
-            if (experiment == null) {
-                return ApiResponse.error(404, "实验不存在");
-            }
-
-            ExperimentResponse response = new ExperimentResponse();
-            BeanUtils.copyProperties(experiment, response);
-
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询实验详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
+        Experiment experiment = experimentService.getById(experimentId);
+        if (experiment == null) {
+            return ApiResponse.error(404, "实验不存在");
         }
+
+        ExperimentResponse response = new ExperimentResponse();
+        BeanUtils.copyProperties(experiment, response);
+
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -190,23 +170,18 @@ public class TeacherExperimentController {
     @GetMapping("/course/{courseId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<ExperimentResponse>> getExperimentsByCourseId(@PathVariable("courseId") String courseId) {
-        try {
-            QueryWrapper<Experiment> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("course_id", courseId);
-            queryWrapper.orderByDesc("created_time");
+        QueryWrapper<Experiment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("course_id", courseId);
+        queryWrapper.orderByDesc("created_time");
 
-            List<Experiment> experiments = experimentService.list(queryWrapper);
-            List<ExperimentResponse> responses = experiments.stream().map(experiment -> {
-                ExperimentResponse response = new ExperimentResponse();
-                BeanUtils.copyProperties(experiment, response);
-                return response;
-            }).collect(Collectors.toList());
+        List<Experiment> experiments = experimentService.list(queryWrapper);
+        List<ExperimentResponse> responses = experiments.stream().map(experiment -> {
+            ExperimentResponse response = new ExperimentResponse();
+            BeanUtils.copyProperties(experiment, response);
+            return response;
+        }).collect(Collectors.toList());
 
-            return ApiResponse.success(responses, "查询成功");
-        } catch (Exception e) {
-            log.error("查询实验列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(responses, "查询成功");
     }
 
     /**
@@ -217,22 +192,17 @@ public class TeacherExperimentController {
     @GetMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<ExperimentResponse>> getAllExperiments() {
-        try {
-            QueryWrapper<Experiment> queryWrapper = new QueryWrapper<>();
-            queryWrapper.orderByDesc("created_time");
+        QueryWrapper<Experiment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.orderByDesc("created_time");
 
-            List<Experiment> experiments = experimentService.list(queryWrapper);
-            List<ExperimentResponse> responses = experiments.stream().map(experiment -> {
-                ExperimentResponse response = new ExperimentResponse();
-                BeanUtils.copyProperties(experiment, response);
-                return response;
-            }).collect(Collectors.toList());
+        List<Experiment> experiments = experimentService.list(queryWrapper);
+        List<ExperimentResponse> responses = experiments.stream().map(experiment -> {
+            ExperimentResponse response = new ExperimentResponse();
+            BeanUtils.copyProperties(experiment, response);
+            return response;
+        }).collect(Collectors.toList());
 
-            return ApiResponse.success(responses, "查询成功");
-        } catch (Exception e) {
-            log.error("查询实验列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(responses, "查询成功");
     }
 
     /**
@@ -244,13 +214,8 @@ public class TeacherExperimentController {
     @GetMapping("/query")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<ExperimentResponse>> queryExperiments(ExperimentQueryRequest request) {
-        try {
-            PageResponse<ExperimentResponse> response = experimentService.queryExperiments(request);
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询实验列表失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        PageResponse<ExperimentResponse> response = experimentService.queryExperiments(request);
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -263,21 +228,14 @@ public class TeacherExperimentController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<PageResponse<ClassExperimentDetailResponse>> queryClassExperiments(
             ClassExperimentQueryRequest request) {
-        try {
-            // 获取当前登录教师用户名
-            String teacherUsername = SecurityUtil.getCurrentUsername()
-                .orElseThrow(() -> new BusinessException(401, "未登录"));
+        // 获取当前登录教师用户名
+        String teacherUsername = SecurityUtil.getCurrentUsername()
+            .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-            PageResponse<ClassExperimentDetailResponse> response = classExperimentService
-                .queryClassExperimentsForTeacher(teacherUsername, request);
+        PageResponse<ClassExperimentDetailResponse> response = classExperimentService
+            .queryClassExperimentsForTeacher(teacherUsername, request);
 
-            return ApiResponse.success(response, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("教师查询班级实验失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "查询成功");
     }
 
     /**
@@ -290,16 +248,11 @@ public class TeacherExperimentController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ClassExperimentMapResponse> getClassExperimentsByClassCode(
             @PathVariable("classCode") String classCode) {
-        try {
-            log.debug("classCode: {}", classCode);
+        log.debug("classCode: {}", classCode);
 
-            ClassExperimentMapResponse response = classExperimentService
-                    .getClassExperimentsGroupByCourse(classCode);
+        ClassExperimentMapResponse response = classExperimentService
+                .getClassExperimentsGroupByCourse(classCode);
 
-            return ApiResponse.success(response, "查询成功");
-        } catch (Exception e) {
-            log.error("查询班级实验失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(response, "查询成功");
     }
 }
