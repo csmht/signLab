@@ -2,7 +2,6 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.request.ClassProcedureDetailRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ClassStudentProcedureDetailResponse;
@@ -43,24 +42,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.VideoDetail> result =
-                classStudentProcedureQueryService.getCompletedVideoDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.VideoDetail> result =
+            classStudentProcedureQueryService.getCompletedVideoDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生视频观看详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -81,24 +73,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.VideoDetail> result =
-                classStudentProcedureQueryService.getUncompletedVideoDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.VideoDetail> result =
+            classStudentProcedureQueryService.getUncompletedVideoDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生视频观看详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -119,24 +104,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.DataCollectionDetail> result =
-                classStudentProcedureQueryService.getCompletedDataCollectionDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.DataCollectionDetail> result =
+            classStudentProcedureQueryService.getCompletedDataCollectionDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生数据收集详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -157,24 +135,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.DataCollectionDetail> result =
-                classStudentProcedureQueryService.getUncompletedDataCollectionDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.DataCollectionDetail> result =
+            classStudentProcedureQueryService.getUncompletedDataCollectionDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生数据收集详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -195,24 +166,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TopicDetail> result =
-                classStudentProcedureQueryService.getCompletedTopicDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TopicDetail> result =
+            classStudentProcedureQueryService.getCompletedTopicDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生题库答题详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -233,24 +197,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TopicDetail> result =
-                classStudentProcedureQueryService.getUncompletedTopicDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TopicDetail> result =
+            classStudentProcedureQueryService.getUncompletedTopicDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生题库答题详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -271,24 +228,17 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TimedQuizDetail> result =
-                classStudentProcedureQueryService.getCompletedTimedQuizDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TimedQuizDetail> result =
+            classStudentProcedureQueryService.getCompletedTimedQuizDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生限时答题详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 
     /**
@@ -309,23 +259,16 @@ public class TeacherClassProcedureDetailController {
             @RequestParam("experimentId") Long experimentId,
             @RequestParam("procedureId") Long procedureId,
             @RequestParam(value = "studentUsername", required = false) String studentUsername) {
-        try {
-            ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
-            request.setClassCode(classCode);
-            request.setCourseId(courseId);
-            request.setExperimentId(experimentId);
-            request.setProcedureId(procedureId);
-            request.setStudentUsername(studentUsername);
+        ClassProcedureDetailRequest request = new ClassProcedureDetailRequest();
+        request.setClassCode(classCode);
+        request.setCourseId(courseId);
+        request.setExperimentId(experimentId);
+        request.setProcedureId(procedureId);
+        request.setStudentUsername(studentUsername);
 
-            ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TimedQuizDetail> result =
-                classStudentProcedureQueryService.getUncompletedTimedQuizDetails(request);
+        ClassStudentProcedureDetailResponse<StudentProcedureDetailWithAnswerResponse.TimedQuizDetail> result =
+            classStudentProcedureQueryService.getUncompletedTimedQuizDetails(request);
 
-            return ApiResponse.success(result, "查询成功");
-        } catch (BusinessException e) {
-            return ApiResponse.error(e.getCode(), e.getMessage());
-        } catch (Exception e) {
-            log.error("查询班级学生限时答题详情失败", e);
-            return ApiResponse.error(500, "查询失败: " + e.getMessage());
-        }
+        return ApiResponse.success(result, "查询成功");
     }
 }
