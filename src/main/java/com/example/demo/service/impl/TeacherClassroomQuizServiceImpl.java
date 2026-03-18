@@ -294,11 +294,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                         .divide(new BigDecimal(submittedCount), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        // 查询题目列表
-        List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
-
         // 题目级统计
-        List<ClassroomQuizStatisticsResponse.TopicStatistics> topicStatistics = calculateTopicStatistics(answers, topics);
+        List<ClassroomQuizStatisticsResponse.TopicStatistics> topicStatistics = calculateTopicStatistics(answers, quiz, procedureTopic);
 
         // 学生级统计
         List<ClassroomQuizStatisticsResponse.StudentAnswerInfo> studentAnswers = answers.stream()
@@ -483,12 +480,54 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
     }
 
     /**
+     * 从学生答题情况中提取所有有答题的题目ID
+     *
+     * @param answers 答案列表
+     * @return 题目ID集合
+     */
+    private Set<Long> extractTopicIdsFromAnswers(List<ClassroomQuizAnswer> answers) {
+        Set<Long> topicIds = new HashSet<>();
+        for (ClassroomQuizAnswer answer : answers) {
+            Map<Long, String> studentAnswers = parseTopicAnswers(answer.getAnswer());
+            topicIds.addAll(studentAnswers.keySet());
+        }
+        return topicIds;
+    }
+
+    /**
      * 计算题目级统计
+     *
+     * @param answers 答案列表
+     * @param quiz 小测信息
+     * @param procedureTopic 题库配置
+     * @return 题目统计列表，按答题人数降序排序
      */
     private List<ClassroomQuizStatisticsResponse.TopicStatistics> calculateTopicStatistics(
-            List<ClassroomQuizAnswer> answers, List<Topic> topics) {
+            List<ClassroomQuizAnswer> answers, ClassroomQuiz quiz, ProcedureTopic procedureTopic) {
 
-        return topics.stream()
+        // 获取完整题目列表
+        List<Topic> allTopics;
+        if (Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
+            // 随机抽题模式：从学生答题情况中获取所有有答题的题目
+            Set<Long> topicIds = extractTopicIdsFromAnswers(answers);
+            if (topicIds.isEmpty()) {
+                allTopics = new ArrayList<>();
+            } else {
+                allTopics = topicMapper.selectList(
+                    new LambdaQueryWrapper<Topic>().in(Topic::getId, topicIds)
+                );
+            }
+        } else {
+            // 教师选题模式：直接获取教师选取的题目列表
+            allTopics = getTopicsForQuiz(quiz, procedureTopic);
+        }
+
+        if (allTopics == null || allTopics.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 统计每个题目的答题情况
+        return allTopics.stream()
                 .map(topic -> {
                     ClassroomQuizStatisticsResponse.TopicStatistics stats =
                         new ClassroomQuizStatisticsResponse.TopicStatistics();
@@ -497,29 +536,39 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                     stats.setType(topic.getType());
                     stats.setContent(topic.getContent());
                     stats.setCorrectAnswer(topic.getCorrectAnswer());
+                    stats.setChoices(topic.getChoices());
 
-                    // 统计该题目的正确率
+                    // 统计该题目的答题情况
                     int correct = 0;
+                    int answerCount = 0;
+
                     for (ClassroomQuizAnswer answer : answers) {
                         Map<Long, String> studentAnswers = parseTopicAnswers(answer.getAnswer());
                         String studentAnswer = studentAnswers.get(topic.getId());
-                        if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
-                            correct++;
+
+                        if (studentAnswer != null) {
+                            answerCount++;
+                            if (studentAnswer.equals(topic.getCorrectAnswer())) {
+                                correct++;
+                            }
                         }
                     }
 
                     stats.setCorrectCount(correct);
-                    stats.setIncorrectCount(answers.size() - correct);
+                    stats.setIncorrectCount(answerCount - correct);
+                    stats.setAnswerCount(answerCount);
 
-                    BigDecimal correctRate = answers.size() > 0
+                    BigDecimal correctRate = answerCount > 0
                             ? new BigDecimal(correct)
                                     .multiply(new BigDecimal(100))
-                                    .divide(new BigDecimal(answers.size()), 2, RoundingMode.HALF_UP)
+                                    .divide(new BigDecimal(answerCount), 2, RoundingMode.HALF_UP)
                             : BigDecimal.ZERO;
                     stats.setCorrectRate(correctRate);
 
                     return stats;
                 })
+                // 按答题人数降序排序，人数多的在前
+                .sorted(Comparator.comparingInt(ClassroomQuizStatisticsResponse.TopicStatistics::getAnswerCount).reversed())
                 .collect(Collectors.toList());
     }
 

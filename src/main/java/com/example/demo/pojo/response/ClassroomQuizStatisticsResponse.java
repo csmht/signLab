@@ -1,10 +1,15 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.TopicChoice;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课堂小测统计响应
@@ -46,7 +51,7 @@ public class ClassroomQuizStatisticsResponse {
     /**
      * 总参与人数
      */
-    private Integer totalParticipants;
+    private Long totalParticipants;
 
     /**
      * 已提交人数
@@ -122,6 +127,34 @@ public class ClassroomQuizStatisticsResponse {
          * 正确率
          */
         private BigDecimal correctRate;
+
+        /**
+         * 答题人数
+         */
+        private Integer answerCount;
+
+        /**
+         * 选项内容列表
+         */
+        private List<TopicChoice> choices;
+
+        /**
+         * 从JSON字符串解析选项
+         */
+        public void setChoices(String choices) {
+            if (choices == null || choices.trim().isEmpty()) {
+                this.choices = null;
+                return;
+            }
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, String> map = mapper.readValue(choices,
+                    new TypeReference<Map<String, String>>() {});
+                this.choices = TopicChoice.fromMap(map);
+            } catch (Exception e) {
+                this.choices = null;
+            }
+        }
     }
 
     /**
