@@ -10,7 +10,6 @@ import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.StudentClassroomQuizService;
 import com.example.demo.util.ClassroomQuizScorer;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -170,13 +169,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         // 查询题目列表
         List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
 
-        // 将答案Map转换为JSON字符串
-        String answerJson;
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            answerJson = mapper.writeValueAsString(request.getAnswers());
-        } catch (Exception e) {
-            log.error("答案JSON转换失败", e);
+        // 将答案转换为JSON字符串（使用统一格式）
+        String answerJson = com.example.demo.util.AnswerMapJSONUntil.buildTopicAnswerJson(request.getAnswers());
+        if (answerJson == null) {
             throw new BusinessException(500, "答案格式错误");
         }
 
@@ -226,11 +221,18 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         answerWrapper.eq(ClassroomQuizAnswer::getStudentUsername, studentUsername);
         ClassroomQuizAnswer answer = classroomQuizAnswerMapper.selectOne(answerWrapper);
 
-        // 查询题目列表
-        List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
+
 
         // 解析学生答案
         Map<Long, String> studentAnswers = parseTopicAnswers(answer != null ? answer.getAnswer() : null);
+
+        // 查询题目列表
+        List<Long> topicIds = studentAnswers.keySet().stream().toList();
+        List<Topic> topics = new ArrayList<>();
+
+        if (!topicIds.isEmpty()) {
+            topics = topicMapper.selectList(new LambdaQueryWrapper<Topic>().in(Topic::getId, topicIds));
+        }
 
         // 构建响应（包含正确答案）
         StudentClassroomQuizDetailResponse response = new StudentClassroomQuizDetailResponse();
