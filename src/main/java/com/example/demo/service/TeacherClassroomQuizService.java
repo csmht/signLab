@@ -45,7 +45,7 @@ public interface TeacherClassroomQuizService extends IService<ClassroomQuiz> {
     ClassroomQuizStatisticsResponse getQuizStatistics(Long quizId);
 
     /**
-     * 查询指定学生���题详情
+     * 查询指定学生答题详情
      *
      * @param quizId          小测ID
      * @param studentUsername 学生用户名

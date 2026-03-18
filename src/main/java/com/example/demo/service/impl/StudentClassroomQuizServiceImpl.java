@@ -3,6 +3,7 @@ package com.example.demo.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
@@ -88,6 +89,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         response.setStatus(quiz.getStatus());
         response.setIsSubmitted(existAnswer != null);
         response.setSubmissionTime(existAnswer != null ? existAnswer.getSubmissionTime() : null);
+        if (existAnswer != null) {
+            existAnswer = autoScoreIfNeeded(existAnswer, quiz, procedureTopic, topics);
+        }
         response.setScore(existAnswer != null ? existAnswer.getScore() : null);
 
         // 构建题目详情（不包含正确答案，但包含学生已提交的答案）
@@ -245,6 +249,9 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         response.setStatus(quiz.getStatus());
         response.setIsSubmitted(answer != null);
         response.setSubmissionTime(answer != null ? answer.getSubmissionTime() : null);
+        if (answer != null) {
+            answer = autoScoreIfNeeded(answer, quiz, procedureTopic, topics);
+        }
         response.setScore(answer != null ? answer.getScore() : null);
 
         // 构建题目详情（包含正确答案）
@@ -306,6 +313,14 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     response.setStatus(quiz.getStatus());
                     response.setIsSubmitted(answer != null);
                     response.setSubmissionTime(answer != null ? answer.getSubmissionTime() : null);
+                    if (answer != null) {
+                        // 查询题目列表用于自动评分
+                        ProcedureTopic procedureTopic = procedureTopicMapper.selectById(quiz.getProcedureTopicId());
+                        if (procedureTopic != null) {
+                            List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
+                            answer = autoScoreIfNeeded(answer, quiz, procedureTopic, topics);
+                        }
+                    }
                     response.setScore(answer != null ? answer.getScore() : null);
                     response.setTopics(null); // 历史列表不包含题目详情
 
@@ -412,5 +427,46 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         wrapper.last("LIMIT 1");
         StudentClassRelation relation = studentClassRelationMapper.selectOne(wrapper);
         return relation != null ? relation.getClassCode() : null;
+    }
+
+    /**
+     * 如果score为null，则进行自动评分并更新数据库
+     *
+     * @param answer 课堂小测答案
+     * @param quiz 小测信息
+     * @param procedureTopic 题库配置
+     * @param topics 题目列表
+     * @return 处理后的答案
+     */
+    private ClassroomQuizAnswer autoScoreIfNeeded(ClassroomQuizAnswer answer, ClassroomQuiz quiz,
+            ProcedureTopic procedureTopic, List<Topic> topics) {
+        if (!Objects.equals(answer.getScore(), new BigDecimal(0))) {
+            return answer;
+        }
+
+        log.info("课堂小测答案score为null，进行自动评分，答案ID: {}", answer.getId());
+
+        try {
+            // 解析学生答案
+            Map<Long, String> studentAnswers = parseTopicAnswers(answer.getAnswer());
+
+            // 自动评分
+            BigDecimal score = classroomQuizScorer.calculateScore(studentAnswers, topics);
+            Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(studentAnswers, topics);
+
+            // 更新数据库
+            if(!Objects.equals(score, new BigDecimal(0))){
+                answer.setScore(score);
+                answer.setIsCorrect(isAllCorrect);
+                classroomQuizAnswerMapper.updateById(answer);
+            }
+
+            log.info("自动评分完成，答案ID: {}，得分: {}，全对: {}", answer.getId(), score, isAllCorrect);
+
+        } catch (Exception e) {
+            log.error("自动评分失败，答案ID: {}", answer.getId(), e);
+        }
+
+        return answer;
     }
 }

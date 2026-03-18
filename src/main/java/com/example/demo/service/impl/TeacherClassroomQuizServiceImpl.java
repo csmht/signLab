@@ -18,6 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -41,6 +44,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
     private final TopicMapper topicMapper;
     private final TopicTagMapMapper topicTagMapMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
+    private final com.example.demo.util.ClassroomQuizScorer classroomQuizScorer;
+    private final StudentClassRelationMapper studentClassRelationMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -252,15 +257,18 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(quiz.getClassExperimentId());
 
         // 统计总参与人数（所有班级的学生数总和）
-        // TODO: 这里需要通过班级查询学生总数，暂时设为0
-        Integer totalParticipants = 0;
+        Long totalParticipants = studentClassRelationMapper.selectCount(new LambdaQueryWrapper<StudentClassRelation>().in(StudentClassRelation::getClassCode, classCodes));
 
         // 查询所有答案记录
         LambdaQueryWrapper<ClassroomQuizAnswer> answerWrapper = new LambdaQueryWrapper<>();
         answerWrapper.eq(ClassroomQuizAnswer::getClassroomQuizId, quizId);
         List<ClassroomQuizAnswer> answers = classroomQuizAnswerMapper.selectList(answerWrapper);
 
-        Integer submittedCount = answers.size();
+        // 对score为null的答案进行自动评分
+        List<Topic> topicsForScoring = getTopicsForQuiz(quiz, procedureTopic);
+        answers.replaceAll(answer -> autoScoreIfNeeded(answer, quiz, procedureTopic, topicsForScoring));
+
+        int submittedCount = answers.size();
         BigDecimal completionRate = totalParticipants > 0
                 ? new BigDecimal(submittedCount)
                         .multiply(new BigDecimal(100))
@@ -269,8 +277,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
 
         // 计算平均分
         BigDecimal averageScore = answers.stream()
-                .filter(a -> a.getScore() != null)
                 .map(ClassroomQuizAnswer::getScore)
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         averageScore = submittedCount > 0
                 ? averageScore.divide(new BigDecimal(submittedCount), 2, RoundingMode.HALF_UP)
@@ -364,6 +372,9 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         response.setStatus(quiz.getStatus());
         response.setIsSubmitted(answer != null);
         response.setSubmissionTime(answer != null ? answer.getSubmissionTime() : null);
+        if (answer != null) {
+            answer = autoScoreIfNeeded(answer, quiz, procedureTopic, topics);
+        }
         response.setScore(answer != null ? answer.getScore() : null);
 
         // 构建题目详情
@@ -524,6 +535,45 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
      */
     private String getCurrentUsername() {
         return SecurityUtil.getCurrentUsername().orElse("system");
+    }
+
+    /**
+     * 如果score为null，则进行自动评分并更新数据库
+     *
+     * @param answer 课堂小测答案
+     * @param quiz 小测信息
+     * @param procedureTopic 题库配置
+     * @param topics 题目列表
+     * @return 处理后的答案
+     */
+    private ClassroomQuizAnswer autoScoreIfNeeded(ClassroomQuizAnswer answer, ClassroomQuiz quiz,
+            ProcedureTopic procedureTopic, List<Topic> topics) {
+        if (answer.getScore() != null) {
+            return answer;
+        }
+
+        log.info("课堂小测答案score为null，进行自动评分，答案ID: {}", answer.getId());
+
+        try {
+            // 解析学生答案
+            Map<Long, String> studentAnswers = parseTopicAnswers(answer.getAnswer());
+
+            // 自动评分
+            BigDecimal score = classroomQuizScorer.calculateScore(studentAnswers, topics);
+            Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(studentAnswers, topics);
+
+            // 更新数据库
+            answer.setScore(score);
+            answer.setIsCorrect(isAllCorrect);
+            classroomQuizAnswerMapper.updateById(answer);
+
+            log.info("自动评分完成，答案ID: {}，得分: {}，全对: {}", answer.getId(), score, isAllCorrect);
+
+        } catch (Exception e) {
+            log.error("自动评分失败，答案ID: {}", answer.getId(), e);
+        }
+
+        return answer;
     }
 
     @Override
