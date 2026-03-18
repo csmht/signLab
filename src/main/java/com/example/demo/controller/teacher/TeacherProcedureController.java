@@ -30,19 +30,17 @@ public class TeacherProcedureController {
     /**
      * 查询班级的实验步骤列表
      *
-     * @param classCode        班级编号
-     * @param experimentId     实验ID（可选）
-     * @param submissionStatus 提交状态（可选）
+     * @param classExperimentId 班级实验ID
+     * @param submissionStatus  提交状态（可选）
      * @return 实验步骤列表
      */
-    @GetMapping("/class/{classCode}")
+    @GetMapping("/class")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<StudentProcedureSubmissionResponse>> getClassProcedureSubmissions(
-            @PathVariable("classCode") String classCode,
-            @RequestParam(value = "experimentId", required = false) Long experimentId,
+            @RequestParam("classExperimentId") Long classExperimentId,
             @RequestParam(value = "submissionStatus", required = false) Integer submissionStatus) {
-        List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getCourseSubmissions(
-                classCode, experimentId, submissionStatus
+        List<StudentProcedureSubmissionResponse> submissions = studentProcedureSubmissionService.getCourseSubmissionsByClassExperimentId(
+                classExperimentId, submissionStatus
         );
 
         return ApiResponse.success(submissions, "查询成功");

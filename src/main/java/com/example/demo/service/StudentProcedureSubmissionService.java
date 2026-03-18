@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
+import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.StudentExperimentalProcedureMapper;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
@@ -28,6 +29,8 @@ public class StudentProcedureSubmissionService {
 
     private final StudentExperimentalProcedureMapper studentExperimentalProcedureMapper;
     private final UserMapper userMapper;
+    private final ClassExperimentMapper classExperimentMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /** 提交状态常量 */
     public static final Integer STATUS_NOT_GRADED = 0;      // 未评分
@@ -154,5 +157,35 @@ public class StudentProcedureSubmissionService {
         response.setStudentName(student != null ? student.getName() : submission.getStudentUsername());
 
         return response;
+    }
+
+    /**
+     * 查询课程的步骤提交列表（教师端，使用 classExperimentId）
+     *
+     * @param classExperimentId 班级实验ID
+     * @param submissionStatus  提交状态（可选）
+     * @return 步骤列表
+     */
+    public List<StudentProcedureSubmissionResponse> getCourseSubmissionsByClassExperimentId(
+            Long classExperimentId, Integer submissionStatus) {
+
+        // 1. 查询班级实验信息
+        com.example.demo.pojo.entity.ClassExperiment classExperiment =
+                classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        // 2. 获取关联的班级列表（使用第一个班级）
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new BusinessException(404, "班级实验未关联任何班级");
+        }
+        String classCode = classCodes.get(0);
+
+        Long experimentId = Long.parseLong(classExperiment.getExperimentId());
+
+        // 3. 调用原有方法
+        return getCourseSubmissions(classCode, experimentId, submissionStatus);
     }
 }

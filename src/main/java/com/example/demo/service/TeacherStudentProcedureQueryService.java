@@ -1630,4 +1630,99 @@ public class TeacherStudentProcedureQueryService {
             return new ArrayList<>();
         }
     }
+
+    // ==================== 使用 classExperimentId 的新方法 ====================
+
+    /**
+     * 查询学生实验步骤完成情况（使用 classExperimentId）
+     *
+     * @param studentUsername   学生用户名
+     * @param classExperimentId 班级实验ID
+     * @return 步骤完成情况
+     */
+    public StudentProcedureCompletionResponse getStudentProcedureCompletionByClassExperimentId(
+            String studentUsername, Long classExperimentId) {
+
+        log.info("查询学生实验步骤完成情况，学生: {}, 班级实验ID: {}",
+                studentUsername, classExperimentId);
+
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new com.example.demo.exception.BusinessException(404, "班级实验不存在");
+        }
+
+        Long experimentId = Long.parseLong(classExperiment.getExperimentId());
+
+        // 2. 获取关联的班级列表（使用第一个班级）
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new com.example.demo.exception.BusinessException(404, "班级实验未关联任何班级");
+        }
+        String classCode = classCodes.get(0);
+
+        // 3. 调用原有方法
+        return getStudentProcedureCompletion(studentUsername, classCode, experimentId);
+    }
+
+    /**
+     * 查询学生在指定步骤的完成详情（使用 classExperimentId）
+     *
+     * @param studentUsername   学生用户名
+     * @param procedureId       步骤ID
+     * @param classExperimentId 班级实验ID
+     * @return 步骤完成详情
+     */
+    public StudentProcedureDetailCompletionResponse getStudentProcedureDetailCompletionByClassExperimentId(
+            String studentUsername, Long procedureId, Long classExperimentId) {
+
+        log.info("查询学生步骤完成详情，学生: {}, 步骤: {}, 班级实验ID: {}",
+                studentUsername, procedureId, classExperimentId);
+
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new com.example.demo.exception.BusinessException(404, "班级实验不存在");
+        }
+
+        // 2. 获取关联的班级列表（使用第一个班级）
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new com.example.demo.exception.BusinessException(404, "班级实验未关联任何班级");
+        }
+        String classCode = classCodes.get(0);
+
+        // 3. 调用原有方法
+        return getStudentProcedureDetailCompletion(studentUsername, classCode, procedureId);
+    }
+
+    /**
+     * 查询班级实验完成统计（使用 classExperimentId）
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 班级实验完成统计
+     */
+    public ClassExperimentStatisticsResponse getClassExperimentStatisticsByClassExperimentId(
+            Long classExperimentId) {
+
+        log.info("查询班级实验完成统计，班级实验ID: {}", classExperimentId);
+
+        // 1. 查询班级实验信息
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new com.example.demo.exception.BusinessException(404, "班级实验不存在");
+        }
+
+        Long experimentId = Long.parseLong(classExperiment.getExperimentId());
+
+        // 2. 获取关联的班级列表（使用第一个班级）
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new com.example.demo.exception.BusinessException(404, "班级实验未关联任何班级");
+        }
+        String classCode = classCodes.get(0);
+
+        // 3. 调用原有方法
+        return getClassExperimentStatistics(classCode, experimentId);
+    }
 }

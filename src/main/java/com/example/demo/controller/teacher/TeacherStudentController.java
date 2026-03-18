@@ -216,29 +216,27 @@ public class TeacherStudentController {
     /**
      * 查询学生在指定班级实验中的步骤完成情况
      *
-     * @param studentUsername 学生用户名
-     * @param experimentId    实验ID
-     * @param classCode       班级编号
+     * @param studentUsername   学生用户名
+     * @param classExperimentId 班级实验ID
      * @return 步骤完成情况
      */
-    @GetMapping("/{studentUsername}/experiments/{experimentId}/procedures")
+    @GetMapping("/{studentUsername}/experiments/procedures")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<StudentProcedureCompletionResponse> getStudentProcedureCompletion(
             @PathVariable("studentUsername") String studentUsername,
-            @PathVariable("experimentId") Long experimentId,
-            @RequestParam("classCode") String classCode) {
+            @RequestParam("classExperimentId") Long classExperimentId) {
         StudentProcedureCompletionResponse response =
-                teacherStudentProcedureQueryService.getStudentProcedureCompletion(
-                        studentUsername, classCode, experimentId);
+                teacherStudentProcedureQueryService.getStudentProcedureCompletionByClassExperimentId(
+                        studentUsername, classExperimentId);
         return ApiResponse.success(response, "查询成功");
     }
 
     /**
      * 查询学生在指定步骤的完成详情
      *
-     * @param studentUsername 学生用户名
-     * @param procedureId     步骤ID
-     * @param classCode       班级编号
+     * @param studentUsername   学生用户名
+     * @param procedureId       步骤ID
+     * @param classExperimentId 班级实验ID
      * @return 步骤完成详情
      */
     @GetMapping("/{studentUsername}/procedures/{procedureId}")
@@ -246,10 +244,10 @@ public class TeacherStudentController {
     public ApiResponse<StudentProcedureDetailCompletionResponse> getStudentProcedureDetailCompletion(
             @PathVariable("studentUsername") String studentUsername,
             @PathVariable("procedureId") Long procedureId,
-            @RequestParam("classCode") String classCode) {
+            @RequestParam("classExperimentId") Long classExperimentId) {
         StudentProcedureDetailCompletionResponse response =
-                teacherStudentProcedureQueryService.getStudentProcedureDetailCompletion(
-                        studentUsername, classCode, procedureId);
+                teacherStudentProcedureQueryService.getStudentProcedureDetailCompletionByClassExperimentId(
+                        studentUsername, procedureId, classExperimentId);
         return ApiResponse.success(response, "查询成功");
     }
 
@@ -302,18 +300,16 @@ public class TeacherStudentController {
     /**
      * 查询班级实验完成统计
      *
-     * @param classCode    班级编号
-     * @param experimentId 实验ID
+     * @param classExperimentId 班级实验ID
      * @return 班级实验完成统计
      */
-    @GetMapping("/classes/{classCode}/experiments/{experimentId}/statistics")
+    @GetMapping("/classes/experiments/statistics")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<ClassExperimentStatisticsResponse> getClassExperimentStatistics(
-            @PathVariable("classCode") String classCode,
-            @PathVariable("experimentId") Long experimentId) {
+            @RequestParam("classExperimentId") Long classExperimentId) {
         ClassExperimentStatisticsResponse response =
-                teacherStudentProcedureQueryService.getClassExperimentStatistics(
-                        classCode, experimentId);
+                teacherStudentProcedureQueryService.getClassExperimentStatisticsByClassExperimentId(
+                        classExperimentId);
         return ApiResponse.success(response, "查询成功");
     }
 

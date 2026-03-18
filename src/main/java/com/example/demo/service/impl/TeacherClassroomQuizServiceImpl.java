@@ -141,7 +141,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
      */
     private String joinListToString(List<Long> list) {
         if (list == null || list.isEmpty()) {
-            return null;
+            throw new BusinessException(400,"标签至少为一个");
         }
         return list.stream()
                 .map(String::valueOf)
