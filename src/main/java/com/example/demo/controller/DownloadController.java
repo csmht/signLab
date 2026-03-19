@@ -30,13 +30,17 @@ public class DownloadController {
     private DownloadService downloadService;
 
     /**
-     * 根据播放密钥播放视频（流式传输，禁止拖拽）
+     * 根据播放密钥播放视频（支持范围请求和拖拽进度）
      *
      * @param playKey Base64编码的播放密钥
      * @param response HTTP响应
+     * @param request HTTP请求
      */
     @GetMapping("/play/{playKey}")
-    public void playVideo(@PathVariable String playKey, HttpServletResponse response) {
+    public void playVideo(
+            @PathVariable String playKey,
+            HttpServletResponse response,
+            jakarta.servlet.http.HttpServletRequest request) {
         try {
             // 验证播放密钥
             DownloadService.VideoFilePlayInfo playInfo = downloadService.getVideoByPlayKey(playKey);
@@ -48,37 +52,91 @@ public class DownloadController {
                 return;
             }
 
-            // 检查Range请求头，禁止拖拽
-            String rangeHeader = response.getHeader("Range");
-            if (rangeHeader != null && !rangeHeader.startsWith("bytes=0-")) {
-                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-                response.getWriter().write("不支持拖拽进度");
-                return;
-            }
+            long fileSize = file.length();
+            String rangeHeader = request.getHeader("Range");
 
             // 获取文件MIME类型
             String contentType = getVideoContentType(playInfo.getFileName());
 
-            // 设置响应头
+            // 设置基础响应头
             response.setContentType(contentType);
-            response.setContentLengthLong(playInfo.getFileSize());
-            response.setHeader(HttpHeaders.ACCEPT_RANGES, "none"); // 禁止范围请求
+            response.setHeader(HttpHeaders.ACCEPT_RANGES, "bytes"); // 允许范围请求
             response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
             response.setHeader(HttpHeaders.PRAGMA, "no-cache");
             response.setHeader("X-Content-Type-Options", "nosniff");
 
-            // 流式传输视频
-            try (FileInputStream fis = new FileInputStream(file);
-                 OutputStream os = response.getOutputStream()) {
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                while ((bytesRead = fis.read(buffer)) != -1) {
-                    os.write(buffer, 0, bytesRead);
+            if (rangeHeader == null) {
+                // 没有范围请求，传输整个文件
+                response.setContentLengthLong(fileSize);
+                response.setStatus(HttpServletResponse.SC_OK);
+
+                try (FileInputStream fis = new FileInputStream(file);
+                     OutputStream os = response.getOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = fis.read(buffer)) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                    }
+                    os.flush();
                 }
-                os.flush();
+            } else {
+                // 处理范围请求
+                long start = 0;
+                long end = fileSize - 1;
+
+                // 解析 Range 头，格式为 bytes=start-end
+                String rangeValue = rangeHeader.replace("bytes=", "");
+                String[] ranges = rangeValue.split("-");
+                try {
+                    if (ranges.length > 0 && !ranges[0].isEmpty()) {
+                        start = Long.parseLong(ranges[0]);
+                    }
+                    if (ranges.length > 1 && !ranges[1].isEmpty()) {
+                        end = Long.parseLong(ranges[1]);
+                    }
+                } catch (NumberFormatException e) {
+                    response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                    response.getWriter().write("无效的范围请求");
+                    return;
+                }
+
+                // 验证范围
+                if (start >= fileSize || start < 0 || end < start) {
+                    response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                    response.setHeader(HttpHeaders.CONTENT_RANGE, "bytes */" + fileSize);
+                    response.getWriter().write("范围不满足");
+                    return;
+                }
+
+                long contentLength = end - start + 1;
+
+                // 设置范围响应头
+                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+                response.setHeader(HttpHeaders.CONTENT_RANGE,
+                        "bytes " + start + "-" + end + "/" + fileSize);
+                response.setContentLengthLong(contentLength);
+
+                // 流式传输请求的范围
+                try (FileInputStream fis = new FileInputStream(file);
+                     OutputStream os = response.getOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    long skipped = fis.skip(start);
+                    if (skipped < start) {
+                        throw new IOException("无法跳过足够的字节");
+                    }
+
+                    long remaining = contentLength;
+                    int bytesRead;
+                    while (remaining > 0 && (bytesRead = fis.read(buffer, 0, (int) Math.min(buffer.length, remaining))) != -1) {
+                        os.write(buffer, 0, bytesRead);
+                        remaining -= bytesRead;
+                    }
+                    os.flush();
+                }
             }
 
-            log.info("视频播放成功: {}, 用户: {}", playInfo.getFileName(), playInfo.getUsername());
+            log.info("视频播放成功: {}, 用户: {}, 范围: {}",
+                    playInfo.getFileName(), playInfo.getUsername(), rangeHeader);
         } catch (IOException e) {
             log.error("视频播放失败: {}", e.getMessage(), e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
