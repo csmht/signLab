@@ -33,13 +33,25 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ClassService extends ServiceImpl<ClassMapper, Class> {
 
     private final ClassExperimentMapper classExperimentMapper;
     private final ExperimentMapper experimentMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final StudentClassRelationMapper studentClassRelationMapper;
+    private final ClassMapper baseMapper;
+
+    public ClassService(ClassExperimentMapper classExperimentMapper,
+                        ExperimentMapper experimentMapper,
+                        ClassExperimentClassRelationService classExperimentClassRelationService,
+                        StudentClassRelationMapper studentClassRelationMapper,
+                        ClassMapper baseMapper) {
+        this.classExperimentMapper = classExperimentMapper;
+        this.experimentMapper = experimentMapper;
+        this.classExperimentClassRelationService = classExperimentClassRelationService;
+        this.studentClassRelationMapper = studentClassRelationMapper;
+        this.baseMapper = baseMapper;
+    }
 
     /**
      * 根据班级代码查询班级
@@ -79,16 +91,11 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
      * @return 班级编号
      */
     public String generateClassCode() {
-        // 查询最大的班级编号
-        LambdaQueryWrapper<Class> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.orderByDesc(Class::getClassCode);
-        queryWrapper.in(Class::getIsDeleted, (Object) new Boolean[]{false, true});
-        queryWrapper.last("LIMIT 1");
-        Class lastClass = getOne(queryWrapper);
+        // 查询最大的班级编号（包括已逻辑删除的记录）
+        String lastCode = baseMapper.selectLastClassCode();
 
         int nextNum = 1;
-        if (lastClass != null && lastClass.getClassCode() != null) {
-            String lastCode = lastClass.getClassCode();
+        if (lastCode != null) {
             // 提取数字部分(CLASS000001 -> 000001 -> 1)
             if (lastCode.matches("CLASS\\d{6}")) {
                 String numStr = lastCode.substring(5); // 去掉 "CLASS"

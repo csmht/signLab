@@ -30,12 +30,22 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class StudentClassImportService {
 
     private final AuthService authService;
     private final ClassService classService;
     private final StudentClassRelationService relationService;
+    private final com.example.demo.mapper.ClassMapper classMapper;
+
+    public StudentClassImportService(AuthService authService,
+                                      ClassService classService,
+                                      StudentClassRelationService relationService,
+                                      com.example.demo.mapper.ClassMapper classMapper) {
+        this.authService = authService;
+        this.classService = classService;
+        this.relationService = relationService;
+        this.classMapper = classMapper;
+    }
 
     /**
      * 批量导入学生和班级信息（优化后的流程）
@@ -84,17 +94,13 @@ public class StudentClassImportService {
 
         // 一次性生成所有新班级的编号（确保连续）
         if (!newClassNames.isEmpty()) {
-            // 获取当前最大班级ID
-            LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.orderByDesc(com.example.demo.pojo.entity.Class::getId);
-            queryWrapper.in(Class::getIsDeleted, (Object) new Boolean[]{false, true});
-            queryWrapper.last("LIMIT 1");
-            com.example.demo.pojo.entity.Class lastClass = classService.getOne(queryWrapper);
+            // 获取当前最大班级ID（包括已逻辑删除的记录）
+            Long maxId = classMapper.selectMaxId();
 
             int nextNum = 1;
-            if (lastClass != null && lastClass.getId() != null) {
+            if (maxId != null) {
                 // 直接使用ID作为编号
-                nextNum = lastClass.getId().intValue() + 1;
+                nextNum = maxId.intValue() + 1;
             }
 
             // 为每个新班级生成连续编号
