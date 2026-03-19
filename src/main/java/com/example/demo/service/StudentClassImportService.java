@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.demo.pojo.entity.Class;
 import com.example.demo.pojo.excel.StudentClassImportExcel;
 import com.example.demo.pojo.request.BatchAddClassRequest;
 import com.example.demo.pojo.request.BatchAddUserRequest;
@@ -38,11 +39,12 @@ public class StudentClassImportService {
 
     /**
      * 批量导入学生和班级信息（优化后的流程）
+     * 注意：不使用全局事务，各子操作（导入班级、导入学生、绑定关系）各自独立事务
+     * 这样即使部分数据失败，已成功的数据也不会回滚
      *
      * @param dataList Excel数据列表
      * @return 导入结果统计
      */
-    @Transactional(rollbackFor = Exception.class)
     public BatchImportStudentClassResponse batchImportStudentWithClass(
             List<StudentClassImportExcel> dataList) {
 
@@ -66,6 +68,7 @@ public class StudentClassImportService {
         for (String className : uniqueClassNames) {
             LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(com.example.demo.pojo.entity.Class::getClassName, className);
+            queryWrapper.in(Class::getIsDeleted, (Object) new Boolean[]{false, true});
             queryWrapper.last("LIMIT 1");
             com.example.demo.pojo.entity.Class existingClass = classService.getOne(queryWrapper);
 
