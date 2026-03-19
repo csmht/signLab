@@ -491,19 +491,7 @@ public class StudentProcedureQueryService {
 
                 if (!tagIdList.isEmpty()) {
                     // 查询包含所有指定标签的题目（AND逻辑）
-                    // 使用GROUP BY和HAVING确保题目包含所有标签
-                    String sql = "SELECT topic_id FROM topic_tag_map " +
-                                "WHERE tag_id IN (" + tagIdList.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") " +
-                                "GROUP BY topic_id " +
-                                "HAVING COUNT(DISTINCT tag_id) = " + tagIdList.size();
-
-                    // 使用原生SQL查询满足条件的题目ID
-                    List<Long> topicIds = topicTagMapMapper.selectList(
-                        new LambdaQueryWrapper<TopicTagMap>().apply(sql)
-                    ).stream()
-                    .map(TopicTagMap::getTopicId)
-                    .distinct()
-                    .collect(Collectors.toList());
+                    List<Long> topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
 
                     if (!topicIds.isEmpty()) {
                         LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
@@ -728,17 +716,7 @@ public class StudentProcedureQueryService {
 
             if (!tagIdList.isEmpty()) {
                 // 查询包含所有指定标签的题目（AND逻辑）
-                String sql = "SELECT topic_id FROM topic_tag_map " +
-                            "WHERE tag_id IN (" + tagIdList.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") " +
-                            "GROUP BY topic_id " +
-                            "HAVING COUNT(DISTINCT tag_id) = " + tagIdList.size();
-
-                List<Long> topicIds = topicTagMapMapper.selectList(
-                    new LambdaQueryWrapper<TopicTagMap>().apply(sql)
-                ).stream()
-                .map(TopicTagMap::getTopicId)
-                .distinct()
-                .collect(Collectors.toList());
+                List<Long> topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
 
                 if (!topicIds.isEmpty()) {
                     LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();

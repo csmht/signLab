@@ -21,6 +21,7 @@ import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.TimedQuizKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -54,8 +55,11 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final TimedQuizKeyGenerator timedQuizKeyGenerator;
 
-    /** 步骤附件存储根路径 */
-    private static final String ATTACHMENT_ROOT_PATH = "uploads" + File.separator + "procedure-attachments";
+    @Value("${file.upload.path}")
+    private String uploadBasePath;
+
+    /** 步骤附件存储子目录 */
+    private static final String ATTACHMENT_SUB_PATH = "attachments";
 
     /**
      * 完成题库练习（类型3）
@@ -275,12 +279,12 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             // 1. 验证文件
             if (file == null || file.isEmpty()) {
                 throw new BusinessException(400, "文件不能为空");
-            }
+            };
 
-            // 2. 生成存储路径
+            // 2. 生成存储路径（不区分照片和文档，统一存储在 attachments/ 下）
             String datePath = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-            String relativePath = procedureId + File.separator + classCode + File.separator + datePath;
-            String uploadDir = ATTACHMENT_ROOT_PATH + File.separator + relativePath;
+            String relativePath = ATTACHMENT_SUB_PATH + File.separator + procedureId + File.separator + classCode + File.separator + datePath;
+            String uploadDir = uploadBasePath + relativePath;
 
             // 3. 创建目录
             File directory = new File(uploadDir);
@@ -707,7 +711,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
         // 3. 删除物理文件
         try {
-            String fullPath = ATTACHMENT_ROOT_PATH + File.separator + attachment.getFilePath();
+            String fullPath = uploadBasePath + attachment.getFilePath();
             Files.deleteIfExists(Paths.get(fullPath));
         } catch (IOException e) {
             log.error("删除附件文件失败: {}", attachment.getFilePath(), e);

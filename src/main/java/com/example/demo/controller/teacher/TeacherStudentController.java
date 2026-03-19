@@ -251,51 +251,51 @@ public class TeacherStudentController {
         return ApiResponse.success(response, "查询成功");
     }
 
-    /**
-     * 查询指定学生已提交的步骤详情（带答案）
-     *
-     * @param studentUsername 学生用户名
-     * @param courseId 课程ID
-     * @param experimentId 实验ID
-     * @param procedureId 步骤ID
-     * @return 步骤详情（带答案）
-     */
-    @GetMapping("/{studentUsername}/procedures/{procedureId}/completed")
-    @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<StudentProcedureDetailWithAnswerResponse> getStudentCompletedProcedureDetail(
-            @PathVariable("studentUsername") String studentUsername,
-            @RequestParam("courseId") String courseId,
-            @RequestParam("experimentId") Long experimentId,
-            @PathVariable("procedureId") Long procedureId) {
-        StudentProcedureDetailWithAnswerResponse response =
-                teacherStudentProcedureQueryService.getStudentCompletedProcedureDetail(
-                        studentUsername, courseId, experimentId, procedureId);
-
-        return ApiResponse.success(response, "查询成功");
-    }
-
-    /**
-     * 查询指定学生未提交的步骤详情
-     *
-     * @param studentUsername 学生用户名
-     * @param courseId 课程ID
-     * @param experimentId 实验ID
-     * @param procedureId 步骤ID
-     * @return 步骤详情（不含答案）
-     */
-    @GetMapping("/{studentUsername}/procedures/{procedureId}/uncompleted")
-    @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<StudentProcedureDetailWithoutAnswerResponse> getStudentUncompletedProcedureDetail(
-            @PathVariable("studentUsername") String studentUsername,
-            @RequestParam("courseId") String courseId,
-            @RequestParam("experimentId") Long experimentId,
-            @PathVariable("procedureId") Long procedureId) {
-        StudentProcedureDetailWithoutAnswerResponse response =
-                teacherStudentProcedureQueryService.getStudentUncompletedProcedureDetail(
-                        studentUsername, courseId, experimentId, procedureId);
-
-        return ApiResponse.success(response, "查询成功");
-    }
+//    /**
+//     * 查询指定学生已提交的步骤详情（带答案）
+//     *
+//     * @param studentUsername 学生用户名
+//     * @param courseId 课程ID
+//     * @param experimentId 实验ID
+//     * @param procedureId 步骤ID
+//     * @return 步骤详情（带答案）
+//     */
+//    @GetMapping("/{studentUsername}/procedures/{procedureId}/completed")
+//    @RequireRole(value = UserRole.TEACHER)
+//    public ApiResponse<StudentProcedureDetailWithAnswerResponse> getStudentCompletedProcedureDetail(
+//            @PathVariable("studentUsername") String studentUsername,
+//            @RequestParam("courseId") String courseId,
+//            @RequestParam("experimentId") Long experimentId,
+//            @PathVariable("procedureId") Long procedureId) {
+//        StudentProcedureDetailWithAnswerResponse response =
+//                teacherStudentProcedureQueryService.getStudentCompletedProcedureDetail(
+//                        studentUsername, courseId, experimentId, procedureId);
+//
+//        return ApiResponse.success(response, "查询成功");
+//    }
+//
+//    /**
+//     * 查询指定学生未提交的步骤详情
+//     *
+//     * @param studentUsername 学生用户名
+//     * @param courseId 课程ID
+//     * @param experimentId 实验ID
+//     * @param procedureId 步骤ID
+//     * @return 步骤详情（不含答案）
+//     */
+//    @GetMapping("/{studentUsername}/procedures/{procedureId}/uncompleted")
+//    @RequireRole(value = UserRole.TEACHER)
+//    public ApiResponse<StudentProcedureDetailWithoutAnswerResponse> getStudentUncompletedProcedureDetail(
+//            @PathVariable("studentUsername") String studentUsername,
+//            @RequestParam("courseId") String courseId,
+//            @RequestParam("experimentId") Long experimentId,
+//            @PathVariable("procedureId") Long procedureId) {
+//        StudentProcedureDetailWithoutAnswerResponse response =
+//                teacherStudentProcedureQueryService.getStudentUncompletedProcedureDetail(
+//                        studentUsername, courseId, experimentId, procedureId);
+//
+//        return ApiResponse.success(response, "查询成功");
+//    }
 
     /**
      * 查询班级实验完成统计

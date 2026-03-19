@@ -709,17 +709,7 @@ public class ClassStudentProcedureQueryService {
                     .toList();
 
                 if (!tagIdList.isEmpty()) {
-                    String sql = "SELECT topic_id FROM topic_tag_map " +
-                                "WHERE tag_id IN (" + tagIdList.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") " +
-                                "GROUP BY topic_id " +
-                                "HAVING COUNT(DISTINCT tag_id) = " + tagIdList.size();
-
-                    List<Long> topicIds = topicTagMapMapper.selectList(
-                        new LambdaQueryWrapper<TopicTagMap>().apply(sql)
-                    ).stream()
-                    .map(TopicTagMap::getTopicId)
-                    .distinct()
-                    .collect(Collectors.toList());
+                    List<Long> topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
 
                     if (!topicIds.isEmpty()) {
                         LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
