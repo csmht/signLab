@@ -136,7 +136,7 @@ public class DownloadService {
             String fullPath = FILE_BASE_PATH + attachment.getFilePath();
             File file = new File(fullPath);
             if (!file.exists()) {
-                throw new BusinessException(404, "文件不存在");
+                throw new BusinessException(404, "找不到文件");
             }
             downloadInfo.setFilePath(fullPath);
             downloadInfo.setFileName(attachment.getOriginalFileName());

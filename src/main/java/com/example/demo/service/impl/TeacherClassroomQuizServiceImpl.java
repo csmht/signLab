@@ -46,6 +46,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final com.example.demo.util.ClassroomQuizScorer classroomQuizScorer;
     private final StudentClassRelationMapper studentClassRelationMapper;
+    private final com.example.demo.mapper.UserMapper userMapper;
+    private final com.example.demo.mapper.ClassMapper classMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -106,7 +108,11 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         procedureTopic.setExperimentalProcedureId(null); // 课堂小测不关联实验步骤
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
-        procedureTopic.setTags(joinListToString(request.getTopicTags()));
+        String s = joinListToString(request.getTopicTags());
+        if(s.isEmpty() && request.getIsRandom()){
+            throw new BusinessException(400,"随机抽题必须携带标签");
+        }
+        procedureTopic.setTags(s);
         procedureTopic.setTopicTypes(joinIntegerListToString(request.getTopicTypes()));
         procedureTopic.setCreatedTime(LocalDateTime.now());
         procedureTopic.setIsDeleted(false);
@@ -146,7 +152,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
      */
     private String joinListToString(List<Long> list) {
         if (list == null || list.isEmpty()) {
-            throw new BusinessException(400,"标签至少为一个");
+            return null;
         }
         return list.stream()
                 .map(String::valueOf)
@@ -297,13 +303,55 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         // 题目级统计
         List<ClassroomQuizStatisticsResponse.TopicStatistics> topicStatistics = calculateTopicStatistics(answers, quiz, procedureTopic);
 
+        // 批量查询学生信息和班级信息
+        Set<String> studentUsernames = answers.stream()
+                .map(ClassroomQuizAnswer::getStudentUsername)
+                .collect(Collectors.toSet());
+        Set<String> answerClassCodes = answers.stream()
+                .map(ClassroomQuizAnswer::getClassCode)
+                .collect(Collectors.toSet());
+
+        final Map<String, String> studentNameMap;
+        if (!studentUsernames.isEmpty()) {
+            List<com.example.demo.pojo.entity.User> users = userMapper.selectList(
+                new LambdaQueryWrapper<com.example.demo.pojo.entity.User>()
+                    .in(com.example.demo.pojo.entity.User::getUsername, studentUsernames)
+            );
+            studentNameMap = users.stream()
+                .collect(Collectors.toMap(
+                    com.example.demo.pojo.entity.User::getUsername,
+                    com.example.demo.pojo.entity.User::getName,
+                    (v1, v2) -> v1
+                ));
+        } else {
+            studentNameMap = new HashMap<>();
+        }
+
+        final Map<String, String> classNameMap;
+        if (!answerClassCodes.isEmpty()) {
+            List<com.example.demo.pojo.entity.Class> classes = classMapper.selectList(
+                new LambdaQueryWrapper<com.example.demo.pojo.entity.Class>()
+                    .in(com.example.demo.pojo.entity.Class::getClassCode, answerClassCodes)
+            );
+            classNameMap = classes.stream()
+                .collect(Collectors.toMap(
+                    com.example.demo.pojo.entity.Class::getClassCode,
+                    com.example.demo.pojo.entity.Class::getClassName,
+                    (v1, v2) -> v1
+                ));
+        } else {
+            classNameMap = new HashMap<>();
+        }
+
         // 学生级统计
         List<ClassroomQuizStatisticsResponse.StudentAnswerInfo> studentAnswers = answers.stream()
                 .map(answer -> {
                     ClassroomQuizStatisticsResponse.StudentAnswerInfo info =
                         new ClassroomQuizStatisticsResponse.StudentAnswerInfo();
                     info.setStudentUsername(answer.getStudentUsername());
+                    info.setStudentName(studentNameMap.get(answer.getStudentUsername()));
                     info.setClassCode(answer.getClassCode());
+                    info.setClassName(classNameMap.get(answer.getClassCode()));
                     info.setScore(answer.getScore());
                     info.setIsCorrect(answer.getIsCorrect());
                     info.setSubmissionTime(answer.getSubmissionTime());

@@ -261,7 +261,11 @@ public class TeacherProcedureCreationService {
         procedureTopic.setExperimentalProcedureId(procedure.getId());
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
-        procedureTopic.setTags(joinTopicTags(request.getTopicTags()));
+        String s = joinTopicTags(request.getTopicTags());
+        if(s.isEmpty() && request.getIsRandom()){
+            throw new BusinessException(400,"随机抽题必须携带标签");
+        }
+        procedureTopic.setTags(s);
         procedureTopic.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
 
         procedureTopicMapper.insert(procedureTopic);
@@ -425,10 +429,9 @@ public class TeacherProcedureCreationService {
      * 更新题库练习步骤
      *
      * @param request 更新题库练习步骤请求
-     * @return 步骤ID
      */
     @Transactional
-    public Long updateTopicProcedure(UpdateTopicProcedureRequest request) {
+    public void updateTopicProcedure(UpdateTopicProcedureRequest request) {
         log.info("更新题库练习步骤，步骤ID: {}", request.getId());
 
         // 验证步骤是否存在
@@ -476,7 +479,11 @@ public class TeacherProcedureCreationService {
             if (procedureTopic != null) {
                 procedureTopic.setIsRandom(request.getIsRandom());
                 procedureTopic.setNumber(request.getTopicNumber());
-                procedureTopic.setTags(joinTopicTags(request.getTopicTags()));
+                String s = joinTopicTags(request.getTopicTags());
+                if(s.isEmpty() && request.getIsRandom()){
+                    throw new BusinessException(400,"随机抽题必须携带标签");
+                }
+                procedureTopic.setTags(s);
                 procedureTopic.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
                 procedureTopicMapper.updateById(procedureTopic);
                 log.info("题库详情记录更新成功，记录ID: {}", procedureTopic.getId());
@@ -514,7 +521,6 @@ public class TeacherProcedureCreationService {
             }
         }
 
-        return procedure.getId();
     }
 
     /**
@@ -748,7 +754,11 @@ public class TeacherProcedureCreationService {
         procedureTopic.setExperimentalProcedureId(procedure.getId());
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
-        procedureTopic.setTags(request.getTopicTagsToString());
+        String s = request.getTopicTagsToString();
+        if(s.isEmpty() && request.getIsRandom()){
+            throw new BusinessException(400,"随机抽题必须携带标签");
+        }
+        procedureTopic.setTags(s);
         procedureTopic.setTopicTypes(request.getTopicTypesToString());
 
         procedureTopicMapper.insert(procedureTopic);

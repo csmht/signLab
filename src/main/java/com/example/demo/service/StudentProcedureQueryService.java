@@ -345,9 +345,9 @@ public class StudentProcedureQueryService {
                     }
 
                     // 如果已过答题时间，返回正确答案
-                    if (isAfterEndTime && dataCollection.getCorrectAnswer() != null) {
+//                    if (isAfterEndTime && dataCollection.getCorrectAnswer() != null) {
                         detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
-                    }
+//                    }
                 }
 
                 response.setDataCollectionDetail(detail);

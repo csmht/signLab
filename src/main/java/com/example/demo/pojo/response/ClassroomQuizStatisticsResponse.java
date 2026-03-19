@@ -168,9 +168,19 @@ public class ClassroomQuizStatisticsResponse {
         private String studentUsername;
 
         /**
+         * 学生姓名
+         */
+        private String studentName;
+
+        /**
          * 班级编号
          */
         private String classCode;
+
+        /**
+         * 班级名称
+         */
+        private String className;
 
         /**
          * 得分
