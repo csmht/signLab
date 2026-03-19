@@ -45,7 +45,7 @@ public class ExcelTestController {
      * @return 导入结果
      */
     @PostMapping("/import/users")
-    @RequireRole(value = UserRole.ADMIN)
+    @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<String> importUsers(@RequestParam("file") MultipartFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         // 验证文件
@@ -101,7 +101,7 @@ public class ExcelTestController {
      * @return Excel 文件
      */
     @GetMapping("/template/users")
-    @RequireRole(value = UserRole.ADMIN)
+    @RequireRole(value = UserRole.TEACHER)
     public void getUserImportTemplate(jakarta.servlet.http.HttpServletResponse response) throws IOException {
         try {
             // 设置响应头
@@ -161,7 +161,7 @@ public class ExcelTestController {
      * @return 导入结果
      */
     @PostMapping("/import/students-with-classes")
-    @RequireRole(value = UserRole.ADMIN)
+    @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<String> importStudentsWithClasses(@RequestParam("file") MultipartFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         // 验证文件
@@ -225,7 +225,7 @@ public class ExcelTestController {
      * @return Excel 文件
      */
     @GetMapping("/template/students-with-classes")
-    @RequireRole(value = UserRole.ADMIN)
+    @RequireRole(value = UserRole.TEACHER)
     public void getStudentClassImportTemplate(jakarta.servlet.http.HttpServletResponse response) throws IOException {
         try {
             // 设置响应头
@@ -295,7 +295,7 @@ public class ExcelTestController {
      * @return 导入结果
      */
     @PostMapping("/import/class-course-experiments")
-    @RequireRole(value = UserRole.ADMIN)
+    @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<String> importClassCourseExperiments(@RequestParam("file") MultipartFile file) throws IOException {
         long startTime = System.currentTimeMillis();
         // 验证文件
@@ -359,7 +359,7 @@ public class ExcelTestController {
      * @return Excel 文件
      */
     @GetMapping("/template/class-course-experiments")
-    @RequireRole(value = UserRole.ADMIN)
+    @RequireRole(value = UserRole.TEACHER)
     public void getClassCourseExperimentImportTemplate(jakarta.servlet.http.HttpServletResponse response) throws IOException {
         try {
             // 设置响应头

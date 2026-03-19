@@ -47,16 +47,6 @@ public class TeacherProcedureDetailResponse {
     private Integer proportion;
 
     /**
-     * 步骤开始时间
-     */
-    private LocalDateTime startTime;
-
-    /**
-     * 步骤结束时间
-     */
-    private LocalDateTime endTime;
-
-    /**
      * 步骤开始时间偏移量(分钟)
      */
     private Integer offsetMinutes;
@@ -138,9 +128,9 @@ public class TeacherProcedureDetailResponse {
     private Integer topicNumber;
 
     /**
-     * 标签限制（类型3时有效）
+     * 标签限制列表（类型3、随机模式时有效）
      */
-    private String topicTags;
+    private List<TagInfo> topicTags;
 
     /**
      * 题目ID列表（类型3、非随机模式时有效）
@@ -148,14 +138,51 @@ public class TeacherProcedureDetailResponse {
     private List<Long> topicIds;
 
     /**
-     * 随机抽题题型
+     * 随机抽题题型（类型3、随机模式时有效）
      */
     private String topicTypes;
 
     /**
-     * 题目详情列表（类型3时有效）
+     * 题目详情列表（类型3、非随机模式时有效）
      */
     private List<TopicDetail> topics;
+
+    // ===== 类型5：限时答题详细信息 =====
+
+    /**
+     * 限时答题配置ID（类型5时有效）
+     */
+    private Long timedQuizId;
+
+    /**
+     * 是否随机抽取题目（类型5时有效）
+     */
+    private Boolean timedQuizIsRandom;
+
+    /**
+     * 题目数量（类型5时有效）
+     */
+    private Integer timedQuizNumber;
+
+    /**
+     * 答题时间限制（分钟）（类型5时有效）
+     */
+    private Integer timedQuizTimeLimit;
+
+    /**
+     * 标签限制列表（类型5、随机模式时有效）
+     */
+    private List<TagInfo> timedQuizTags;
+
+    /**
+     * 题目类型限制（类型5、随机模式时有效，逗号分隔）
+     */
+    private String timedQuizTopicTypes;
+
+    /**
+     * 题目详情列表（类型5、非随机模式时有效）
+     */
+    private List<TimedQuizTopicDetail> timedQuizTopics;
 
     /**
      * 题目详情
@@ -191,5 +218,67 @@ public class TeacherProcedureDetailResponse {
          * 正确答案
          */
         private String correctAnswer;
+    }
+
+    /**
+     * 限时答题题目详情
+     */
+    @Data
+    public static class TimedQuizTopicDetail {
+        /**
+         * 题目ID
+         */
+        private Long id;
+
+        /**
+         * 题号
+         */
+        private Integer number;
+
+        /**
+         * 题目类型（1-单选题，2-多选题，3-判断题，4-填空题，5-简答题，6-其他）
+         */
+        private Integer type;
+
+        /**
+         * 题目内容
+         */
+        private String content;
+
+        /**
+         * 选项内容
+         */
+        private String choices;
+
+        /**
+         * 正确答案
+         */
+        private String correctAnswer;
+    }
+
+    /**
+     * 标签信息
+     */
+    @Data
+    public static class TagInfo {
+        /**
+         * 标签ID
+         */
+        private Long id;
+
+        /**
+         * 标签名称
+         */
+        private String tagName;
+
+        /**
+         * 标签类型
+         */
+        private String type;
+
+        /**
+         * 标签描述
+         */
+        private String description;
     }
 }

@@ -223,15 +223,13 @@ public class TeacherProcedureCreationController {
      * 查询单个步骤详情
      *
      * @param procedureId       步骤ID
-     * @param classExperimentId 班级实验ID(可选,用于查询时间配置)
      * @return 步骤详情
      */
     @GetMapping("/{procedureId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<TeacherProcedureDetailResponse> getProcedureDetail(
-            @PathVariable("procedureId") Long procedureId,
-            @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
-        TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId, classExperimentId);
+            @PathVariable("procedureId") Long procedureId) {
+        TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId);
         return ApiResponse.success(response, "查询成功");
     }
 
@@ -239,15 +237,13 @@ public class TeacherProcedureCreationController {
      * 查询实验的所有步骤详情
      *
      * @param experimentId      实验ID
-     * @param classExperimentId 班级实验ID(可选,用于查询时间配置)
      * @return 步骤详情列表
      */
     @GetMapping("/experiment/{experimentId}")
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<List<TeacherProcedureDetailResponse>> getExperimentProcedures(
-            @PathVariable("experimentId") Long experimentId,
-            @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
-        List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId, classExperimentId);
+            @PathVariable("experimentId") Long experimentId) {
+        List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId);
         return ApiResponse.success(responses, "查询成功");
     }
 }

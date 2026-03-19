@@ -88,9 +88,45 @@ public class StudentTimedQuizProcedureDetailResponse {
         private Boolean isLocked;
 
         /**
-         * 题目列表（带答案）
+         * 标签限制列表（随机模式有效）
+         */
+        private List<TagInfo> tags;
+
+        /**
+         * 题目类型限制（随机模式有效，逗号分隔）
+         */
+        private String topicTypes;
+
+        /**
+         * 题目列表（带答案，仅非随机模式有效）
          */
         private List<TopicItem> topics;
+    }
+
+    /**
+     * 标签信息
+     */
+    @Data
+    public static class TagInfo {
+        /**
+         * 标签ID
+         */
+        private Long id;
+
+        /**
+         * 标签名称
+         */
+        private String tagName;
+
+        /**
+         * 标签类型
+         */
+        private String type;
+
+        /**
+         * 标签描述
+         */
+        private String description;
     }
 
     /**

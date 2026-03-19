@@ -48,6 +48,7 @@ public class TeacherStudentProcedureQueryService {
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
     private final StudentClassRelationService studentClassRelationService;
+    private final com.example.demo.mapper.TagMapper tagMapper;
 
     /**
      * 查询学生在指定班级实验中的步骤完成情况
@@ -103,10 +104,14 @@ public class TeacherStudentProcedureQueryService {
                 completion.setSubmissionTime(studentProcedure.getCreatedTime());
                 completion.setScore(studentProcedure.getScore());
                 completion.setIsGraded(studentProcedure.getIsGraded());
+                completion.setTeacherComment(studentProcedure.getTeacherComment());
                 if (studentProcedure.getScore() != null) {
                     totalScore = totalScore.add(studentProcedure.getScore());
                 }
                 completion.setSubmissionId(studentProcedure.getId());
+
+                // 根据步骤类型填充详细信息
+                fillProcedureCompletionDetailForList(completion, procedure, studentProcedure);
             } else {
                 completion.setIsCompleted(false);
             }
@@ -131,6 +136,249 @@ public class TeacherStudentProcedureQueryService {
         response.setTotalScore(totalScore);
 
         return response;
+    }
+
+    /**
+     * 填充步骤完成详情（用于列表）
+     */
+    private void fillProcedureCompletionDetailForList(
+            StudentProcedureCompletionResponse.ProcedureCompletion completion,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure) {
+
+        Integer type = procedure.getType();
+        if (type == null) {
+            return;
+        }
+
+        switch (type) {
+            case 2:
+                // 类型2：数据收集 - 查询附件
+                fillDataCollectionAttachmentsForList(completion, procedure, studentProcedure);
+                break;
+            case 3:
+                // 类型3：题库答题 - 解析答案并查询题目
+                fillTopicAnswersForList(completion, procedure, studentProcedure);
+                break;
+            case 5:
+                // 类型5：限时答题 - 解析答案并查询题目
+                fillTimedQuizDetailForList(completion, procedure, studentProcedure);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * 填充数据收集附件信息（用于列表）
+     */
+    private void fillDataCollectionAttachmentsForList(
+            StudentProcedureCompletionResponse.ProcedureCompletion completion,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure) {
+
+        // 1. 解析学生答案 JSON，设置 fillBlankAnswers 和 tableCellAnswers
+        String answerString = studentProcedure.getAnswer();
+        if (answerString != null && !answerString.trim().isEmpty()) {
+            // 使用工具类解析 data 字段（支持嵌套对象）
+            java.util.Map<String, Object> dataMap = com.example.demo.util.AnswerMapJSONUntil.parseDataAsObject(answerString);
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, String> fillBlankAnswers = (java.util.Map<String, String>) dataMap.get("fillBlankAnswers");
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, String> tableCellAnswers = (java.util.Map<String, String>) dataMap.get("tableCellAnswers");
+
+            completion.setFillBlankAnswers(FillBlankAnswer.fromMap(fillBlankAnswers));
+            completion.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
+        }
+
+        // 2. 查询附件信息
+        LambdaQueryWrapper<StudentProcedureAttachment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(StudentProcedureAttachment::getProcedureId, procedure.getId())
+                .eq(StudentProcedureAttachment::getStudentUsername, studentProcedure.getStudentUsername())
+                .eq(StudentProcedureAttachment::getClassExperimentId, studentProcedure.getClassExperimentId())
+                .orderByDesc(StudentProcedureAttachment::getCreateTime);
+
+        List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(queryWrapper);
+        if (attachments == null || attachments.isEmpty()) {
+            return;
+        }
+
+        List<StudentProcedureCompletionResponse.AttachmentInfo> photos = new ArrayList<>();
+        List<StudentProcedureCompletionResponse.AttachmentInfo> documents = new ArrayList<>();
+
+        for (StudentProcedureAttachment attachment : attachments) {
+            StudentProcedureCompletionResponse.AttachmentInfo info =
+                    new StudentProcedureCompletionResponse.AttachmentInfo();
+            info.setId(attachment.getId());
+            info.setFileFormat(attachment.getFileFormat());
+            info.setOriginalFileName(attachment.getOriginalFileName());
+            info.setStoredFileName(attachment.getStoredFileName());
+            info.setFilePath(attachment.getFilePath());
+            info.setFileSize(attachment.getFileSize());
+            info.setUploadTime(attachment.getCreateTime());
+
+            // 生成文件下载密钥
+            String currentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername().orElse(null);
+            if (currentUsername != null) {
+                String downloadKey = downloadService.generateFileKey(
+                    DownloadService.TYPE_ATTACHMENT, attachment.getId(), currentUsername);
+                info.setDownloadKey(downloadKey);
+            }
+
+            if (attachment.getFileType() == 1) {
+                photos.add(info);
+            } else if (attachment.getFileType() == 2) {
+                documents.add(info);
+            }
+        }
+
+        completion.setPhotos(photos);
+        completion.setDocuments(documents);
+    }
+
+    /**
+     * 填充题库答案详情（用于列表）
+     */
+    private void fillTopicAnswersForList(
+            StudentProcedureCompletionResponse.ProcedureCompletion completion,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure) {
+
+        // 1. 解析学生答案字符串
+        String answerString = studentProcedure.getAnswer();
+        if (answerString == null || answerString.trim().isEmpty()) {
+            return;
+        }
+
+        Map<Long, String> studentAnswers = parseTopicAnswers(answerString);
+
+        List<StudentProcedureCompletionResponse.TopicAnswer> topicAnswers = new ArrayList<>();
+
+        for (Map.Entry<Long, String> entry : studentAnswers.entrySet()) {
+            Long topicId = entry.getKey();
+            String studentAnswer = entry.getValue();
+
+            // 2. 查询题目信息
+            Topic topic = topicMapper.selectById(topicId);
+            if (topic == null) {
+                continue;
+            }
+
+            StudentProcedureCompletionResponse.TopicAnswer topicAnswer =
+                    new StudentProcedureCompletionResponse.TopicAnswer();
+            topicAnswer.setTopicId(topic.getId());
+            topicAnswer.setNumber(topic.getNumber());
+            topicAnswer.setType(topic.getType());
+            topicAnswer.setContent(topic.getContent());
+            topicAnswer.setChoices(topic.getChoices());
+            topicAnswer.setStudentAnswer(studentAnswer);
+            topicAnswer.setCorrectAnswer(topic.getCorrectAnswer());
+
+            // 3. 判断答案是否正确
+            boolean isCorrect = studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer());
+            topicAnswer.setIsCorrect(isCorrect);
+
+            topicAnswers.add(topicAnswer);
+        }
+
+        completion.setTopicAnswers(topicAnswers);
+    }
+
+    /**
+     * 填充限时答题详情（用于列表）
+     */
+    private void fillTimedQuizDetailForList(
+            StudentProcedureCompletionResponse.ProcedureCompletion completion,
+            ExperimentalProcedure procedure,
+            StudentExperimentalProcedure studentProcedure) {
+
+        if (procedure.getTimedQuizId() == null) {
+            return;
+        }
+
+        TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+        if (timedQuiz == null) {
+            return;
+        }
+
+        StudentProcedureCompletionResponse.TimedQuizDetail detail =
+            new StudentProcedureCompletionResponse.TimedQuizDetail();
+        detail.setId(timedQuiz.getId());
+        detail.setIsRandom(timedQuiz.getIsRandom());
+        detail.setNumber(timedQuiz.getTopicNumber());
+        detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+        detail.setIsLocked(studentProcedure.getIsLocked());
+        detail.setTopicTypes(timedQuiz.getTopicTypes());
+
+        // 查询标签信息
+        if (timedQuiz.getTopicTags() != null && !timedQuiz.getTopicTags().trim().isEmpty()) {
+            String[] tagIds = timedQuiz.getTopicTags().split(",");
+            List<Long> tagIdList = Arrays.stream(tagIds)
+                    .filter(s -> s != null && !s.isEmpty())
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+
+            if (!tagIdList.isEmpty()) {
+                List<com.example.demo.pojo.entity.Tag> tags = tagMapper.selectList(
+                    new LambdaQueryWrapper<com.example.demo.pojo.entity.Tag>()
+                        .in(com.example.demo.pojo.entity.Tag::getId, tagIdList)
+                );
+
+                List<StudentProcedureCompletionResponse.TagInfo> tagInfos = tags.stream()
+                        .map(tag -> {
+                            StudentProcedureCompletionResponse.TagInfo tagInfo =
+                                new StudentProcedureCompletionResponse.TagInfo();
+                            tagInfo.setId(tag.getId());
+                            tagInfo.setTagName(tag.getTagName());
+                            tagInfo.setType(tag.getType());
+                            tagInfo.setDescription(tag.getDescription());
+                            return tagInfo;
+                        })
+                        .collect(Collectors.toList());
+
+                detail.setTags(tagInfos);
+            }
+        }
+
+        // 非随机模式下才返回题目列表
+        if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+            // 查询题目列表
+            List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
+            List<StudentProcedureCompletionResponse.TopicItem> topicItems = new ArrayList<>();
+
+            // 解析学生答案
+            Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+            for (Topic topic : topics) {
+                StudentProcedureCompletionResponse.TopicItem item =
+                    new StudentProcedureCompletionResponse.TopicItem();
+                item.setId(topic.getId());
+                item.setNumber(topic.getNumber());
+                item.setType(topic.getType());
+                item.setContent(topic.getContent());
+                item.setChoices(topic.getChoices());
+
+                String studentAnswer = studentAnswers.get(topic.getId());
+                item.setStudentAnswer(studentAnswer);
+
+                // 教师始终可以查看正确答案和是否正确
+                item.setCorrectAnswer(topic.getCorrectAnswer());
+
+                if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                    item.setIsCorrect(true);
+                } else {
+                    item.setIsCorrect(false);
+                }
+
+                topicItems.add(item);
+            }
+
+            detail.setTopics(topicItems);
+        }
+
+        completion.setTimedQuizDetail(detail);
     }
 
     /**
@@ -1463,39 +1711,74 @@ public class TeacherStudentProcedureQueryService {
                 detail.setNumber(timedQuiz.getTopicNumber());
                 detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
                 detail.setIsLocked(studentProcedure.getIsLocked());
+                detail.setTopicTypes(timedQuiz.getTopicTypes());
 
-                // 查询题目列表
-                List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
-                List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+                // 查询标签信息
+                if (timedQuiz.getTopicTags() != null && !timedQuiz.getTopicTags().trim().isEmpty()) {
+                    String[] tagIds = timedQuiz.getTopicTags().split(",");
+                    List<Long> tagIdList = Arrays.stream(tagIds)
+                            .filter(s -> s != null && !s.isEmpty())
+                            .map(Long::parseLong)
+                            .collect(Collectors.toList());
 
-                // 解析学生答案
-                Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+                    if (!tagIdList.isEmpty()) {
+                        List<com.example.demo.pojo.entity.Tag> tags = tagMapper.selectList(
+                            new LambdaQueryWrapper<com.example.demo.pojo.entity.Tag>()
+                                .in(com.example.demo.pojo.entity.Tag::getId, tagIdList)
+                        );
 
-                for (Topic topic : topics) {
-                    com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem item =
-                        new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem();
-                    item.setId(topic.getId());
-                    item.setNumber(topic.getNumber());
-                    item.setType(topic.getType());
-                    item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
+                        List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TagInfo> tagInfos = tags.stream()
+                                .map(tag -> {
+                                    com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TagInfo tagInfo =
+                                        new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TagInfo();
+                                    tagInfo.setId(tag.getId());
+                                    tagInfo.setTagName(tag.getTagName());
+                                    tagInfo.setType(tag.getType());
+                                    tagInfo.setDescription(tag.getDescription());
+                                    return tagInfo;
+                                })
+                                .collect(Collectors.toList());
 
-                    String studentAnswer = studentAnswers.get(topic.getId());
-                    item.setStudentAnswer(studentAnswer);
-
-                    // 教师始终可以查看正确答案和是否正确
-                    item.setCorrectAnswer(topic.getCorrectAnswer());
-
-                    if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
-                        item.setIsCorrect(true);
-                    } else {
-                        item.setIsCorrect(false);
+                        detail.setTags(tagInfos);
                     }
-
-                    topicItems.add(item);
                 }
 
-                detail.setTopics(topicItems);
+                // 非随机模式下才返回题目列表
+                if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+                    // 查询题目列表
+                    List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
+                    List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+
+                    // 解析学生答案
+                    Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+
+                    for (Topic topic : topics) {
+                        com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem item =
+                            new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem();
+                        item.setId(topic.getId());
+                        item.setNumber(topic.getNumber());
+                        item.setType(topic.getType());
+                        item.setContent(topic.getContent());
+                        item.setChoices(topic.getChoices());
+
+                        String studentAnswer = studentAnswers.get(topic.getId());
+                        item.setStudentAnswer(studentAnswer);
+
+                        // 教师始终可以查看正确答案和是否正确
+                        item.setCorrectAnswer(topic.getCorrectAnswer());
+
+                        if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                            item.setIsCorrect(true);
+                        } else {
+                            item.setIsCorrect(false);
+                        }
+
+                        topicItems.add(item);
+                    }
+
+                    detail.setTopics(topicItems);
+                }
+
                 response.setTimedQuizDetail(detail);
             }
         }
@@ -1539,23 +1822,58 @@ public class TeacherStudentProcedureQueryService {
                 detail.setIsRandom(timedQuiz.getIsRandom());
                 detail.setNumber(timedQuiz.getTopicNumber());
                 detail.setQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+                detail.setTopicTypes(timedQuiz.getTopicTypes());
 
-                // 查询题目列表（不含答案）
-                List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
-                List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+                // 查询标签信息
+                if (timedQuiz.getTopicTags() != null && !timedQuiz.getTopicTags().trim().isEmpty()) {
+                    String[] tagIds = timedQuiz.getTopicTags().split(",");
+                    List<Long> tagIdList = Arrays.stream(tagIds)
+                            .filter(s -> s != null && !s.isEmpty())
+                            .map(Long::parseLong)
+                            .collect(Collectors.toList());
 
-                for (Topic topic : topics) {
-                    com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem item =
-                        new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem();
-                    item.setId(topic.getId());
-                    item.setNumber(topic.getNumber());
-                    item.setType(topic.getType());
-                    item.setContent(topic.getContent());
-                    item.setChoices(topic.getChoices());
-                    topicItems.add(item);
+                    if (!tagIdList.isEmpty()) {
+                        List<com.example.demo.pojo.entity.Tag> tags = tagMapper.selectList(
+                            new LambdaQueryWrapper<com.example.demo.pojo.entity.Tag>()
+                                .in(com.example.demo.pojo.entity.Tag::getId, tagIdList)
+                        );
+
+                        List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TagInfo> tagInfos = tags.stream()
+                                .map(tag -> {
+                                    com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TagInfo tagInfo =
+                                        new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TagInfo();
+                                    tagInfo.setId(tag.getId());
+                                    tagInfo.setTagName(tag.getTagName());
+                                    tagInfo.setType(tag.getType());
+                                    tagInfo.setDescription(tag.getDescription());
+                                    return tagInfo;
+                                })
+                                .collect(Collectors.toList());
+
+                        detail.setTags(tagInfos);
+                    }
                 }
 
-                detail.setTopics(topicItems);
+                // 非随机模式下才返回题目列表
+                if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+                    // 查询题目列表（不含答案）
+                    List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
+                    List<com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
+
+                    for (Topic topic : topics) {
+                        com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem item =
+                            new com.example.demo.pojo.response.StudentTimedQuizProcedureDetailResponse.TopicItem();
+                        item.setId(topic.getId());
+                        item.setNumber(topic.getNumber());
+                        item.setType(topic.getType());
+                        item.setContent(topic.getContent());
+                        item.setChoices(topic.getChoices());
+                        topicItems.add(item);
+                    }
+
+                    detail.setTopics(topicItems);
+                }
+
                 response.setTimedQuizDetail(detail);
             }
         }
