@@ -82,6 +82,7 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
         // 查询最大的班级编号
         LambdaQueryWrapper<Class> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.orderByDesc(Class::getClassCode);
+        queryWrapper.in(Class::getIsDeleted, (Object) new Boolean[]{false, true});
         queryWrapper.last("LIMIT 1");
         Class lastClass = getOne(queryWrapper);
 
