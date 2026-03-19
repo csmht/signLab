@@ -68,7 +68,6 @@ public class StudentClassImportService {
         for (String className : uniqueClassNames) {
             LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(com.example.demo.pojo.entity.Class::getClassName, className);
-            queryWrapper.in(Class::getIsDeleted, (Object) new Boolean[]{false, true});
             queryWrapper.last("LIMIT 1");
             com.example.demo.pojo.entity.Class existingClass = classService.getOne(queryWrapper);
 
@@ -88,6 +87,7 @@ public class StudentClassImportService {
             // 获取当前最大班级ID
             LambdaQueryWrapper<com.example.demo.pojo.entity.Class> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.orderByDesc(com.example.demo.pojo.entity.Class::getId);
+            queryWrapper.in(Class::getIsDeleted, (Object) new Boolean[]{false, true});
             queryWrapper.last("LIMIT 1");
             com.example.demo.pojo.entity.Class lastClass = classService.getOne(queryWrapper);
 
