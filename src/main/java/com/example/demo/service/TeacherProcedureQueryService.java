@@ -20,7 +20,10 @@ import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.entity.Tag;
 import com.example.demo.pojo.entity.TimedQuizProcedure;
 import com.example.demo.pojo.entity.TopicTagMap;
+import com.example.demo.pojo.response.TeacherDataCollectionProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
+import com.example.demo.pojo.response.TeacherTopicProcedureDetailResponse;
+import com.example.demo.pojo.response.TeacherVideoProcedureDetailResponse;
 import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -418,6 +421,285 @@ public class TeacherProcedureQueryService {
                 return topicMapper.selectList(topicWrapper);
             }
             return new ArrayList<>();
+        }
+    }
+
+    // ==================== 按类型分离的查询方法 ====================
+
+    /**
+     * 查询视频步骤详情
+     * 步骤类型：type=1（观看视频）
+     *
+     * @param procedureId 步骤ID
+     * @return 视频步骤详情
+     */
+    public TeacherVideoProcedureDetailResponse getVideoProcedureDetail(Long procedureId) {
+        log.info("查询视频步骤详情，步骤ID: {}", procedureId);
+
+        ExperimentalProcedure procedure = validateAndGetProcedure(procedureId);
+        if (procedure.getType() != 1) {
+            throw new com.example.demo.exception.BusinessException(400, "该步骤不是视频类型");
+        }
+
+        TeacherVideoProcedureDetailResponse response = new TeacherVideoProcedureDetailResponse();
+        fillBaseProcedureInfo(response, procedure);
+        fillVideoDetail(response, procedure);
+
+        return response;
+    }
+
+    /**
+     * 查询数据收集步骤详情
+     * 步骤类型：type=2（数据收集）
+     *
+     * @param procedureId 步骤ID
+     * @return 数据收集步骤详情
+     */
+    public TeacherDataCollectionProcedureDetailResponse getDataCollectionProcedureDetail(Long procedureId) {
+        log.info("查询数据收集步骤详情，步骤ID: {}", procedureId);
+
+        ExperimentalProcedure procedure = validateAndGetProcedure(procedureId);
+        if (procedure.getType() != 2) {
+            throw new com.example.demo.exception.BusinessException(400, "该步骤不是数据收集类型");
+        }
+
+        TeacherDataCollectionProcedureDetailResponse response = new TeacherDataCollectionProcedureDetailResponse();
+        fillBaseProcedureInfo(response, procedure);
+        fillDataCollectionDetail(response, procedure);
+
+        return response;
+    }
+
+    /**
+     * 查询题库步骤详情
+     * 步骤类型：type=3（题库答题）或 type=5（限时答题）
+     *
+     * @param procedureId 步骤ID
+     * @return 题库步骤详情
+     */
+    public TeacherTopicProcedureDetailResponse getTopicProcedureDetail(Long procedureId) {
+        log.info("查询题库步骤详情，步骤ID: {}", procedureId);
+
+        ExperimentalProcedure procedure = validateAndGetProcedure(procedureId);
+        if (procedure.getType() != 3 && procedure.getType() != 5) {
+            throw new com.example.demo.exception.BusinessException(400, "该步骤不是题库答题或限时答题类型");
+        }
+
+        TeacherTopicProcedureDetailResponse response = new TeacherTopicProcedureDetailResponse();
+        fillBaseProcedureInfo(response, procedure);
+
+        if (procedure.getType() == 3) {
+            fillTopicDetail(response, procedure);
+        } else if (procedure.getType() == 5) {
+            fillTimedQuizDetail(response, procedure);
+        }
+
+        return response;
+    }
+
+    // ==================== 私有辅助方法 ====================
+
+    private ExperimentalProcedure validateAndGetProcedure(Long procedureId) {
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(procedureId);
+        if (procedure == null) {
+            throw new com.example.demo.exception.BusinessException(404, "步骤不存在");
+        }
+        return procedure;
+    }
+
+    private void fillBaseProcedureInfo(Object response, ExperimentalProcedure procedure) {
+        try {
+            var setId = response.getClass().getMethod("setId", Long.class);
+            var setExperimentId = response.getClass().getMethod("setExperimentId", Long.class);
+            var setNumber = response.getClass().getMethod("setNumber", Integer.class);
+            var setType = response.getClass().getMethod("setType", Integer.class);
+            var setRemark = response.getClass().getMethod("setRemark", String.class);
+            var setIsSkip = response.getClass().getMethod("setIsSkip", Boolean.class);
+            var setProportion = response.getClass().getMethod("setProportion", Integer.class);
+            var setOffsetMinutes = response.getClass().getMethod("setOffsetMinutes", Integer.class);
+            var setDurationMinutes = response.getClass().getMethod("setDurationMinutes", Integer.class);
+
+            setId.invoke(response, procedure.getId());
+            setExperimentId.invoke(response, procedure.getExperimentId());
+            setNumber.invoke(response, procedure.getNumber());
+            setType.invoke(response, procedure.getType());
+            setRemark.invoke(response, procedure.getRemark());
+            setIsSkip.invoke(response, procedure.getIsSkip());
+            setProportion.invoke(response, procedure.getProportion());
+            setOffsetMinutes.invoke(response, procedure.getOffsetMinutes());
+            setDurationMinutes.invoke(response, procedure.getDurationMinutes());
+        } catch (Exception e) {
+            log.error("填充基础步骤信息失败", e);
+        }
+    }
+
+    private void fillVideoDetail(TeacherVideoProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getVideoId() == null) {
+            return;
+        }
+
+        VideoFile videoFile = videoFileMapper.selectById(procedure.getVideoId());
+        if (videoFile != null) {
+            response.setVideoId(videoFile.getId());
+            response.setVideoTitle(videoFile.getOriginalFileName());
+            response.setVideoSeconds(videoFile.getVideoSeconds());
+            response.setVideoFilePath(videoFile.getFilePath());
+            response.setVideoFileSize(videoFile.getFileSize());
+        }
+    }
+
+    private void fillDataCollectionDetail(TeacherDataCollectionProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getDataCollectionId() == null) {
+            return;
+        }
+
+        DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
+        if (dataCollection != null) {
+            response.setDataCollectionId(dataCollection.getId());
+            response.setDataCollectionType(dataCollection.getType());
+            response.setDataRemark(dataCollection.getRemark());
+            response.setDataNeedPhoto(dataCollection.getNeedPhoto());
+            response.setDataNeedDoc(dataCollection.getNeedDoc());
+        }
+    }
+
+    private void fillTopicDetail(TeacherTopicProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getProcedureTopicId() == null) {
+            return;
+        }
+
+        ProcedureTopic procedureTopic = procedureTopicMapper.selectById(procedure.getProcedureTopicId());
+        if (procedureTopic != null) {
+            response.setProcedureTopicId(procedureTopic.getId());
+            response.setTopicIsRandom(procedureTopic.getIsRandom());
+            response.setTopicNumber(procedureTopic.getNumber());
+            response.setTopicTypes(procedureTopic.getTopicTypes());
+
+            if (procedureTopic.getTags() != null && !procedureTopic.getTags().trim().isEmpty()) {
+                String[] tagIds = procedureTopic.getTags().split(",");
+                List<Long> tagIdList = Arrays.stream(tagIds)
+                        .filter(s -> s != null && !s.isEmpty())
+                        .map(Long::parseLong)
+                        .collect(Collectors.toList());
+
+                if (!tagIdList.isEmpty()) {
+                    List<Tag> tags = tagMapper.selectList(
+                            new LambdaQueryWrapper<Tag>().in(Tag::getId, tagIdList)
+                    );
+
+                    List<TeacherProcedureDetailResponse.TagInfo> tagInfos = tags.stream()
+                            .map(tag -> {
+                                TeacherProcedureDetailResponse.TagInfo tagInfo =
+                                        new TeacherProcedureDetailResponse.TagInfo();
+                                tagInfo.setId(tag.getId());
+                                tagInfo.setTagName(tag.getTagName());
+                                tagInfo.setType(tag.getType());
+                                tagInfo.setDescription(tag.getDescription());
+                                return tagInfo;
+                            })
+                            .collect(Collectors.toList());
+
+                    response.setTopicTags(tagInfos);
+                }
+            }
+
+            if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
+                LambdaQueryWrapper<ProcedureTopicMap> topicMapQueryWrapper = new LambdaQueryWrapper<>();
+                topicMapQueryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedure.getId());
+                List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(topicMapQueryWrapper);
+
+                if (topicMaps != null && !topicMaps.isEmpty()) {
+                    List<Long> topicIds = topicMaps.stream()
+                            .map(ProcedureTopicMap::getTopicId)
+                            .collect(Collectors.toList());
+                    response.setTopicIds(topicIds);
+
+                    LambdaQueryWrapper<Topic> topicQueryWrapper = new LambdaQueryWrapper<>();
+                    topicQueryWrapper.in(Topic::getId, topicIds)
+                            .eq(Topic::getIsDeleted, false)
+                            .orderByAsc(Topic::getNumber);
+                    List<Topic> topics = topicMapper.selectList(topicQueryWrapper);
+
+                    if (topics != null && !topics.isEmpty()) {
+                        List<TeacherProcedureDetailResponse.TopicDetail> topicDetails = new ArrayList<>();
+                        for (Topic topic : topics) {
+                            TeacherProcedureDetailResponse.TopicDetail topicDetail = new TeacherProcedureDetailResponse.TopicDetail();
+                            topicDetail.setId(topic.getId());
+                            topicDetail.setNumber(topic.getNumber());
+                            topicDetail.setType(topic.getType());
+                            topicDetail.setContent(topic.getContent());
+                            topicDetail.setChoices(topic.getChoices());
+                            topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
+                            topicDetails.add(topicDetail);
+                        }
+                        response.setTopics(topicDetails);
+                    }
+                }
+            }
+        }
+    }
+
+    private void fillTimedQuizDetail(TeacherTopicProcedureDetailResponse response, ExperimentalProcedure procedure) {
+        if (procedure.getTimedQuizId() == null) {
+            return;
+        }
+
+        TimedQuizProcedure timedQuiz = timedQuizProcedureMapper.selectById(procedure.getTimedQuizId());
+        if (timedQuiz == null) {
+            return;
+        }
+
+        response.setTimedQuizId(timedQuiz.getId());
+        response.setTimedQuizIsRandom(timedQuiz.getIsRandom());
+        response.setTimedQuizNumber(timedQuiz.getTopicNumber());
+        response.setTimedQuizTimeLimit(timedQuiz.getQuizTimeLimit());
+        response.setTimedQuizTopicTypes(timedQuiz.getTopicTypes());
+
+        if (timedQuiz.getTopicTags() != null && !timedQuiz.getTopicTags().trim().isEmpty()) {
+            String[] tagIds = timedQuiz.getTopicTags().split(",");
+            List<Long> tagIdList = Arrays.stream(tagIds)
+                    .filter(s -> s != null && !s.isEmpty())
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+
+            if (!tagIdList.isEmpty()) {
+                List<Tag> tags = tagMapper.selectList(
+                        new LambdaQueryWrapper<Tag>().in(Tag::getId, tagIdList)
+                );
+
+                List<TeacherProcedureDetailResponse.TagInfo> tagInfos = tags.stream()
+                        .map(tag -> {
+                            TeacherProcedureDetailResponse.TagInfo tagInfo =
+                                    new TeacherProcedureDetailResponse.TagInfo();
+                            tagInfo.setId(tag.getId());
+                            tagInfo.setTagName(tag.getTagName());
+                            tagInfo.setType(tag.getType());
+                            tagInfo.setDescription(tag.getDescription());
+                            return tagInfo;
+                        })
+                        .collect(Collectors.toList());
+
+                response.setTimedQuizTags(tagInfos);
+            }
+        }
+
+        if (!Boolean.TRUE.equals(timedQuiz.getIsRandom())) {
+            List<Topic> topics = getTopicsForTimedQuizProcedure(procedure, timedQuiz);
+            if (topics != null && !topics.isEmpty()) {
+                List<TeacherProcedureDetailResponse.TimedQuizTopicDetail> topicDetails = new ArrayList<>();
+                for (Topic topic : topics) {
+                    TeacherProcedureDetailResponse.TimedQuizTopicDetail topicDetail =
+                            new TeacherProcedureDetailResponse.TimedQuizTopicDetail();
+                    topicDetail.setId(topic.getId());
+                    topicDetail.setNumber(topic.getNumber());
+                    topicDetail.setType(topic.getType());
+                    topicDetail.setContent(topic.getContent());
+                    topicDetail.setChoices(topic.getChoices());
+                    topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
+                    topicDetails.add(topicDetail);
+                }
+                response.setTimedQuizTopics(topicDetails);
+            }
         }
     }
 }

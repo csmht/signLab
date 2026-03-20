@@ -15,7 +15,10 @@ import com.example.demo.pojo.request.teacher.CreateTimedQuizProcedureRequest;
 import com.example.demo.pojo.request.teacher.UpdateTimedQuizProcedureRequest;
 import com.example.demo.pojo.request.teacher.InsertTimedQuizProcedureRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.TeacherDataCollectionProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
+import com.example.demo.pojo.response.TeacherTopicProcedureDetailResponse;
+import com.example.demo.pojo.response.TeacherVideoProcedureDetailResponse;
 import com.example.demo.service.TeacherProcedureCreationService;
 import com.example.demo.service.TeacherProcedureQueryService;
 import lombok.RequiredArgsConstructor;
@@ -234,16 +237,61 @@ public class TeacherProcedureCreationController {
     }
 
     /**
-     * 查询实验的所有步骤详情
+     * 查询视频步骤详情
+     * 步骤类型：type=1（观看视频）
      *
-     * @param experimentId      实验ID
-     * @return 步骤详情列表
+     * @param procedureId 步骤ID
+     * @return 视频步骤详情
      */
-    @GetMapping("/experiment/{experimentId}")
+    @GetMapping("/video/{procedureId}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<TeacherProcedureDetailResponse>> getExperimentProcedures(
-            @PathVariable("experimentId") Long experimentId) {
-        List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId);
-        return ApiResponse.success(responses, "查询成功");
+    public ApiResponse<TeacherVideoProcedureDetailResponse> getVideoProcedureDetail(
+            @PathVariable("procedureId") Long procedureId) {
+        TeacherVideoProcedureDetailResponse response = teacherProcedureQueryService.getVideoProcedureDetail(procedureId);
+        return ApiResponse.success(response, "查询成功");
     }
+
+    /**
+     * 查询数据收集步骤详情
+     * 步骤类型：type=2（数据收集）
+     *
+     * @param procedureId 步骤ID
+     * @return 数据收集步骤详情
+     */
+    @GetMapping("/data-collection/{procedureId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<TeacherDataCollectionProcedureDetailResponse> getDataCollectionProcedureDetail(
+            @PathVariable("procedureId") Long procedureId) {
+        TeacherDataCollectionProcedureDetailResponse response = teacherProcedureQueryService.getDataCollectionProcedureDetail(procedureId);
+        return ApiResponse.success(response, "查询成功");
+    }
+
+    /**
+     * 查询题库步骤详情
+     * 步骤类型：type=3（题库答题）或 type=5（限时答题）
+     *
+     * @param procedureId 步骤ID
+     * @return 题库步骤详情
+     */
+    @GetMapping("/topic/{procedureId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<TeacherTopicProcedureDetailResponse> getTopicProcedureDetail(
+            @PathVariable("procedureId") Long procedureId) {
+        TeacherTopicProcedureDetailResponse response = teacherProcedureQueryService.getTopicProcedureDetail(procedureId);
+        return ApiResponse.success(response, "查询成功");
+    }
+
+//    /**
+//     * 查询实验的所有步骤详情
+//     *
+//     * @param experimentId      实验ID
+//     * @return 步骤详情列表
+//     */
+//    @GetMapping("/experiment/{experimentId}")
+//    @RequireRole(value = UserRole.TEACHER)
+//    public ApiResponse<List<TeacherProcedureDetailResponse>> getExperimentProcedures(
+//            @PathVariable("experimentId") Long experimentId) {
+//        List<TeacherProcedureDetailResponse> responses = teacherProcedureQueryService.getExperimentProcedures(experimentId);
+//        return ApiResponse.success(responses, "查询成功");
+//    }
 }
