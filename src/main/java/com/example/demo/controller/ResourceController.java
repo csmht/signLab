@@ -4,6 +4,7 @@ import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.ResourceResponse;
 import com.example.demo.service.DownloadService;
 import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -34,17 +35,17 @@ public class ResourceController {
      */
     @GetMapping("/video/key/{videoId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Map<String, String>> getVideoDownloadKey(@PathVariable Long videoId) {
+    public ApiResponse<ResourceResponse> getVideoDownloadKey(@PathVariable Long videoId) {
         String username = SecurityUtil.getCurrentUsername()
                 .orElseThrow(() -> new BusinessException(401, "未登录用户"));
 
         String downloadKey = downloadService.generateVideoKey(videoId, username);
 
-        Map<String, String> result = new HashMap<>();
-        result.put("downloadKey", downloadKey);
-        result.put("downloadUrl", "/api/download/video/" + downloadKey);
+        ResourceResponse resourceResponse = new ResourceResponse();
+        resourceResponse.setPlayKey(downloadKey);
+        resourceResponse.setPlayUrl( "/api/download/video/" + downloadKey);
 
-        return ApiResponse.success(result, "获取下载密钥成功");
+        return ApiResponse.success(resourceResponse, "获取下载密钥成功");
     }
 
     /**
@@ -56,7 +57,7 @@ public class ResourceController {
      */
     @GetMapping("/file/key/{fileType}/{fileId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Map<String, String>> getFileDownloadKey(
+    public ApiResponse<ResourceResponse> getFileDownloadKey(
             @PathVariable String fileType,
             @PathVariable Long fileId) {
         String username = SecurityUtil.getCurrentUsername()
@@ -64,11 +65,11 @@ public class ResourceController {
 
         String downloadKey = downloadService.generateFileKey(fileType, fileId, username);
 
-        Map<String, String> result = new HashMap<>();
-        result.put("downloadKey", downloadKey);
-        result.put("downloadUrl", "/api/download/file/" + downloadKey);
+        ResourceResponse resourceResponse = new ResourceResponse();
+        resourceResponse.setPlayKey(downloadKey);
+        resourceResponse.setPlayUrl("/api/download/file/" + downloadKey);
 
-        return ApiResponse.success(result, "获取下载密钥成功");
+        return ApiResponse.success(resourceResponse, "获取下载密钥成功");
     }
 
     /**
@@ -79,16 +80,16 @@ public class ResourceController {
      */
     @GetMapping("/video/playkey/{videoId}")
     @RequireRole(value = UserRole.STUDENT)
-    public ApiResponse<Map<String, String>> getVideoPlayKey(@PathVariable Long videoId) {
+    public ApiResponse<ResourceResponse> getVideoPlayKey(@PathVariable Long videoId) {
         String username = SecurityUtil.getCurrentUsername()
                 .orElseThrow(() -> new BusinessException(401, "未登录用户"));
 
         String playKey = downloadService.generatePlayKey(videoId, username);
 
-        Map<String, String> result = new HashMap<>();
-        result.put("playKey", playKey);
-        result.put("playUrl", "/api/download/play/" + playKey);
+        ResourceResponse resourceResponse = new ResourceResponse();
+        resourceResponse.setPlayKey(playKey);
+        resourceResponse.setPlayUrl("/api/download/play/" + playKey);
 
-        return ApiResponse.success(result, "获取播放密钥成功");
+        return ApiResponse.success(resourceResponse, "获取播放密钥成功");
     }
 }
