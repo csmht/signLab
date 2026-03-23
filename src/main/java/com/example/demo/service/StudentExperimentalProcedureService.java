@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -238,6 +239,9 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
         studentProcedure.setNumber(procedure.getNumber());
         studentProcedure.setAnswer(AnswerMapJSONUntil.buildVideo());
         studentProcedure.setCreatedTime(LocalDateTime.now());
+
+        studentProcedure.setScore(new BigDecimal(100));
+        studentProcedure.setIsGraded(2);
 
         boolean saved = save(studentProcedure);
         if (!saved) {
