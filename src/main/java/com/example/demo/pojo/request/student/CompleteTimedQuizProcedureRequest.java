@@ -20,6 +20,9 @@ public class CompleteTimedQuizProcedureRequest {
     /** 密钥 */
     private String secretKey;
 
-    /** 题目答案列表 */
+    /**
+     * 题目答案列表
+     * 判断题标准值使用"正确"、"错误"（后端兼容旧值 A/B/T/F）
+     */
     private List<TopicAnswerItem> answers;
 }

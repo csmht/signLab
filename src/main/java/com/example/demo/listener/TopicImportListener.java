@@ -7,6 +7,7 @@ import com.example.demo.pojo.entity.Tag;
 import com.example.demo.pojo.excel.TopicImportExcel;
 import com.example.demo.service.TagService;
 import com.example.demo.service.TopicService;
+import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -127,8 +128,10 @@ public class TopicImportListener extends AnalysisEventListener<TopicImportExcel>
         // 校验判断题的答案
         if ("判断题".equals(topicType)) {
             String answer = data.getCorrectAnswer().trim().toUpperCase();
-            if (!"A".equals(answer) && !"B".equals(answer) && !"正确".equals(answer) && !"错误".equals(answer)) {
-                throw new BusinessException(400, "判断题答案必须是 A/B 或 正确/错误");
+            if (!"A".equals(answer) && !"B".equals(answer) &&
+                !"T".equals(answer) && !"F".equals(answer) &&
+                !"正确".equals(answer) && !"错误".equals(answer)) {
+                throw new BusinessException(400, "判断题答案必须使用 正确/错误（兼容 A/B/T/F）");
             }
         }
     }
@@ -225,15 +228,12 @@ public class TopicImportListener extends AnalysisEventListener<TopicImportExcel>
      */
     private String parseCorrectAnswer(TopicImportExcel excelData, Integer type) {
         String answer = excelData.getCorrectAnswer().trim();
-
         if (type == 3) {
-            // 判断题：A/B 或 正确/错误
-            String upperAnswer = answer.toUpperCase();
-            return switch (upperAnswer) {
-                case "A", "正确" -> "T";
-                case "B", "错误" -> "F";
-                default -> throw new BusinessException(400, "判断题答案格式错误，请使用 A/B 或 正确/错误");
-            };
+            try {
+                return TopicAnswerContractUtil.normalizeForWrite(type, answer);
+            } catch (IllegalArgumentException e) {
+                throw new BusinessException(400, e.getMessage());
+            }
         }
 
         // 单选题或多选题：验证答案格式

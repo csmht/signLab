@@ -55,7 +55,7 @@ public class TopicImportExcel {
      * 题目答案
      * 单选题：A/B/C/D
      * 多选题：A-B-C-D（用横杠分隔）
-     * 判断题：A（正确）/B（错误）
+     * 判断题：标准值使用 正确/错误（同时兼容 A/B/T/F）
      */
     @ExcelProperty(value = "题目答案", index = 5)
     @ColumnWidth(15)

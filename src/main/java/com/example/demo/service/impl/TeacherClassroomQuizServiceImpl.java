@@ -13,12 +13,10 @@ import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.TeacherClassroomQuizService;
 import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.SecurityUtil;
+import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -434,12 +432,14 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                     detail.setChoices(topic.getChoices());
 
                     // 学生答案
-                    detail.setStudentAnswer(studentAnswers.get(topic.getId()));
+                    String studentAnswer = studentAnswers.get(topic.getId());
+                    detail.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                     // 正确答案和是否正确（教师始终可以查看）
-                    detail.setCorrectAnswer(topic.getCorrectAnswer());
-                    String studentAnswer = studentAnswers.get(topic.getId());
-                    detail.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
+                    detail.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                    detail.setIsCorrect(
+                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
 
                     return detail;
                 })
@@ -583,7 +583,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                     stats.setNumber(topic.getNumber());
                     stats.setType(topic.getType());
                     stats.setContent(topic.getContent());
-                    stats.setCorrectAnswer(topic.getCorrectAnswer());
+                    stats.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
                     stats.setChoices(topic.getChoices());
 
                     // 统计该题目的答题情况
@@ -596,7 +597,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
 
                         if (studentAnswer != null) {
                             answerCount++;
-                            if (studentAnswer.equals(topic.getCorrectAnswer())) {
+                            if (TopicAnswerContractUtil.answersEqual(
+                                    topic.getType(), studentAnswer, topic.getCorrectAnswer())) {
                                 correct++;
                             }
                         }
@@ -732,7 +734,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                             topicInfo.setType(topic.getType());
                             topicInfo.setContent(topic.getContent());
                             topicInfo.setChoices(topic.getChoices());
-                            topicInfo.setCorrectAnswer(topic.getCorrectAnswer());
+                            topicInfo.setCorrectAnswer(
+                                TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
                             return topicInfo;
                         })
                         .collect(Collectors.toList());

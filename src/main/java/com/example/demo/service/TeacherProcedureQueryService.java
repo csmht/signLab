@@ -25,6 +25,7 @@ import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherTopicProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherVideoProcedureDetailResponse;
 import com.example.demo.util.ProcedureTimeCalculator;
+import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -274,7 +275,8 @@ public class TeacherProcedureQueryService {
                         topicDetail.setType(topic.getType());
                         topicDetail.setContent(topic.getContent());
                         topicDetail.setChoices(topic.getChoices());
-                        topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
+                        topicDetail.setCorrectAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
                         topicDetails.add(topicDetail);
                     }
                     response.setTopics(topicDetails);
@@ -346,7 +348,8 @@ public class TeacherProcedureQueryService {
                     topicDetail.setType(topic.getType());
                     topicDetail.setContent(topic.getContent());
                     topicDetail.setChoices(topic.getChoices());
-                    topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
+                    topicDetail.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
                     topicDetails.add(topicDetail);
                 }
                 response.setTimedQuizTopics(topicDetails);
@@ -629,7 +632,8 @@ public class TeacherProcedureQueryService {
                             topicDetail.setType(topic.getType());
                             topicDetail.setContent(topic.getContent());
                             topicDetail.setChoices(topic.getChoices());
-                            topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
+                            topicDetail.setCorrectAnswer(
+                                TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
                             topicDetails.add(topicDetail);
                         }
                         response.setTopics(topicDetails);
@@ -695,7 +699,8 @@ public class TeacherProcedureQueryService {
                     topicDetail.setType(topic.getType());
                     topicDetail.setContent(topic.getContent());
                     topicDetail.setChoices(topic.getChoices());
-                    topicDetail.setCorrectAnswer(topic.getCorrectAnswer());
+                    topicDetail.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
                     topicDetails.add(topicDetail);
                 }
                 response.setTimedQuizTopics(topicDetails);

@@ -36,7 +36,7 @@ public class ClassroomQuizScorer {
             String studentAnswer = studentAnswers.get(topic.getId());
             String correctAnswer = topic.getCorrectAnswer();
 
-            if (studentAnswer != null && studentAnswer.equals(correctAnswer)) {
+            if (TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, correctAnswer)) {
                 correctCount++;
             }
         }
@@ -62,7 +62,7 @@ public class ClassroomQuizScorer {
             String studentAnswer = studentAnswers.get(topic.getId());
             String correctAnswer = topic.getCorrectAnswer();
 
-            if (studentAnswer == null || !studentAnswer.equals(correctAnswer)) {
+            if (!TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, correctAnswer)) {
                 return false;
             }
         }

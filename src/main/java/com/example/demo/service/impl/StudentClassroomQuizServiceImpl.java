@@ -2,15 +2,15 @@ package com.example.demo.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.demo.exception.BusinessException;
-import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
-import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.mapper.*;
+import com.example.demo.pojo.dto.mapvo.TopicAnswerItem;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.StudentClassroomQuizService;
 import com.example.demo.util.ClassroomQuizScorer;
+import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -105,7 +105,8 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setContent(topic.getContent());
                     detail.setChoices(topic.getChoices());
                     // 如果学生已提交，返回学生答案
-                    detail.setStudentAnswer(studentAnswers.get(topic.getId()));
+                    detail.setStudentAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswers.get(topic.getId())));
                     detail.setCorrectAnswer(null); // 进行中不返回正确答案
                     detail.setIsCorrect(null); // 进行中不返回是否正确
                     return detail;
@@ -172,16 +173,23 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
 
         // 查询题目列表
         List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
+        Map<Long, String> rawAnswers = TopicAnswerItem.toMap(request.getAnswers());
+        Map<Long, String> normalizedAnswers;
+        try {
+            normalizedAnswers = TopicAnswerContractUtil.normalizeAnswerMapForWrite(topics, rawAnswers);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(400, e.getMessage());
+        }
 
         // 将答案转换为JSON字符串（使用统一格式）
-        String answerJson = com.example.demo.util.AnswerMapJSONUntil.buildTopicAnswerJson(request.getAnswers());
+        String answerJson = com.example.demo.util.AnswerMapJSONUntil.toTopicJson(normalizedAnswers);
         if (answerJson == null) {
             throw new BusinessException(500, "答案格式错误");
         }
 
         // 自动评分
-        BigDecimal score = classroomQuizScorer.calculateScore(TopicAnswerItem.toMap(request.getAnswers()), topics);
-        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(TopicAnswerItem.toMap(request.getAnswers()), topics);
+        BigDecimal score = classroomQuizScorer.calculateScore(normalizedAnswers, topics);
+        Boolean isAllCorrect = classroomQuizScorer.isAllCorrect(normalizedAnswers, topics);
 
         // 保存答案记录
         ClassroomQuizAnswer answer = new ClassroomQuizAnswer();
@@ -266,12 +274,14 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                     detail.setChoices(topic.getChoices());
 
                     // 学生答案
-                    detail.setStudentAnswer(studentAnswers.get(topic.getId()));
+                    String studentAnswer = studentAnswers.get(topic.getId());
+                    detail.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                     // 正确答案和是否正确（已结束的小测可以查看）
-                    detail.setCorrectAnswer(topic.getCorrectAnswer());
-                    String studentAnswer = studentAnswers.get(topic.getId());
-                    detail.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
+                    detail.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                    detail.setIsCorrect(
+                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
 
                     return detail;
                 })

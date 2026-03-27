@@ -11,6 +11,7 @@ import com.example.demo.pojo.request.ClassProcedureDetailRequest;
 import com.example.demo.pojo.response.ClassStudentProcedureDetailResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.util.AnswerMapJSONUntil;
+import com.example.demo.util.TopicAnswerContractUtil;
 import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -551,11 +552,13 @@ public class ClassStudentProcedureQueryService {
                     item.setChoices(parseTopicChoices(topic.getChoices()));
 
                     String studentAnswer = studentAnswers.get(topic.getId());
-                    item.setStudentAnswer(studentAnswer);
+                    item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                     // 返回正确答案和是否正确
-                    item.setCorrectAnswer(topic.getCorrectAnswer());
-                    item.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
+                    item.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                    item.setIsCorrect(
+                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
 
                     topicItems.add(item);
                 }
@@ -641,11 +644,13 @@ public class ClassStudentProcedureQueryService {
                     item.setChoices(parseTopicChoices(topic.getChoices()));
 
                     String studentAnswer = studentAnswers.get(topic.getId());
-                    item.setStudentAnswer(studentAnswer);
+                    item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                     // 返回正确答案和是否正确
-                    item.setCorrectAnswer(topic.getCorrectAnswer());
-                    item.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
+                    item.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                    item.setIsCorrect(
+                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
 
                     topicItems.add(item);
                 }

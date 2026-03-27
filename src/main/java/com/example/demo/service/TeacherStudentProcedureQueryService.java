@@ -8,6 +8,7 @@ import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.*;
+import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -273,11 +274,13 @@ public class TeacherStudentProcedureQueryService {
             topicAnswer.setType(topic.getType());
             topicAnswer.setContent(topic.getContent());
             topicAnswer.setChoices(topic.getChoices());
-            topicAnswer.setStudentAnswer(studentAnswer);
-            topicAnswer.setCorrectAnswer(topic.getCorrectAnswer());
+            topicAnswer.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
+            topicAnswer.setCorrectAnswer(
+                TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
             // 3. 判断答案是否正确
-            boolean isCorrect = studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer());
+            boolean isCorrect = TopicAnswerContractUtil.answersEqual(
+                topic.getType(), studentAnswer, topic.getCorrectAnswer());
             topicAnswer.setIsCorrect(isCorrect);
 
             topicAnswers.add(topicAnswer);
@@ -361,12 +364,13 @@ public class TeacherStudentProcedureQueryService {
                 item.setChoices(topic.getChoices());
 
                 String studentAnswer = studentAnswers.get(topic.getId());
-                item.setStudentAnswer(studentAnswer);
+                item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                 // 教师始终可以查看正确答案和是否正确
-                item.setCorrectAnswer(topic.getCorrectAnswer());
+                item.setCorrectAnswer(
+                    TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
-                if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                if (TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer())) {
                     item.setIsCorrect(true);
                 } else {
                     item.setIsCorrect(false);
@@ -578,11 +582,13 @@ public class TeacherStudentProcedureQueryService {
             topicAnswer.setType(topic.getType());
             topicAnswer.setContent(topic.getContent());
             topicAnswer.setChoices(topic.getChoices());
-            topicAnswer.setStudentAnswer(studentAnswer);
-            topicAnswer.setCorrectAnswer(topic.getCorrectAnswer());
+            topicAnswer.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
+            topicAnswer.setCorrectAnswer(
+                TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
             // 3. 判断答案是否正确
-            boolean isCorrect = studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer());
+            boolean isCorrect = TopicAnswerContractUtil.answersEqual(
+                topic.getType(), studentAnswer, topic.getCorrectAnswer());
             topicAnswer.setIsCorrect(isCorrect);
 
             topicAnswers.add(topicAnswer);
@@ -1066,12 +1072,14 @@ public class TeacherStudentProcedureQueryService {
                     item.setChoices(topic.getChoices());
 
                     String studentAnswer = studentAnswers.get(topic.getId());
-                    item.setStudentAnswer(studentAnswer);
+                    item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                     // 教师始终可以查看正确答案和是否正确
-                    item.setCorrectAnswer(topic.getCorrectAnswer());
+                    item.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
-                    item.setIsCorrect(studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer()));
+                    item.setIsCorrect(
+                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
 
                     topicItems.add(item);
                 }
@@ -1578,12 +1586,13 @@ public class TeacherStudentProcedureQueryService {
                     item.setChoices(topic.getChoices());
 
                     String studentAnswer = studentAnswers.get(topic.getId());
-                    item.setStudentAnswer(studentAnswer);
+                    item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                     // 教师始终可以查看正确答案和是否正确
-                    item.setCorrectAnswer(topic.getCorrectAnswer());
+                    item.setCorrectAnswer(
+                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
-                    if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                    if (TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer())) {
                         item.setIsCorrect(true);
                     } else {
                         item.setIsCorrect(false);
@@ -1762,12 +1771,15 @@ public class TeacherStudentProcedureQueryService {
                         item.setChoices(topic.getChoices());
 
                         String studentAnswer = studentAnswers.get(topic.getId());
-                        item.setStudentAnswer(studentAnswer);
+                        item.setStudentAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
                         // 教师始终可以查看正确答案和是否正确
-                        item.setCorrectAnswer(topic.getCorrectAnswer());
+                        item.setCorrectAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
-                        if (studentAnswer != null && studentAnswer.equals(topic.getCorrectAnswer())) {
+                        if (TopicAnswerContractUtil.answersEqual(
+                                topic.getType(), studentAnswer, topic.getCorrectAnswer())) {
                             item.setIsCorrect(true);
                         } else {
                             item.setIsCorrect(false);

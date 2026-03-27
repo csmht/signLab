@@ -32,6 +32,11 @@ public class CreateTopicRequest {
 
     /**
      * 正确答案
+     * 约定：
+     * - 单选题：选项字母，例如 A
+     * - 多选题：横杠分隔的选项字母，例如 A-B-C
+     * - 判断题：标准值使用"正确"、"错误"（后端兼容旧值 A/B/T/F，内部统一存储为 T/F）
+     * - 填空题、简答题：直接填写答案文本
      */
     @NotBlank(message = "正确答案不能为空")
     private String correctAnswer;

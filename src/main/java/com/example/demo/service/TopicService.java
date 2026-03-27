@@ -17,6 +17,7 @@ import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.pojo.response.TopicDetailResponse;
 import com.example.demo.pojo.response.TopicResponse;
 import com.example.demo.pojo.response.TopicStatisticsResponse;
+import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -49,12 +50,14 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
      */
     @Transactional(rollbackFor = Exception.class)
     public Long createTopic(CreateTopicRequest request, String createdBy) {
+        String normalizedCorrectAnswer = normalizeCorrectAnswer(request.getType(), request.getCorrectAnswer());
+
         // 1. 创建题目
         Topic topic = new Topic();
         topic.setType(request.getType());
         topic.setContent(request.getContent());
         topic.setChoices(request.getChoices());
-        topic.setCorrectAnswer(request.getCorrectAnswer());
+        topic.setCorrectAnswer(normalizedCorrectAnswer);
         topic.setCreatedBy(createdBy);
         topic.setCreatedTime(LocalDateTime.now());
         topic.setUpdatedTime(LocalDateTime.now());
@@ -95,7 +98,8 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
             topic.setChoices(request.getChoices());
         }
         if (request.getCorrectAnswer() != null) {
-            topic.setCorrectAnswer(request.getCorrectAnswer());
+            Integer targetType = request.getType() != null ? request.getType() : topic.getType();
+            topic.setCorrectAnswer(normalizeCorrectAnswer(targetType, request.getCorrectAnswer()));
         }
         topic.setUpdatedTime(LocalDateTime.now());
 
@@ -403,7 +407,7 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         response.setType(topic.getType());
         response.setContent(topic.getContent());
         response.setChoices(topic.getChoices());
-        response.setCorrectAnswer(topic.getCorrectAnswer());
+        response.setCorrectAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
         response.setCreatedBy(topic.getCreatedBy());
         response.setCreatedTime(topic.getCreatedTime());
         response.setUpdatedTime(topic.getUpdatedTime());
@@ -426,5 +430,13 @@ public class TopicService extends ServiceImpl<TopicMapper, Topic> {
         response.setTags(tags);
 
         return response;
+    }
+
+    private String normalizeCorrectAnswer(Integer topicType, String correctAnswer) {
+        try {
+            return TopicAnswerContractUtil.normalizeForWrite(topicType, correctAnswer);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(400, e.getMessage());
+        }
     }
 }
