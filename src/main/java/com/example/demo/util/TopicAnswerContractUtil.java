@@ -1,10 +1,16 @@
 package com.example.demo.util;
 
 import com.example.demo.pojo.entity.Topic;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 题目答案契约工具类
@@ -20,6 +26,8 @@ import java.util.Map;
  * <p>为避免影响存量数据，判断题仍兼容旧值 A/B/T/F。
  */
 public final class TopicAnswerContractUtil {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static final String JUDGMENT_TRUE_STORAGE = "T";
     public static final String JUDGMENT_FALSE_STORAGE = "F";
@@ -42,6 +50,14 @@ public final class TopicAnswerContractUtil {
         String trimmed = answer.trim();
         if (trimmed.isEmpty()) {
             return trimmed;
+        }
+
+        if (Integer.valueOf(1).equals(topicType)) {
+            return normalizeSingleChoice(trimmed);
+        }
+
+        if (Integer.valueOf(2).equals(topicType)) {
+            return normalizeMultiChoice(trimmed);
         }
 
         if (!isJudgment(topicType)) {
@@ -109,19 +125,22 @@ public final class TopicAnswerContractUtil {
             List<Topic> topics, Map<Long, String> answers) {
         Map<Long, String> normalizedAnswers = new HashMap<>();
         if (answers == null || answers.isEmpty()) {
-            return normalizedAnswers;
+            throw new IllegalArgumentException("答案不能为空");
         }
 
-        Map<Long, Integer> topicTypeMap = new HashMap<>();
+        Map<Long, Topic> topicMap = new HashMap<>();
         if (topics != null) {
             for (Topic topic : topics) {
-                topicTypeMap.put(topic.getId(), topic.getType());
+                topicMap.put(topic.getId(), topic);
             }
         }
 
         for (Map.Entry<Long, String> entry : answers.entrySet()) {
-            Integer topicType = topicTypeMap.get(entry.getKey());
-            normalizedAnswers.put(entry.getKey(), normalizeForWrite(topicType, entry.getValue()));
+            Topic topic = topicMap.get(entry.getKey());
+            if (topic == null) {
+                throw new IllegalArgumentException("提交了无效的题目ID: " + entry.getKey());
+            }
+            normalizedAnswers.put(entry.getKey(), normalizeAndValidateForWrite(topic, entry.getValue()));
         }
 
         return normalizedAnswers;
@@ -142,5 +161,89 @@ public final class TopicAnswerContractUtil {
             case "F", "B", "错误" -> JUDGMENT_FALSE_STORAGE;
             default -> null;
         };
+    }
+
+    private static String normalizeAndValidateForWrite(Topic topic, String answer) {
+        String normalized = normalizeForWrite(topic.getType(), answer);
+        if (normalized == null || normalized.isBlank()) {
+            throw new IllegalArgumentException(buildTopicPrefix(topic) + "答案不能为空");
+        }
+
+        if (Integer.valueOf(1).equals(topic.getType())) {
+            validateChoiceAnswer(topic, List.of(normalized));
+            return normalized;
+        }
+
+        if (Integer.valueOf(2).equals(topic.getType())) {
+            List<String> optionKeys = splitOptionKeys(normalized);
+            validateChoiceAnswer(topic, optionKeys);
+            return String.join("-", optionKeys);
+        }
+
+        return normalized;
+    }
+
+    private static String normalizeSingleChoice(String answer) {
+        String upper = answer.trim().toUpperCase();
+        if (!upper.matches("^[A-Z]$")) {
+            throw new IllegalArgumentException("单选题答案格式错误，应为单个选项字母，如 A");
+        }
+        return upper;
+    }
+
+    private static String normalizeMultiChoice(String answer) {
+        List<String> optionKeys = splitOptionKeys(answer);
+        if (optionKeys.isEmpty()) {
+            throw new IllegalArgumentException("多选题答案格式错误，应为 A-B-C");
+        }
+        Collections.sort(optionKeys);
+        return String.join("-", optionKeys);
+    }
+
+    private static List<String> splitOptionKeys(String answer) {
+        String[] parts = answer.split("-");
+        List<String> optionKeys = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        for (String part : parts) {
+            String token = part == null ? "" : part.trim().toUpperCase();
+            if (!token.matches("^[A-Z]$")) {
+                throw new IllegalArgumentException("多选题答案格式错误，应为 A-B-C");
+            }
+            if (!seen.add(token)) {
+                throw new IllegalArgumentException("多选题答案格式错误，不能包含重复选项");
+            }
+            optionKeys.add(token);
+        }
+        return optionKeys;
+    }
+
+    private static void validateChoiceAnswer(Topic topic, List<String> optionKeys) {
+        Map<String, String> choiceMap = parseChoiceMap(topic);
+        for (String optionKey : optionKeys) {
+            if (!choiceMap.containsKey(optionKey)) {
+                throw new IllegalArgumentException(buildTopicPrefix(topic) + "答案包含无效选项: " + optionKey);
+            }
+        }
+    }
+
+    private static Map<String, String> parseChoiceMap(Topic topic) {
+        String choices = topic.getChoices();
+        if (choices == null || choices.isBlank()) {
+            throw new IllegalArgumentException(buildTopicPrefix(topic) + "题目缺少选项配置");
+        }
+
+        try {
+            return MAPPER.readValue(choices, new TypeReference<Map<String, String>>() {});
+        } catch (Exception e) {
+            throw new IllegalArgumentException(buildTopicPrefix(topic) + "题目选项配置无效");
+        }
+    }
+
+    private static String buildTopicPrefix(Topic topic) {
+        if (topic == null || topic.getNumber() == null) {
+            return "";
+        }
+        return "第" + topic.getNumber() + "题";
     }
 }

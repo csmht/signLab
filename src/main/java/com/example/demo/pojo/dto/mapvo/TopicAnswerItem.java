@@ -3,6 +3,7 @@ package com.example.demo.pojo.dto.mapvo;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,8 +36,21 @@ public class TopicAnswerItem {
         if (items == null || items.isEmpty()) {
             return Map.of();
         }
-        return items.stream()
-                .collect(Collectors.toMap(TopicAnswerItem::getTopicId, TopicAnswerItem::getAnswer));
+
+        Map<Long, String> result = new HashMap<>();
+        for (TopicAnswerItem item : items) {
+            if (item == null) {
+                throw new IllegalArgumentException("答案项不能为空");
+            }
+            if (item.getTopicId() == null) {
+                throw new IllegalArgumentException("题目ID不能为空");
+            }
+            if (result.containsKey(item.getTopicId())) {
+                throw new IllegalArgumentException("存在重复的题目ID: " + item.getTopicId());
+            }
+            result.put(item.getTopicId(), item.getAnswer());
+        }
+        return result;
     }
 
     /**

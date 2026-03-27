@@ -103,12 +103,18 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             // 老师选定模式：验证题目ID是否在步骤的题目列表中
             LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedureId);
-            long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
+            List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(queryWrapper);
+            long topicCount = topicMaps.size();
 
             if (answers.size() != topicCount) {
                 throw new BusinessException(400,
                     String.format("应提交%d道题目，实际提交%d道", topicCount, answers.size()));
             }
+
+            validateSubmittedTopicIds(
+                answers.keySet(),
+                topicMaps.stream().map(ProcedureTopicMap::getTopicId).toList()
+            );
         }
 
         Map<Long, String> normalizedAnswers = normalizeTopicAnswers(answers);
@@ -522,12 +528,18 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
             LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, procedureId);
-            long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
+            List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(queryWrapper);
+            long topicCount = topicMaps.size();
 
             if (answers.size() != topicCount) {
                 throw new BusinessException(400,
                     String.format("应提交%d道题目，实际提交%d道", topicCount, answers.size()));
             }
+
+            validateSubmittedTopicIds(
+                answers.keySet(),
+                topicMaps.stream().map(ProcedureTopicMap::getTopicId).toList()
+            );
         }
 
         Map<Long, String> normalizedAnswers = normalizeTopicAnswers(answers);
@@ -808,12 +820,20 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             // 老师选定模式：验证题目ID是否在步骤的题目列表中
             LambdaQueryWrapper<ProcedureTopicMap> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(ProcedureTopicMap::getExperimentalProcedureId, request.getProcedureId());
-            long topicCount = procedureTopicMapMapper.selectCount(queryWrapper);
+            List<ProcedureTopicMap> topicMaps = procedureTopicMapMapper.selectList(queryWrapper);
+            long topicCount = topicMaps.size();
 
             if (request.getAnswers().size() != topicCount) {
                 throw new BusinessException(400,
                     String.format("应提交%d道题目，实际提交%d道", topicCount, request.getAnswers().size()));
             }
+
+            validateSubmittedTopicIds(
+                request.getAnswers().stream()
+                    .map(com.example.demo.pojo.dto.mapvo.TopicAnswerItem::getTopicId)
+                    .collect(java.util.stream.Collectors.toSet()),
+                topicMaps.stream().map(ProcedureTopicMap::getTopicId).toList()
+            );
         } else {
             // 随机模式：验证题目数量
             if (request.getAnswers().size() != timedQuiz.getTopicNumber()) {
@@ -872,5 +892,12 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             return java.util.Collections.emptyList();
         }
         return topicMapper.selectList(new LambdaQueryWrapper<Topic>().in(Topic::getId, topicIds));
+    }
+
+    private void validateSubmittedTopicIds(java.util.Set<Long> submittedTopicIds, List<Long> allowedTopicIds) {
+        java.util.Set<Long> allowedSet = new java.util.HashSet<>(allowedTopicIds);
+        if (!allowedSet.equals(submittedTopicIds)) {
+            throw new BusinessException(400, "提交的题目ID与当前步骤不匹配");
+        }
     }
 }

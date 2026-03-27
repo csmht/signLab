@@ -174,6 +174,11 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
         // 查询题目列表
         List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
         Map<Long, String> rawAnswers = TopicAnswerItem.toMap(request.getAnswers());
+
+        if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
+            validateSubmittedTopicIds(rawAnswers.keySet(), topics);
+        }
+
         Map<Long, String> normalizedAnswers;
         try {
             normalizedAnswers = TopicAnswerContractUtil.normalizeAnswerMapForWrite(topics, rawAnswers);
@@ -420,6 +425,15 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
      */
     private Map<Long, String> parseTopicAnswers(String answerJson) {
         return com.example.demo.util.AnswerMapJSONUntil.parseTopicData(answerJson);
+    }
+
+    private void validateSubmittedTopicIds(Set<Long> submittedTopicIds, List<Topic> topics) {
+        Set<Long> allowedTopicIds = topics.stream()
+                .map(Topic::getId)
+                .collect(Collectors.toSet());
+        if (!allowedTopicIds.equals(submittedTopicIds)) {
+            throw new BusinessException(400, "提交的题目ID与当前小测不匹配");
+        }
     }
 
     /**
