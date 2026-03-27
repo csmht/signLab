@@ -89,7 +89,7 @@ public class ClassCourseExperimentImportService {
                 com.example.demo.pojo.entity.Class existingClass = classService.getOne(query);
 
                 if (existingClass != null) {
-                    // 班级已存在，抛出错误
+                    // 班级已存在
                     classNameToCodeMap.put(className, existingClass.getClassCode());
                     response.setClassSuccessCount(response.getClassSuccessCount() + 1);
                     log.warn("班级 [{}] 已存在，跳过导入", className);

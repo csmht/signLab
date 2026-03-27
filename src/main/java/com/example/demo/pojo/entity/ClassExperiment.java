@@ -49,7 +49,7 @@ public class ClassExperiment {
     private LocalDateTime startTime;
 
     /** 实验结束填写时间 */
-    @Column(comment = "实验结束填写时间", type = "datetime", notNull = true)
+    @Column(comment = "实验结束填写时间", type = "datetime")
     private LocalDateTime endTime;
 
     /** 实验地点 */
