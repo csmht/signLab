@@ -222,19 +222,20 @@ public class TeacherProcedureCreationController {
         return ApiResponse.success(null, "删除成功");
     }
 
-//    /**
-//     * 查询单个步骤详情
-//     *
-//     * @param procedureId       步骤ID
-//     * @return 步骤详情
-//     */
-//    @GetMapping("/{procedureId}")
-//    @RequireRole(value = UserRole.TEACHER)
-//    public ApiResponse<TeacherProcedureDetailResponse> getProcedureDetail(
-//            @PathVariable("procedureId") Long procedureId) {
-//        TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId);
-//        return ApiResponse.success(response, "查询成功");
-//    }
+    /**
+     * 查询单个步骤详情（使用单类型查询）
+     *
+     * @param procedureId       步骤ID
+     * @return 步骤详情
+     */
+    @GetMapping("/{procedureId}")
+    @RequireRole(value = UserRole.TEACHER)
+    @Deprecated
+    public ApiResponse<TeacherProcedureDetailResponse> getProcedureDetail(
+            @PathVariable("procedureId") Long procedureId) {
+        TeacherProcedureDetailResponse response = teacherProcedureQueryService.getProcedureDetail(procedureId);
+        return ApiResponse.success(response, "查询成功");
+    }
 
     /**
      * 查询视频步骤详情
