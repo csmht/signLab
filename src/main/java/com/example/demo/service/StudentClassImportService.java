@@ -82,10 +82,10 @@ public class StudentClassImportService {
             com.example.demo.pojo.entity.Class existingClass = classService.getOne(queryWrapper);
 
             if (existingClass != null) {
-                // 班级已存在，记录错误并跳过
-                response.setClassFailCount(response.getClassFailCount() + 1);
-                response.getErrorMessages().add("班级 [" + className + "] 已存在，无法重复导入");
-                log.warn("班级 [{}] 已存在，跳过导入", className);
+                // 班级已存在，直接使用现有班级编号
+                classNameToCodeMap.put(className, existingClass.getClassCode());
+                response.setClassDuplicateCount(response.getClassDuplicateCount() + 1);
+                log.info("班级 [{}] 已存在，使用现有编号: {}", className, existingClass.getClassCode());
             } else {
                 // 班级不存在，记录下来稍后生成编号
                 newClassNames.add(className);
