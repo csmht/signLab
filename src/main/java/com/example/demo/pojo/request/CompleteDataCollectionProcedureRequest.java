@@ -25,9 +25,6 @@ public class CompleteDataCollectionProcedureRequest {
     /** 表格类型答案列表，当数据类型为2时使用 */
     private List<TableCellAnswer> tableCellAnswers;
 
-    /** 照片文件列表 */
-    private List<MultipartFile> photos;
-
-    /** 文档文件列表 */
-    private List<MultipartFile> documents;
+    /** 附件文件列表（不区分照片和文档） */
+    private List<MultipartFile> attachments;
 }

@@ -32,14 +32,9 @@ public class UpdateDataCollectionProcedureRequest {
     private List<TableCellAnswer> tableCellAnswers;
 
     /**
-     * 照片文件列表
+     * 附件文件列表（不区分照片和文档）
      */
-    private List<MultipartFile> photos;
-
-    /**
-     * 文档文件列表
-     */
-    private List<MultipartFile> documents;
+    private List<MultipartFile> attachments;
 
     /**
      * 需要删除的附件ID列表

@@ -135,16 +135,14 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      * @param procedureId     实验步骤ID
      * @param fillBlankAnswers 填空类型答案
      * @param tableCellAnswers 表格类型答案
-     * @param photos          照片文件列表
-     * @param documents       文档文件列表
+     * @param attachments     附件文件列表（不区分照片和文档）
      */
     @Transactional(rollbackFor = Exception.class)
     public void completeDataCollectionProcedure(String studentUsername, String classCode,
                                                 Long procedureId,
                                                 java.util.Map<String, String> fillBlankAnswers,
                                                 java.util.Map<String, String> tableCellAnswers,
-                                                List<MultipartFile> photos,
-                                                List<MultipartFile> documents) {
+                                                List<MultipartFile> attachments) {
         // 1. 检查是否已提交
         StudentExperimentalProcedure existing = studentExperimentalProcedureService.getByStudentAndProcedure(
                 studentUsername, classCode, procedureId);
@@ -188,29 +186,41 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             // 文件数据类型：根据老师配置验证上传文件
             boolean needPhoto = Boolean.TRUE.equals(dataCollectionConfig.getNeedPhoto());
             boolean needDoc = Boolean.TRUE.equals(dataCollectionConfig.getNeedDoc());
-            boolean hasPhotos = photos != null && !photos.isEmpty();
-            boolean hasDocuments = documents != null && !documents.isEmpty();
+            boolean hasAttachments = attachments != null && !attachments.isEmpty();
+
+            // 统计附件中的图片和文档数量
+            int photoCount = 0;
+            int docCount = 0;
+            if (hasAttachments) {
+                for (MultipartFile file : attachments) {
+                    if (isImageFile(file)) {
+                        photoCount++;
+                    } else {
+                        docCount++;
+                    }
+                }
+            }
 
             // 根据老师配置验证上传要求
             if (needPhoto && needDoc) {
                 // 老师要求图片和文档都需要，必须同时上传
-                if (!hasPhotos || !hasDocuments) {
+                if (photoCount == 0 || docCount == 0) {
                     throw new BusinessException(400, "请同时上传图片和文档");
                 }
             } else if (needPhoto) {
                 // 老师只要求图片
-                if (!hasPhotos) {
+                if (photoCount == 0) {
                     throw new BusinessException(400, "请上传图片");
                 }
             } else if (needDoc) {
                 // 老师只要求文档
-                if (!hasDocuments) {
+                if (docCount == 0) {
                     throw new BusinessException(400, "请上传文档");
                 }
             } else {
                 // 老师未指定具体类型，至少上传一个文件
-                if (!hasPhotos && !hasDocuments) {
-                    throw new BusinessException(400, "请至少上传图片或文档");
+                if (!hasAttachments) {
+                    throw new BusinessException(400, "请至少上传一个文件");
                 }
             }
         }
@@ -242,26 +252,17 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                                              fillBlankAnswers, tableCellAnswers);
         }
 
-        // 7. 保存照片文件
-
-        // 4. 保存照片文件
-        if (photos != null && !photos.isEmpty()) {
-            for (MultipartFile photo : photos) {
-                saveAttachment(procedureId, studentUsername, classCode, photo, 1);
+        // 7. 保存附件文件
+        if (attachments != null && !attachments.isEmpty()) {
+            for (MultipartFile file : attachments) {
+                int fileType = isImageFile(file) ? 1 : 2;
+                saveAttachment(procedureId, studentUsername, classCode, file, fileType);
             }
         }
 
-        // 5. 保存文档文件
-        if (documents != null && !documents.isEmpty()) {
-            for (MultipartFile document : documents) {
-                saveAttachment(procedureId, studentUsername, classCode, document, 2);
-            }
-        }
-
-        log.info("学生 {} 在班级 {} 完成数据收集，步骤：{}，照片：{}，文档：{}",
+        log.info("学生 {} 在班级 {} 完成数据收集，步骤：{}，附件数：{}",
                 studentUsername, classCode, procedureId,
-                photos != null ? photos.size() : 0,
-                documents != null ? documents.size() : 0);
+                attachments != null ? attachments.size() : 0);
     }
 
     /**
@@ -459,6 +460,28 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     }
 
     /**
+     * 判断文件是否为图片类型
+     *
+     * @param file 上传的文件
+     * @return 是否为图片
+     */
+    private boolean isImageFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return false;
+        }
+        String filename = file.getOriginalFilename();
+        if (filename == null) {
+            return false;
+        }
+        String extension = getFileExtension(filename);
+        // 常见图片扩展名
+        java.util.Set<String> imageExtensions = new java.util.HashSet<>(
+            java.util.Arrays.asList("jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif")
+        );
+        return imageExtensions.contains(extension);
+    }
+
+    /**
      * 修改题库练习答案（类型3）
      *
      * @param studentUsername 学生用户名
@@ -529,8 +552,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      * @param procedureId             实验步骤ID
      * @param fillBlankAnswers        填空类型答案
      * @param tableCellAnswers        表格类型答案
-     * @param photos                  新照片文件列表
-     * @param documents               新文档文件列表
+     * @param attachments             新附件文件列表（不区分照片和文档）
      * @param attachmentIdsToDelete   需要删除的附件ID列表
      */
     @Transactional(rollbackFor = Exception.class)
@@ -538,8 +560,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                                               Long procedureId,
                                               Map<String, String> fillBlankAnswers,
                                               Map<String, String> tableCellAnswers,
-                                              List<MultipartFile> photos,
-                                              List<MultipartFile> documents,
+                                              List<MultipartFile> attachments,
                                               List<Long> attachmentIdsToDelete) {
         // 1. 验证是否可修改
         if (!studentExperimentalProcedureService.isProcedureModifiable(
@@ -593,8 +614,18 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                         .eq(StudentProcedureAttachment::getClassCode, classCode);
                 List<StudentProcedureAttachment> existingAttachments = list(attachQuery);
 
-                boolean hasNewPhotos = photos != null && !photos.isEmpty();
-                boolean hasNewDocs = documents != null && !documents.isEmpty();
+                // 计算新附件中的图片和文档数量
+                int newPhotoCount = 0;
+                int newDocCount = 0;
+                if (attachments != null && !attachments.isEmpty()) {
+                    for (MultipartFile file : attachments) {
+                        if (isImageFile(file)) {
+                            newPhotoCount++;
+                        } else {
+                            newDocCount++;
+                        }
+                    }
+                }
 
                 // 计算删除后剩余的附件
                 long remainingPhotoCount = existingAttachments.stream()
@@ -615,8 +646,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                     }
                 }
 
-                boolean hasPhotos = remainingPhotoCount > 0 || hasNewPhotos;
-                boolean hasDocs = remainingDocCount > 0 || hasNewDocs;
+                boolean hasPhotos = remainingPhotoCount > 0 || newPhotoCount > 0;
+                boolean hasDocs = remainingDocCount > 0 || newDocCount > 0;
 
                 // 根据老师配置验证上传要求
                 if (needPhoto && needDoc) {
@@ -663,17 +694,11 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 6. 保存新照片文件
-        if (photos != null && !photos.isEmpty()) {
-            for (MultipartFile photo : photos) {
-                saveAttachment(procedureId, studentUsername, classCode, photo, 1);
-            }
-        }
-
-        // 7. 保存新文档文件
-        if (documents != null && !documents.isEmpty()) {
-            for (MultipartFile document : documents) {
-                saveAttachment(procedureId, studentUsername, classCode, document, 2);
+        // 7. 保存新附件文件
+        if (attachments != null && !attachments.isEmpty()) {
+            for (MultipartFile file : attachments) {
+                int fileType = isImageFile(file) ? 1 : 2;
+                saveAttachment(procedureId, studentUsername, classCode, file, fileType);
             }
         }
 

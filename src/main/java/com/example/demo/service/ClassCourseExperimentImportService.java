@@ -90,8 +90,8 @@ public class ClassCourseExperimentImportService {
 
                 if (existingClass != null) {
                     // 班级已存在，抛出错误
-                    response.setClassFailCount(response.getClassFailCount() + 1);
-                    response.getErrorMessages().add("班级 [" + className + "] 已存在，无法重复导入");
+                    classNameToCodeMap.put(className, existingClass.getClassCode());
+                    response.setClassSuccessCount(response.getClassSuccessCount() + 1);
                     log.warn("班级 [{}] 已存在，跳过导入", className);
                 } else {
                     // 创建新班级

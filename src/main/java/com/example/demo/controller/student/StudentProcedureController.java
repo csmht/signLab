@@ -237,8 +237,7 @@ public class StudentProcedureController {
      * @param classCode    班级编号
      * @param fillBlankAnswersJson 填空类型答案（JSON字符串）
      * @param tableCellAnswersJson 表格类型答案（JSON字符串）
-     * @param photos       照片文件列表
-     * @param documents    文档文件列表
+     * @param attachments  附件文件列表（不区分照片和文档）
      * @return 是否提交成功
      */
     @PostMapping("/data-collection/complete")
@@ -248,8 +247,7 @@ public class StudentProcedureController {
             @RequestParam("classCode") String classCode,
             @RequestParam(value = "fillBlankAnswers", required = false) String fillBlankAnswersJson,
             @RequestParam(value = "tableCellAnswers", required = false) String tableCellAnswersJson,
-            @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
-            @RequestParam(value = "documents", required = false) List<MultipartFile> documents) throws JsonProcessingException {
+            @RequestParam(value = "attachments", required = false) List<MultipartFile> attachments) throws JsonProcessingException {
         String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                 .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
 
@@ -275,8 +273,7 @@ public class StudentProcedureController {
                 procedureId,
                 fillBlankAnswers,
                 tableCellAnswers,
-                photos,
-                documents
+                attachments
         );
 
         return ApiResponse.success(null, "提交成功");
@@ -314,8 +311,7 @@ public class StudentProcedureController {
      * @param classCode             班级编号
      * @param fillBlankAnswersJson  填空类型答案（JSON字符串）
      * @param tableCellAnswersJson  表格类型答案（JSON字符串）
-     * @param photos                新照片文件列表
-     * @param documents             新文档文件列表
+     * @param attachments           新附件文件列表（不区分照片和文档）
      * @param attachmentIdsToDeleteJson 需要删除的附件ID列表（JSON字符串）
      * @return 是否修改成功
      */
@@ -326,8 +322,7 @@ public class StudentProcedureController {
             @RequestParam("classCode") String classCode,
             @RequestParam(value = "fillBlankAnswers", required = false) String fillBlankAnswersJson,
             @RequestParam(value = "tableCellAnswers", required = false) String tableCellAnswersJson,
-            @RequestParam(value = "photos", required = false) List<MultipartFile> photos,
-            @RequestParam(value = "documents", required = false) List<MultipartFile> documents,
+            @RequestParam(value = "attachments", required = false) List<MultipartFile> attachments,
             @RequestParam(value = "attachmentIdsToDelete", required = false) String attachmentIdsToDeleteJson) {
         String studentUsername = com.example.demo.util.SecurityUtil.getCurrentUsername()
                 .orElseThrow(() -> new com.example.demo.exception.BusinessException(401, "未登录"));
@@ -343,8 +338,7 @@ public class StudentProcedureController {
                 procedureId,
                 fillBlankAnswers,
                 tableCellAnswers,
-                photos,
-                documents,
+                attachments,
                 attachmentIdsToDelete
         );
 
