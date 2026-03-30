@@ -326,25 +326,7 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             info.setStudentName(student != null ? student.getName() : studentUsername);
             info.setClassName(className);
 
-            if (record == null) {
-                // 未签到
-                info.setAttendanceId(null);
-                info.setAttendanceStatus(null);
-                info.setAttendanceTime(null);
-                response.getNotAttendanceList().add(info);
-            } else if (AttendanceStatus.CROSS_CLASS.getCode().equals(record.getAttendanceStatus())) {
-                // 跨班签到
-                info.setAttendanceId(record.getId());
-                info.setAttendanceStatus(record.getAttendanceStatus());
-                info.setAttendanceTime(record.getAttendanceTime());
-                response.getCrossClassAttendanceList().add(info);
-            } else {
-                // 非跨班签到（正常、迟到、补签）
-                info.setAttendanceId(record.getId());
-                info.setAttendanceStatus(record.getAttendanceStatus());
-                info.setAttendanceTime(record.getAttendanceTime());
-                response.getNormalAttendanceList().add(info);
-            }
+            getStudentAttendance(response, record, info);
         }
 
         return response;
@@ -430,28 +412,32 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
             info.setStudentName(student != null ? student.getName() : studentUsername);
             info.setClassName(classNameMap.getOrDefault(studentClassCode, studentClassCode));
 
-            if (record == null) {
-                // 未签到
-                info.setAttendanceId(null);
-                info.setAttendanceStatus(null);
-                info.setAttendanceTime(null);
-                response.getNotAttendanceList().add(info);
-            } else if (AttendanceStatus.CROSS_CLASS.getCode().equals(record.getAttendanceStatus())) {
-                // 跨班签到
-                info.setAttendanceId(record.getId());
-                info.setAttendanceStatus(record.getAttendanceStatus());
-                info.setAttendanceTime(record.getAttendanceTime());
-                response.getCrossClassAttendanceList().add(info);
-            } else {
-                // 非跨班签到（正常、迟到、补签）
-                info.setAttendanceId(record.getId());
-                info.setAttendanceStatus(record.getAttendanceStatus());
-                info.setAttendanceTime(record.getAttendanceTime());
-                response.getNormalAttendanceList().add(info);
-            }
+            getStudentAttendance(response, record, info);
         }
 
         return response;
+    }
+
+    private void getStudentAttendance(AttendanceListResponse response, AttendanceRecord record, AttendanceListResponse.StudentAttendanceInfo info) {
+        if (record == null) {
+            // 未签到
+            info.setAttendanceId(null);
+            info.setAttendanceStatus(0);
+            info.setAttendanceTime(null);
+            response.getNotAttendanceList().add(info);
+        } else if (AttendanceStatus.CROSS_CLASS.getCode().equals(record.getAttendanceStatus())) {
+            // 跨班签到
+            info.setAttendanceId(record.getId());
+            info.setAttendanceStatus(record.getAttendanceStatus());
+            info.setAttendanceTime(record.getAttendanceTime());
+            response.getCrossClassAttendanceList().add(info);
+        } else {
+            // 非跨班签到（正常、迟到、补签）
+            info.setAttendanceId(record.getId());
+            info.setAttendanceStatus(record.getAttendanceStatus());
+            info.setAttendanceTime(record.getAttendanceTime());
+            response.getNormalAttendanceList().add(info);
+        }
     }
 
     /**

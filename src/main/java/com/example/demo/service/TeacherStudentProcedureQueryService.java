@@ -1570,11 +1570,11 @@ public class TeacherStudentProcedureQueryService {
                 detail.setTags(procedureTopic.getTags());
 
                 // 查询题目列表
-                List<Topic> topics = getTopicsForProcedureTeacher(procedureTopic);
                 List<com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem> topicItems = new ArrayList<>();
 
                 // 解析学生答案
                 Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
+                List<Topic> topics = topicMapper.selectList(new LambdaQueryWrapper<Topic>().in(Topic::getId,studentAnswers.keySet().stream().toList()));
 
                 for (Topic topic : topics) {
                     com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem item =
@@ -1592,11 +1592,7 @@ public class TeacherStudentProcedureQueryService {
                     item.setCorrectAnswer(
                         TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
 
-                    if (TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer())) {
-                        item.setIsCorrect(true);
-                    } else {
-                        item.setIsCorrect(false);
-                    }
+                    item.setIsCorrect(TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
 
                     topicItems.add(item);
                 }
