@@ -110,6 +110,11 @@ public class TeacherProcedureDetailResponse {
      */
     private Boolean dataNeedDoc;
 
+    /**
+     * 步骤级误差百分比（可选，用于数值类答案的判分），单位：%（类型2时有效）
+     */
+    private Double tolerance;
+
     // ===== 类型3：题库答题详细信息 =====
 
     /**

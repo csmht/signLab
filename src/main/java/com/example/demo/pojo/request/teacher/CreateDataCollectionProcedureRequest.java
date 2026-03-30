@@ -5,6 +5,7 @@ import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 创建数据收集步骤请求
@@ -27,7 +28,7 @@ public class CreateDataCollectionProcedureRequest {
     /** 数据类型：1-填空类型（关键数据），2-表格类型，3-文件数据类型 */
     private Integer dataType;
 
-    /** 收集数据字段列表，当dataType=1时使用，只对数字类型数据进行自动判分 */
+    /** 收集数据字段列表，当dataType=1时使用，只对数字类型数据进行自动判分。每个字段可单独配置tolerance属性（百分比，单位：%），优先级高于步骤级tolerance */
     private List<DataField> dataFields;
 
     /** 表格行表头（第一列的标识），类型：List<String>，示例：["实验1", "实验2", "实验3"]，当dataType=2时使用 */
@@ -36,10 +37,13 @@ public class CreateDataCollectionProcedureRequest {
     /** 表格列表头（第一行的标识），类型：List<String>，示例：["温度", "湿度", "压力"]，当dataType=2时使用 */
     private List<String> tableColumnHeaders;
 
-    /** 表格单元格答案列表，当dataType=2时使用，只对数字类型单元格进行自动判分 */
+    /** 表格单元格答案列表，当dataType=2时使用，只对数字类型单元格进行自动判分。每个单元格可单独配置tolerance属性（百分比，单位：%），优先级最高 */
     private List<TableCellAnswer> tableCellAnswers;
 
-    /** 误差范围（可选，用于数值类答案的判分），类型：Double，用途：数值类答案的允许误差，示例：0.5 (表示±0.5的误差)，可以为null，表示精确匹配 */
+    /** 表格列级误差映射（可选，列名→误差百分比，单位：%），同一列所有单元格共享该误差配置，优先级低于单元格级误差，高于步骤级误差 */
+    private Map<String, Double> tableColumnTolerances;
+
+    /** 步骤级误差百分比（可选，用于数值类答案的判分），类型：Double，用途：数值类答案的允许相对误差，示例：5 (表示±5%的误差)，可以为null，表示精确匹配 */
     private Double tolerance;
 
     /** 是否需要提交照片 */

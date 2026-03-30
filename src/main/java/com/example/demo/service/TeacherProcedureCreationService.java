@@ -178,11 +178,28 @@ public class TeacherProcedureCreationService {
         experimentalProcedureService.save(procedure);
         log.info("数据收集步骤创建成功，步骤ID: {}", procedure.getId());
 
-        // 2. 构建数据描述和正确答案JSON
-        String remark = buildDataCollectionRemark(request.getDataType(), DataField.toMap(request.getDataFields()),
-                request.getTableRowHeaders(), request.getTableColumnHeaders());
-        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), DataField.toMap(request.getDataFields()),
-                TableCellAnswer.toMap(request.getTableCellAnswers()));
+        // 2. 构建数据描述和正确答案JSON（包含误差配置）
+        Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
+        Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
+        Map<String, Double> fieldTolerances = DataField.toToleranceMap(request.getDataFields());
+        Map<String, Double> cellTolerances = TableCellAnswer.toToleranceMap(request.getTableCellAnswers());
+
+        String remark;
+        String correctAnswer;
+        if (request.getDataType() == 1) {
+            remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
+                    dataFieldsMap, dataFieldsMap, request.getTolerance(), fieldTolerances);
+            correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
+        } else if (request.getDataType() == 2) {
+            remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
+                    request.getTableRowHeaders(), request.getTableColumnHeaders(), tableCellAnswersMap,
+                    tableCellAnswersMap, request.getTolerance(), cellTolerances, request.getTableColumnTolerances());
+            correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(tableCellAnswersMap);
+        } else {
+            remark = buildDataCollectionRemark(request.getDataType(), dataFieldsMap,
+                    request.getTableRowHeaders(), request.getTableColumnHeaders());
+            correctAnswer = buildCorrectAnswerJson(request.getDataType(), dataFieldsMap, tableCellAnswersMap);
+        }
 
         // 3. 创建数据收集记录
         DataCollection dataCollection = new DataCollection();
@@ -406,11 +423,28 @@ public class TeacherProcedureCreationService {
             if (dataCollection != null) {
                 dataCollection.setType(request.getDataType().longValue());
 
-                // 构建数据描述和正确答案JSON
-                String remark = buildDataCollectionRemark(request.getDataType(), DataField.toMap(request.getDataFields()),
-                        request.getTableRowHeaders(), request.getTableColumnHeaders());
-                String correctAnswer = buildCorrectAnswerJson(request.getDataType(), DataField.toMap(request.getDataFields()),
-                        TableCellAnswer.toMap(request.getTableCellAnswers()));
+                // 构建数据描述和正确答案JSON（包含误差配置）
+                Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
+                Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
+                Map<String, Double> fieldTolerances = DataField.toToleranceMap(request.getDataFields());
+                Map<String, Double> cellTolerances = TableCellAnswer.toToleranceMap(request.getTableCellAnswers());
+
+                String remark;
+                String correctAnswer;
+                if (request.getDataType() == 1) {
+                    remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
+                            dataFieldsMap, dataFieldsMap, request.getTolerance(), fieldTolerances);
+                    correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
+                } else if (request.getDataType() == 2) {
+                    remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
+                            request.getTableRowHeaders(), request.getTableColumnHeaders(), tableCellAnswersMap,
+                            tableCellAnswersMap, request.getTolerance(), cellTolerances, request.getTableColumnTolerances());
+                    correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(tableCellAnswersMap);
+                } else {
+                    remark = buildDataCollectionRemark(request.getDataType(), dataFieldsMap,
+                            request.getTableRowHeaders(), request.getTableColumnHeaders());
+                    correctAnswer = buildCorrectAnswerJson(request.getDataType(), dataFieldsMap, tableCellAnswersMap);
+                }
 
                 dataCollection.setRemark(remark);
                 dataCollection.setCorrectAnswer(correctAnswer);
@@ -656,11 +690,28 @@ public class TeacherProcedureCreationService {
         experimentalProcedureService.save(procedure);
         log.info("数据收集步骤插入成功，步骤ID: {}", procedure.getId());
 
-        // 构建数据描述和正确答案JSON
-        String remark = buildDataCollectionRemark(request.getDataType(), DataField.toMap(request.getDataFields()),
-                request.getTableRowHeaders(), request.getTableColumnHeaders());
-        String correctAnswer = buildCorrectAnswerJson(request.getDataType(), DataField.toMap(request.getDataFields()),
-                TableCellAnswer.toMap(request.getTableCellAnswers()));
+        // 构建数据描述和正确答案JSON（包含误差配置）
+        Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
+        Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
+        Map<String, Double> fieldTolerances = DataField.toToleranceMap(request.getDataFields());
+        Map<String, Double> cellTolerances = TableCellAnswer.toToleranceMap(request.getTableCellAnswers());
+
+        String remark;
+        String correctAnswer;
+        if (request.getDataType() == 1) {
+            remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
+                    dataFieldsMap, dataFieldsMap, request.getTolerance(), fieldTolerances);
+            correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
+        } else if (request.getDataType() == 2) {
+            remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
+                    request.getTableRowHeaders(), request.getTableColumnHeaders(), tableCellAnswersMap,
+                    tableCellAnswersMap, request.getTolerance(), cellTolerances, request.getTableColumnTolerances());
+            correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(tableCellAnswersMap);
+        } else {
+            remark = buildDataCollectionRemark(request.getDataType(), dataFieldsMap,
+                    request.getTableRowHeaders(), request.getTableColumnHeaders());
+            correctAnswer = buildCorrectAnswerJson(request.getDataType(), dataFieldsMap, tableCellAnswersMap);
+        }
 
         // 创建数据收集记录
         DataCollection dataCollection = new DataCollection();

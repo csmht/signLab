@@ -81,12 +81,28 @@ public class DataCollectionDataUtil {
      *
      * @param fillBlanks 填空数据
      * @param correctAnswer 正确答案
-     * @param tolerance 误差范围
+     * @param tolerance 步骤级误差百分比（单位：%）
      * @return JSON字符串
      */
     public static String convertFillBlanksToJson(Map<String, String> fillBlanks,
                                                   Map<String, String> correctAnswer,
                                                   Double tolerance) {
+        return convertFillBlanksToJson(fillBlanks, correctAnswer, tolerance, null);
+    }
+
+    /**
+     * 将填空类型数据转换为JSON（支持字段级误差）
+     *
+     * @param fillBlanks 填空数据
+     * @param correctAnswer 正确答案
+     * @param tolerance 步骤级误差百分比（单位：%）
+     * @param fieldTolerances 字段级误差映射
+     * @return JSON字符串
+     */
+    public static String convertFillBlanksToJson(Map<String, String> fillBlanks,
+                                                  Map<String, String> correctAnswer,
+                                                  Double tolerance,
+                                                  Map<String, Double> fieldTolerances) {
         DataCollectionData data = new DataCollectionData();
         data.setDataType(1);
         data.setFillBlanks(fillBlanks);
@@ -98,6 +114,7 @@ public class DataCollectionDataUtil {
             result.put("fillBlanks", fillBlanks);
             result.put("correctAnswer", correctAnswer);
             result.put("tolerance", tolerance);
+            result.put("fieldTolerances", fieldTolerances);
 
             return objectMapper.writeValueAsString(result);
         } catch (JsonProcessingException e) {
@@ -113,7 +130,7 @@ public class DataCollectionDataUtil {
      * @param tableColumnHeaders 表格列表头
      * @param tableCellAnswers 表格单元格答案
      * @param correctAnswer 正确答案
-     * @param tolerance 误差范围
+     * @param tolerance 步骤级误差百分比（单位：%）
      * @return JSON字符串
      */
     public static String convertTableToJson(List<String> tableRowHeaders,
@@ -121,6 +138,48 @@ public class DataCollectionDataUtil {
                                            Map<String, String> tableCellAnswers,
                                            Map<String, String> correctAnswer,
                                            Double tolerance) {
+        return convertTableToJson(tableRowHeaders, tableColumnHeaders, tableCellAnswers, correctAnswer, tolerance, null);
+    }
+
+    /**
+     * 将表格类型数据转换为JSON（支持单元格级误差）
+     *
+     * @param tableRowHeaders 表格行表头
+     * @param tableColumnHeaders 表格列表头
+     * @param tableCellAnswers 表格单元格答案
+     * @param correctAnswer 正确答案
+     * @param tolerance 步骤级误差百分比（单位：%）
+     * @param cellTolerances 单元格级误差映射
+     * @return JSON字符串
+     */
+    public static String convertTableToJson(List<String> tableRowHeaders,
+                                           List<String> tableColumnHeaders,
+                                           Map<String, String> tableCellAnswers,
+                                           Map<String, String> correctAnswer,
+                                           Double tolerance,
+                                           Map<String, Double> cellTolerances) {
+        return convertTableToJson(tableRowHeaders, tableColumnHeaders, tableCellAnswers, correctAnswer, tolerance, cellTolerances, null);
+    }
+
+    /**
+     * 将表格类型数据转换为JSON（支持单元格级和列级误差）
+     *
+     * @param tableRowHeaders 表格行表头
+     * @param tableColumnHeaders 表格列表头
+     * @param tableCellAnswers 表格单元格答案
+     * @param correctAnswer 正确答案
+     * @param tolerance 步骤级误差百分比（单位：%）
+     * @param cellTolerances 单元格级误差映射
+     * @param columnTolerances 列级误差映射
+     * @return JSON字符串
+     */
+    public static String convertTableToJson(List<String> tableRowHeaders,
+                                           List<String> tableColumnHeaders,
+                                           Map<String, String> tableCellAnswers,
+                                           Map<String, String> correctAnswer,
+                                           Double tolerance,
+                                           Map<String, Double> cellTolerances,
+                                           Map<String, Double> columnTolerances) {
         try {
             Map<String, Object> result = new java.util.HashMap<>();
             result.put("dataType", 2);
@@ -129,6 +188,8 @@ public class DataCollectionDataUtil {
             result.put("tableCellAnswers", tableCellAnswers);
             result.put("correctAnswer", correctAnswer);
             result.put("tolerance", tolerance);
+            result.put("cellTolerances", cellTolerances);
+            result.put("columnTolerances", columnTolerances);
 
             return objectMapper.writeValueAsString(result);
         } catch (JsonProcessingException e) {
@@ -149,6 +210,69 @@ public class DataCollectionDataUtil {
         } catch (JsonProcessingException e) {
             log.error("转换正确答案为JSON失败", e);
             throw new RuntimeException("转换正确答案为JSON失败", e);
+        }
+    }
+
+    /**
+     * 从JSON中解析字段级误差映射
+     *
+     * @param json 数据收集JSON字符串
+     * @return 字段级误差映射
+     */
+    public static Map<String, Double> parseFieldTolerancesFromJson(String json) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(json);
+            com.fasterxml.jackson.databind.JsonNode fieldTolerancesNode = root.get("fieldTolerances");
+            if (fieldTolerancesNode == null || fieldTolerancesNode.isNull()) {
+                return Map.of();
+            }
+            return objectMapper.convertValue(fieldTolerancesNode,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Double>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("解析字段级误差失败", e);
+            return Map.of();
+        }
+    }
+
+    /**
+     * 从JSON中解析单元格级误差映射
+     *
+     * @param json 数据收集JSON字符串
+     * @return 单元格级误差映射
+     */
+    public static Map<String, Double> parseCellTolerancesFromJson(String json) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(json);
+            com.fasterxml.jackson.databind.JsonNode cellTolerancesNode = root.get("cellTolerances");
+            if (cellTolerancesNode == null || cellTolerancesNode.isNull()) {
+                return Map.of();
+            }
+            return objectMapper.convertValue(cellTolerancesNode,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Double>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("解析单元格级误差失败", e);
+            return Map.of();
+        }
+    }
+
+    /**
+     * 从JSON中解析列级误差映射
+     *
+     * @param json 数据收集JSON字符串
+     * @return 列级误差映射
+     */
+    public static Map<String, Double> parseColumnTolerancesFromJson(String json) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(json);
+            com.fasterxml.jackson.databind.JsonNode columnTolerancesNode = root.get("columnTolerances");
+            if (columnTolerancesNode == null || columnTolerancesNode.isNull()) {
+                return Map.of();
+            }
+            return objectMapper.convertValue(columnTolerancesNode,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Double>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("解析列级误差失败", e);
+            return Map.of();
         }
     }
 }

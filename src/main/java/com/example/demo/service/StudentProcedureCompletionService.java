@@ -19,6 +19,7 @@ import com.example.demo.pojo.entity.TimedQuizProcedure;
 import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest;
 import com.example.demo.util.AnswerMapJSONUntil;
+import com.example.demo.util.DataCollectionDataUtil;
 import com.example.demo.util.TimedQuizKeyGenerator;
 import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
@@ -367,7 +368,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 return;
             }
 
-            // 2. 解析正确答案
+            // 2. 解析正确答案和误差配置
             com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
             java.util.Map<String, String> correctAnswers = objectMapper.readValue(
                     dataCollection.getCorrectAnswer(),
@@ -378,16 +379,30 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 return;
             }
 
+            // 解析字段级/单元格级/列级误差配置
+            Map<String, Double> fieldTolerances = Map.of();
+            Map<String, Double> cellTolerances = Map.of();
+            Map<String, Double> columnTolerances = Map.of();
+            if (dataCollection.getRemark() != null && !dataCollection.getRemark().isEmpty()) {
+                // 从remark字段的JSON中解析误差配置
+                fieldTolerances = DataCollectionDataUtil.parseFieldTolerancesFromJson(dataCollection.getRemark());
+                cellTolerances = DataCollectionDataUtil.parseCellTolerancesFromJson(dataCollection.getRemark());
+                columnTolerances = DataCollectionDataUtil.parseColumnTolerancesFromJson(dataCollection.getRemark());
+            }
+
             // 3. 对比答案并计算得分
             int totalQuestions = correctAnswers.size();
             int correctCount = 0;
-            Double tolerance = dataCollection.getTolerance();
+            Double stepTolerance = dataCollection.getTolerance();
 
             // 判断填空类型答案
             if (fillBlankAnswers != null && !fillBlankAnswers.isEmpty()) {
                 for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
-                    String studentAnswer = fillBlankAnswers.get(entry.getKey());
-                    if (isAnswerCorrect(studentAnswer, entry.getValue(), tolerance)) {
+                    String fieldName = entry.getKey();
+                    String studentAnswer = fillBlankAnswers.get(fieldName);
+                    // 优先使用字段级误差，没有则使用步骤级误差
+                    Double fieldTolerance = fieldTolerances.getOrDefault(fieldName, stepTolerance);
+                    if (isAnswerCorrect(studentAnswer, entry.getValue(), fieldTolerance)) {
                         correctCount++;
                     }
                 }
@@ -396,8 +411,21 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             // 判断表格类型答案
             if (tableCellAnswers != null && !tableCellAnswers.isEmpty()) {
                 for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
-                    String studentAnswer = tableCellAnswers.get(entry.getKey());
-                    if (isAnswerCorrect(studentAnswer, entry.getValue(), tolerance)) {
+                    String cellPosition = entry.getKey();
+                    String studentAnswer = tableCellAnswers.get(cellPosition);
+
+                    // 误差优先级：单元格级 > 列级 > 步骤级
+                    Double finalTolerance = cellTolerances.get(cellPosition);
+                    if (finalTolerance == null) {
+                        // 解析单元格位置的列名（如A1→A，B2→B）
+                        String columnName = cellPosition.replaceAll("\\d", "");
+                        finalTolerance = columnTolerances.get(columnName);
+                        if (finalTolerance == null) {
+                            finalTolerance = stepTolerance;
+                        }
+                    }
+
+                    if (isAnswerCorrect(studentAnswer, entry.getValue(), finalTolerance)) {
                         correctCount++;
                     }
                 }
@@ -430,7 +458,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      *
      * @param studentAnswer 学生答案
      * @param correctAnswer 正确答案
-     * @param tolerance     误差范围
+     * @param tolerance     误差百分比（单位：%）
      * @return 是否正确
      */
     private boolean isAnswerCorrect(String studentAnswer, String correctAnswer, Double tolerance) {
@@ -444,8 +472,13 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             double correctValue = Double.parseDouble(correctAnswer.trim());
 
             if (tolerance != null && tolerance > 0) {
-                // 有误差范围，判断是否在误差范围内
-                return Math.abs(studentValue - correctValue) <= tolerance;
+                // 正确值为0时，使用精确匹配（避免除以0错误）
+                if (Math.abs(correctValue) < 0.0001) {
+                    return Math.abs(studentValue - correctValue) < 0.0001;
+                }
+                // 百分比误差计算：|学生答案 - 正确答案| / |正确答案| ≤ 误差百分比 / 100
+                double relativeError = Math.abs(studentValue - correctValue) / Math.abs(correctValue);
+                return relativeError <= tolerance / 100.0;
             } else {
                 // 没有误差范围，精确匹配
                 return Math.abs(studentValue - correctValue) < 0.0001;

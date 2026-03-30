@@ -80,4 +80,9 @@ public class TeacherDataCollectionProcedureDetailResponse {
      * 是否需要提交文档
      */
     private Boolean dataNeedDoc;
+
+    /**
+     * 步骤级误差百分比（可选，用于数值类答案的判分），单位：%
+     */
+    private Double tolerance;
 }

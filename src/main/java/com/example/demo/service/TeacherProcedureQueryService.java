@@ -195,6 +195,7 @@ public class TeacherProcedureQueryService {
             response.setDataRemark(dataCollection.getRemark());
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
+            response.setTolerance(dataCollection.getTolerance());
         }
     }
 
@@ -563,6 +564,7 @@ public class TeacherProcedureQueryService {
             response.setDataRemark(dataCollection.getRemark());
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
+            response.setTolerance(dataCollection.getTolerance());
         }
     }
 
