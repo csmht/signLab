@@ -503,6 +503,66 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
     }
 
     /**
+     * 管理员查询所有班级实验列表（分页）
+     *
+     * @param request 查询请求
+     * @return 班级实验列表（按实验开始时间倒序）
+     */
+    public PageResponse<ClassExperimentDetailResponse> queryAllClassExperiments(ClassExperimentQueryRequest request) {
+
+        // 构建查询条件
+        LambdaQueryWrapper<ClassExperiment> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 支持按班级编号过滤
+        if (request.getClassCode() != null && !request.getClassCode().trim().isEmpty()) {
+            List<Long> filteredExperimentIds =
+                classExperimentClassRelationService.getExperimentIdsByClassCode(request.getClassCode().trim());
+            if (!filteredExperimentIds.isEmpty()) {
+                queryWrapper.in(ClassExperiment::getId, filteredExperimentIds);
+            } else {
+                // 如果没有匹配的班级实验，返回空结果
+                return PageResponse.of(1L, request.getSize(), 0L, new ArrayList<>());
+            }
+        }
+
+        // 支持按课程ID过滤
+        if (request.getCourseId() != null && !request.getCourseId().trim().isEmpty()) {
+            queryWrapper.eq(ClassExperiment::getCourseId, request.getCourseId().trim());
+        }
+
+        // 支持按时间段过滤
+        addDateTimeFilter(queryWrapper, request);
+
+        queryWrapper.orderByDesc(ClassExperiment::getStartTime);
+
+        // 分页查询
+        if (request.getPageable() != null && request.getPageable()) {
+            Page<ClassExperiment> page = new Page<>(request.getCurrent(), request.getSize());
+            Page<ClassExperiment> result = page(page, queryWrapper);
+
+            // 构建响应列表
+            List<ClassExperimentDetailResponse> records = result.getRecords().stream()
+                    .map(this::buildClassExperimentDetailResponse)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(
+                    result.getCurrent(),
+                    result.getSize(),
+                    result.getTotal(),
+                    records
+            );
+        } else {
+            // 不分页，返回全部数据
+            List<ClassExperiment> classExperiments = list(queryWrapper);
+            List<ClassExperimentDetailResponse> records = classExperiments.stream()
+                    .map(this::buildClassExperimentDetailResponse)
+                    .collect(Collectors.toList());
+
+            return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
+        }
+    }
+
+    /**
      * 添加时间段过滤条件
      *
      * @param queryWrapper 查询条件包装器
