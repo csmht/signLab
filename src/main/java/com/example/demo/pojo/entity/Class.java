@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 @Table(value = "classes", comment = "班级表")
 @TableName("classes")
 @TableIndex(name = "uk_class_code", fields = {"classCode"},type = IndexTypeEnum.UNIQUE)
+@TableIndex(name = "uk_verification_code", fields = {"verificationCode"}, type = IndexTypeEnum.UNIQUE)
 public class Class {
     /** 主键ID */
     @TableId(type = IdType.AUTO)
@@ -31,6 +32,10 @@ public class Class {
     /** 班级名称 */
     @Column(comment = "班级名称", type = "varchar(100)", notNull = true)
     private String className;
+
+    /** 班级验证码 */
+    @Column(comment = "班级验证码", type = "varchar(20)")
+    private String verificationCode;
 
     /** 创建者 */
     @Column(comment = "创建者", type = "varchar(50)")

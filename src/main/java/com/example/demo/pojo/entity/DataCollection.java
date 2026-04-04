@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @AutoTable
 @Table(value = "data_collection", comment = "实验步骤-数据收集表 - 存储实验学生需要完成的数据收集类型步骤的数据信息")
 @TableName("data_collection")
-@TableIndex(name = "uk_procedure_type", fields = {"experimentalProcedureId", "type"}, type = IndexTypeEnum.UNIQUE)
+@TableIndex(name = "uk_procedure_data", fields = {"experimentalProcedureId"}, type = IndexTypeEnum.UNIQUE)
 public class DataCollection {
 
     /** 主键ID */

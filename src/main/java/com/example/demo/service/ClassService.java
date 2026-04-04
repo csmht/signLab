@@ -25,6 +25,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +35,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ClassService extends ServiceImpl<ClassMapper, Class> {
+
+    private static final int VERIFICATION_CODE_RETRY_LIMIT = 20;
 
     private final ClassExperimentMapper classExperimentMapper;
     private final ExperimentMapper experimentMapper;
@@ -70,6 +73,30 @@ public class ClassService extends ServiceImpl<ClassMapper, Class> {
         queryWrapper.eq(Class::getClassName, className);
         queryWrapper.last("LIMIT 1");
         return getOne(queryWrapper);
+    }
+
+    /**
+     * 生成班级验证码
+     * 格式: 6位数字
+     */
+    public String generateVerificationCode() {
+        for (int attempt = 0; attempt < VERIFICATION_CODE_RETRY_LIMIT; attempt++) {
+            String code = String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000));
+            LambdaQueryWrapper<Class> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Class::getVerificationCode, code);
+            if (baseMapper.selectCount(queryWrapper) == 0) {
+                return code;
+            }
+        }
+        throw new BusinessException(500, "生成班级验证码失败，请重试");
+    }
+
+    @Override
+    public boolean save(Class entity) {
+        if (entity != null && !StringUtils.hasText(entity.getVerificationCode())) {
+            entity.setVerificationCode(generateVerificationCode());
+        }
+        return super.save(entity);
     }
 
     /**
