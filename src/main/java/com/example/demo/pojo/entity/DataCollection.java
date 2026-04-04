@@ -3,11 +3,12 @@ package com.example.demo.pojo.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.tangzc.autotable.annotation.AutoTable;
+import com.tangzc.autotable.annotation.TableIndex;
+import com.tangzc.autotable.annotation.enums.IndexTypeEnum;
 import com.tangzc.mpe.autotable.annotation.Column;
 import com.tangzc.mpe.autotable.annotation.Table;
 import lombok.Data;
-import org.checkerframework.checker.units.qual.C;
-import org.dromara.autotable.annotation.AutoTable;
 
 import java.time.LocalDateTime;
 
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 @AutoTable
 @Table(value = "data_collection", comment = "实验步骤-数据收集表 - 存储实验学生需要完成的数据收集类型步骤的数据信息")
 @TableName("data_collection")
+@TableIndex(name = "uk_procedure_type", fields = {"experimentalProcedureId", "type"}, type = IndexTypeEnum.UNIQUE)
 public class DataCollection {
 
     /** 主键ID */

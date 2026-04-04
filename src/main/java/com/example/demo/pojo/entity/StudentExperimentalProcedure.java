@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.tangzc.autotable.annotation.AutoTable;
+import com.tangzc.autotable.annotation.TableIndex;
+import com.tangzc.autotable.annotation.enums.IndexTypeEnum;
 import com.tangzc.mpe.autotable.annotation.Column;
 import com.tangzc.mpe.autotable.annotation.Table;
 import lombok.Data;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 @AutoTable
 @Table(value = "student_experimental_procedure", comment = "学生步骤答案表")
 @TableName("student_experimental_procedure")
+@TableIndex(name = "uk_procedure_student", fields = {"experimentalProcedureId", "studentUsername"}, type = IndexTypeEnum.UNIQUE)
 public class StudentExperimentalProcedure {
 
     /** 主键ID */

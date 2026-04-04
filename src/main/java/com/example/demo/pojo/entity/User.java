@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 @Table(value = "users", comment = "用户表 - 存储学生和教师的基础信息，包含院系和专业信息")
 @TableName("users")
 @TableIndex(name = "uk_username", fields = {"username"}, type = IndexTypeEnum.UNIQUE)
+@TableIndex(name = "uk_wx_openid", fields = {"wxOpenid"}, type = IndexTypeEnum.UNIQUE)
 @TableIndex(name = "idx_users_role", fields = {"role"})
 @TableIndex(name = "idx_wx_unionid", fields = {"wxUnionid"})
 @TableIndex(name = "idx_users_department", fields = {"department"})
