@@ -1574,7 +1574,7 @@ public class TeacherStudentProcedureQueryService {
 
                 // 解析学生答案
                 Map<Long, String> studentAnswers = parseTopicAnswers(studentProcedure.getAnswer());
-                List<Topic> topics = topicMapper.selectList(new LambdaQueryWrapper<Topic>().in(Topic::getId,studentAnswers.keySet().stream().toList()));
+                List<Topic> topics = getTopicsForCompletedTopicProcedure(procedureTopic, studentAnswers);
 
                 for (Topic topic : topics) {
                     com.example.demo.pojo.response.StudentTopicProcedureDetailResponse.TopicItem item =
@@ -1603,6 +1603,23 @@ public class TeacherStudentProcedureQueryService {
         }
 
         return response;
+    }
+
+    private List<Topic> getTopicsForCompletedTopicProcedure(
+            ProcedureTopic procedureTopic, Map<Long, String> studentAnswers) {
+
+        if (Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
+            if (studentAnswers == null || studentAnswers.isEmpty()) {
+                return new ArrayList<>();
+            }
+
+            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+            topicWrapper.in(Topic::getId, studentAnswers.keySet());
+            topicWrapper.orderByAsc(Topic::getNumber);
+            return topicMapper.selectList(topicWrapper);
+        }
+
+        return getTopicsForProcedureTeacher(procedureTopic);
     }
 
     /**
