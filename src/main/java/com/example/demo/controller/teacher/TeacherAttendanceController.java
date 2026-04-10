@@ -28,23 +28,6 @@ public class TeacherAttendanceController {
     private final AttendanceRecordService attendanceRecordService;
 
     /**
-     * 查询指定班级实验的签到情况
-     * 返回分类后的签到列表：非跨班签到、跨班签到、未签到
-     *
-     * @param classCode 班级ID
-     * @param experimentId 实验ID
-     * @return 签到列表响应
-     */
-    @GetMapping("/list")
-    @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<AttendanceListResponse> getAttendanceList(
-            @RequestParam("classCode") String classCode,
-            @RequestParam("experimentId") String experimentId) {
-        AttendanceListResponse response = attendanceRecordService.getAttendanceList(classCode, experimentId);
-        return ApiResponse.success(response);
-    }
-
-    /**
      * 修改签到状态
      * 支持修改已签到学生的状态，或为未签到学生添加签到记录
      *
@@ -115,12 +98,16 @@ public class TeacherAttendanceController {
      * 返回分类后的签到列表：非跨班签到、跨班签到、未签到
      *
      * @param classExperimentId 班级实验ID（关联表ID）
+     * @param classCode 可选，按班级筛选
      * @return 签到列表响应
      */
     @GetMapping("/by-class-experiment/{classExperimentId}")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<AttendanceListResponse> getByClassExperimentId(@PathVariable Long classExperimentId) {
-        AttendanceListResponse response = attendanceRecordService.getAttendanceListByClassExperimentId(classExperimentId);
+    public ApiResponse<AttendanceListResponse> getByClassExperimentId(
+            @PathVariable Long classExperimentId,
+            @RequestParam(value = "classCode", required = false) String classCode) {
+        AttendanceListResponse response =
+                attendanceRecordService.getAttendanceListByClassExperimentId(classExperimentId, classCode);
         return ApiResponse.success(response);
     }
 

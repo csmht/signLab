@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -243,102 +244,13 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
     }
 
     /**
-     * 查询指定班级实验的签到情况
-     *
-     * @param classCode 班级Code
-     * @param experimentId 实验ID
-     * @return 签到列表响应
-     */
-    public AttendanceListResponse getAttendanceList(String classCode, String experimentId) {
-
-        // 2. 查询班级实验信息
-        List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
-
-        ClassExperiment classExperiment = null;
-        for (Long id : experimentIds) {
-            ClassExperiment ce = classExperimentMapper.selectById(id);
-            if (ce != null && ce.getExperimentId().equals(experimentId)) {
-                classExperiment = ce;
-                break;
-            }
-        }
-
-        if (classExperiment == null) {
-            throw new BusinessException(404, "班级实验不存在");
-        }
-
-        String courseId = classExperiment.getCourseId();
-
-        // 3. 查询该班级的所有学生
-        LambdaQueryWrapper<StudentClassRelation> studentClassQuery = new LambdaQueryWrapper<>();
-        studentClassQuery.eq(StudentClassRelation::getClassCode, classCode);
-        List<StudentClassRelation> studentClassRelations =
-                studentClassRelationMapper.selectList(studentClassQuery);
-
-        // 4. 查询该课次的所有签到记录
-        LambdaQueryWrapper<AttendanceRecord> attendanceQuery = new LambdaQueryWrapper<>();
-        attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
-                .eq(AttendanceRecord::getExperimentId, experimentId)
-                .eq(AttendanceRecord::getStudentActualClassCode, classCode);
-        List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
-
-        // 4. 构建签到信息映射（学生用户名 -> 签到记录）
-        java.util.Map<String, AttendanceRecord> attendanceMap = attendanceRecords.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        AttendanceRecord::getStudentUsername,
-                        record -> record,
-                        (existing, replacement) -> existing
-                ));
-
-        // 5. 构建返回结果
-        AttendanceListResponse response = new AttendanceListResponse();
-        response.setNormalAttendanceList(new java.util.ArrayList<>());
-        response.setCrossClassAttendanceList(new java.util.ArrayList<>());
-        response.setNotAttendanceList(new java.util.ArrayList<>());
-
-        LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
-        classQuery.eq(Class::getClassCode, classCode);
-        Class studentClass = classMapper.selectOne(classQuery);
-        String className = studentClass != null ? studentClass.getClassName() : classCode;
-
-        // 6. 批量查询学生信息（优化 N+1 查询）
-        List<String> studentUsernames = studentClassRelations.stream()
-                .map(StudentClassRelation::getStudentUsername)
-                .collect(Collectors.toList());
-        java.util.Map<String, User> studentMap = new java.util.HashMap<>();
-        if (!studentUsernames.isEmpty()) {
-            LambdaQueryWrapper<User> userQuery = new LambdaQueryWrapper<>();
-            userQuery.in(User::getUsername, studentUsernames);
-            List<User> students = userMapper.selectList(userQuery);
-            studentMap = students.stream()
-                    .collect(Collectors.toMap(User::getUsername, user -> user, (a, b) -> a));
-        }
-
-        // 7. 遍历班级学生，分类处理
-        for (StudentClassRelation relation : studentClassRelations) {
-            String studentUsername = relation.getStudentUsername();
-            AttendanceRecord record = attendanceMap.get(studentUsername);
-            User student = studentMap.get(studentUsername);
-
-            AttendanceListResponse.StudentAttendanceInfo info =
-                    new AttendanceListResponse.StudentAttendanceInfo();
-            info.setStudentUsername(studentUsername);
-            info.setStudentName(student != null ? student.getName() : studentUsername);
-            info.setClassName(className);
-
-            getStudentAttendance(response, record, info);
-        }
-
-        return response;
-    }
-
-    /**
      * 通过班级实验ID查询签到列表
      *
      * @param classExperimentId 班级实验ID
+     * @param classCode 可选，按班级筛选
      * @return 签到列表响应
      */
-    public AttendanceListResponse getAttendanceListByClassExperimentId(Long classExperimentId) {
+    public AttendanceListResponse getAttendanceListByClassExperimentId(Long classExperimentId, String classCode) {
         // 1. 查询班级实验信息
         ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
@@ -350,22 +262,34 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
         if (classCodes == null || classCodes.isEmpty()) {
             throw new BusinessException(404, "班级实验关联不存在");
         }
+
+        List<String> targetClassCodes = classCodes;
+        if (StringUtils.hasText(classCode)) {
+            if (!classCodes.contains(classCode)) {
+                throw new BusinessException(400, "指定班级不属于该班级实验");
+            }
+            targetClassCodes = java.util.List.of(classCode);
+        }
+
         String experimentId = classExperiment.getExperimentId();
         String courseId = classExperiment.getCourseId();
 
         // 3. 查询所有关联班级的学生
         LambdaQueryWrapper<StudentClassRelation> studentClassQuery = new LambdaQueryWrapper<>();
-        studentClassQuery.in(StudentClassRelation::getClassCode, classCodes);
+        studentClassQuery.in(StudentClassRelation::getClassCode, targetClassCodes);
         List<StudentClassRelation> studentClassRelations =
                 studentClassRelationMapper.selectList(studentClassQuery);
 
-        // 3. 查询该课次的所有签到记录
+        // 4. 查询该课次的所有签到记录
         LambdaQueryWrapper<AttendanceRecord> attendanceQuery = new LambdaQueryWrapper<>();
         attendanceQuery.eq(AttendanceRecord::getCourseId, courseId)
                 .eq(AttendanceRecord::getExperimentId, experimentId);
+        if (StringUtils.hasText(classCode)) {
+            attendanceQuery.eq(AttendanceRecord::getStudentActualClassCode, classCode);
+        }
         List<AttendanceRecord> attendanceRecords = list(attendanceQuery);
 
-        // 4. 构建签到信息映射（学生用户名 -> 签到记录）
+        // 5. 构建签到信息映射（学生用户名 -> 签到记录）
         java.util.Map<String, AttendanceRecord> attendanceMap = attendanceRecords.stream()
                 .collect(java.util.stream.Collectors.toMap(
                         AttendanceRecord::getStudentUsername,
@@ -373,13 +297,13 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
                         (existing, replacement) -> existing
                 ));
 
-        // 5. 构建返回结果
+        // 6. 构建返回结果
         AttendanceListResponse response = new AttendanceListResponse();
         response.setNormalAttendanceList(new java.util.ArrayList<>());
         response.setCrossClassAttendanceList(new java.util.ArrayList<>());
         response.setNotAttendanceList(new java.util.ArrayList<>());
 
-        // 6. 批量查询学生信息（优化 N+1 查询）
+        // 7. 批量查询学生信息（优化 N+1 查询）
         List<String> studentUsernames = studentClassRelations.stream()
                 .map(StudentClassRelation::getStudentUsername)
                 .collect(Collectors.toList());
@@ -392,14 +316,14 @@ public class AttendanceRecordService extends ServiceImpl<AttendanceRecordMapper,
                     .collect(Collectors.toMap(User::getUsername, user -> user, (a, b) -> a));
         }
 
-        // 7. 批量查询所有关联班级信息（优化 N+1 查询）
+        // 8. 批量查询所有关联班级信息（优化 N+1 查询）
         LambdaQueryWrapper<Class> classQuery = new LambdaQueryWrapper<>();
-        classQuery.in(Class::getClassCode, classCodes);
+        classQuery.in(Class::getClassCode, targetClassCodes);
         List<Class> classList = classMapper.selectList(classQuery);
         java.util.Map<String, String> classNameMap = classList.stream()
                 .collect(Collectors.toMap(Class::getClassCode, Class::getClassName, (a, b) -> a));
 
-        // 8. 遍历班级学生，分类处理
+        // 9. 遍历班级学生，分类处理
         for (StudentClassRelation relation : studentClassRelations) {
             String studentUsername = relation.getStudentUsername();
             String studentClassCode = relation.getClassCode();
