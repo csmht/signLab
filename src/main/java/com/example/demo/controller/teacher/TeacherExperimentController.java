@@ -11,7 +11,7 @@ import com.example.demo.pojo.request.ExperimentQueryRequest;
 import com.example.demo.pojo.request.teacher.CreateExperimentRequest;
 import com.example.demo.pojo.request.teacher.UpdateExperimentRequest;
 import com.example.demo.pojo.response.ApiResponse;
-import com.example.demo.pojo.response.ClassExperimentDetailResponse;
+import com.example.demo.pojo.response.ClassExperimentListResponse;
 import com.example.demo.pojo.response.ClassExperimentMapResponse;
 import com.example.demo.pojo.response.ExperimentResponse;
 import com.example.demo.pojo.response.PageResponse;
@@ -226,13 +226,13 @@ public class TeacherExperimentController {
      */
     @GetMapping("/class-experiments")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<PageResponse<ClassExperimentDetailResponse>> queryClassExperiments(
+    public ApiResponse<PageResponse<ClassExperimentListResponse>> queryClassExperiments(
             ClassExperimentQueryRequest request) {
         // 获取当前登录教师用户名
         String teacherUsername = SecurityUtil.getCurrentUsername()
             .orElseThrow(() -> new BusinessException(401, "未登录"));
 
-        PageResponse<ClassExperimentDetailResponse> response = classExperimentService
+        PageResponse<ClassExperimentListResponse> response = classExperimentService
             .queryClassExperimentsForTeacher(teacherUsername, request);
 
         return ApiResponse.success(response, "查询成功");

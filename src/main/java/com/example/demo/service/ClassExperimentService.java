@@ -16,6 +16,7 @@ import com.example.demo.pojo.request.ClassExperimentQueryRequest;
 import com.example.demo.pojo.request.CourseSessionQueryRequest;
 import com.example.demo.pojo.response.BatchBindClassesToExperimentResponse;
 import com.example.demo.pojo.response.ClassExperimentDetailResponse;
+import com.example.demo.pojo.response.ClassExperimentListResponse;
 import com.example.demo.pojo.response.ClassExperimentMapResponse;
 import com.example.demo.pojo.response.CourseExperimentsDetail;
 import com.example.demo.pojo.response.CourseSessionResponse;
@@ -27,6 +28,7 @@ import com.example.demo.pojo.entity.Experiment;
 import com.example.demo.pojo.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -373,7 +375,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
      * @param request         查询请求
      * @return 班级实验列表（按实验开始时间倒序）
      */
-    public PageResponse<ClassExperimentDetailResponse> queryClassExperimentsForTeacher(
+    public PageResponse<ClassExperimentListResponse> queryClassExperimentsForTeacher(
             String teacherUsername, ClassExperimentQueryRequest request) {
 
         // 构建查询条件
@@ -408,8 +410,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             Page<ClassExperiment> result = page(page, queryWrapper);
 
             // 构建响应列表
-            List<ClassExperimentDetailResponse> records = result.getRecords().stream()
-                    .map(this::buildClassExperimentDetailResponse)
+            List<ClassExperimentListResponse> records = result.getRecords().stream()
+                    .map(this::buildClassExperimentListResponse)
                     .collect(Collectors.toList());
 
             return PageResponse.of(
@@ -421,8 +423,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         } else {
             // 不分页，返回全部数据
             List<ClassExperiment> classExperiments = list(queryWrapper);
-            List<ClassExperimentDetailResponse> records = classExperiments.stream()
-                    .map(this::buildClassExperimentDetailResponse)
+            List<ClassExperimentListResponse> records = classExperiments.stream()
+                    .map(this::buildClassExperimentListResponse)
                     .collect(Collectors.toList());
 
             return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
@@ -508,7 +510,7 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
      * @param request 查询请求
      * @return 班级实验列表（按实验开始时间倒序）
      */
-    public PageResponse<ClassExperimentDetailResponse> queryAllClassExperiments(ClassExperimentQueryRequest request) {
+    public PageResponse<ClassExperimentListResponse> queryAllClassExperiments(ClassExperimentQueryRequest request) {
 
         // 构建查询条件
         LambdaQueryWrapper<ClassExperiment> queryWrapper = new LambdaQueryWrapper<>();
@@ -541,8 +543,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             Page<ClassExperiment> result = page(page, queryWrapper);
 
             // 构建响应列表
-            List<ClassExperimentDetailResponse> records = result.getRecords().stream()
-                    .map(this::buildClassExperimentDetailResponse)
+            List<ClassExperimentListResponse> records = result.getRecords().stream()
+                    .map(this::buildClassExperimentListResponse)
                     .collect(Collectors.toList());
 
             return PageResponse.of(
@@ -554,8 +556,8 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         } else {
             // 不分页，返回全部数据
             List<ClassExperiment> classExperiments = list(queryWrapper);
-            List<ClassExperimentDetailResponse> records = classExperiments.stream()
-                    .map(this::buildClassExperimentDetailResponse)
+            List<ClassExperimentListResponse> records = classExperiments.stream()
+                    .map(this::buildClassExperimentListResponse)
                     .collect(Collectors.toList());
 
             return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
@@ -661,6 +663,19 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
             response.setTeacherName(teacher.getName());
         }
 
+        return response;
+    }
+
+    /**
+     * 构建教师端/管理员端班级实验列表响应
+     *
+     * @param classExperiment 班级实验实体
+     * @return 班级实验列表响应
+     */
+    private ClassExperimentListResponse buildClassExperimentListResponse(ClassExperiment classExperiment) {
+        ClassExperimentDetailResponse detailResponse = buildClassExperimentDetailResponse(classExperiment);
+        ClassExperimentListResponse response = new ClassExperimentListResponse();
+        BeanUtils.copyProperties(detailResponse, response);
         return response;
     }
 

@@ -4,7 +4,7 @@ import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
 import com.example.demo.pojo.request.ClassExperimentQueryRequest;
 import com.example.demo.pojo.response.ApiResponse;
-import com.example.demo.pojo.response.ClassExperimentDetailResponse;
+import com.example.demo.pojo.response.ClassExperimentListResponse;
 import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.service.ClassExperimentService;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +29,9 @@ public class AdminController {
      */
     @GetMapping("/class-experiments")
     @RequireRole(value = UserRole.ADMIN)
-    public ApiResponse<PageResponse<ClassExperimentDetailResponse>> queryAllClassExperiments(
+    public ApiResponse<PageResponse<ClassExperimentListResponse>> queryAllClassExperiments(
             ClassExperimentQueryRequest request) {
-        PageResponse<ClassExperimentDetailResponse> response =
+        PageResponse<ClassExperimentListResponse> response =
             classExperimentService.queryAllClassExperiments(request);
         return ApiResponse.success(response, "查询成功");
     }
