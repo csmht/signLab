@@ -18,6 +18,7 @@ import com.example.demo.pojo.response.BatchBindClassesToExperimentResponse;
 import com.example.demo.pojo.response.ClassExperimentDetailResponse;
 import com.example.demo.pojo.response.ClassExperimentListResponse;
 import com.example.demo.pojo.response.ClassExperimentMapResponse;
+import com.example.demo.pojo.response.ClassCodeNameResponse;
 import com.example.demo.pojo.response.CourseExperimentsDetail;
 import com.example.demo.pojo.response.CourseSessionResponse;
 import com.example.demo.pojo.response.PageResponse;
@@ -677,6 +678,39 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
         ClassExperimentListResponse response = new ClassExperimentListResponse();
         BeanUtils.copyProperties(detailResponse, response);
         return response;
+    }
+
+    /**
+     * 根据班级实验ID获取绑定的班级编号与名称
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 班级编号与名称列表
+     */
+    public List<ClassCodeNameResponse> getBoundClassesByClassExperimentId(Long classExperimentId) {
+        ClassExperiment classExperiment = getById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        List<String> classCodes =
+            classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new BusinessException(404, "班级实验关联不存在");
+        }
+
+        Map<String, String> classNameMap = classMapper.selectList(
+                new LambdaQueryWrapper<Class>().in(Class::getClassCode, classCodes))
+            .stream()
+            .collect(Collectors.toMap(Class::getClassCode, Class::getClassName, (a, b) -> a));
+
+        List<ClassCodeNameResponse> responses = new ArrayList<>();
+        for (String classCode : classCodes) {
+            ClassCodeNameResponse response = new ClassCodeNameResponse();
+            response.setClassCode(classCode);
+            response.setClassName(classNameMap.get(classCode));
+            responses.add(response);
+        }
+        return responses;
     }
 
     /**

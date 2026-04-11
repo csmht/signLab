@@ -11,6 +11,7 @@ import com.example.demo.pojo.request.ExperimentQueryRequest;
 import com.example.demo.pojo.request.teacher.CreateExperimentRequest;
 import com.example.demo.pojo.request.teacher.UpdateExperimentRequest;
 import com.example.demo.pojo.response.ApiResponse;
+import com.example.demo.pojo.response.ClassCodeNameResponse;
 import com.example.demo.pojo.response.ClassExperimentListResponse;
 import com.example.demo.pojo.response.ClassExperimentMapResponse;
 import com.example.demo.pojo.response.ExperimentResponse;
@@ -253,6 +254,21 @@ public class TeacherExperimentController {
         ClassExperimentMapResponse response = classExperimentService
                 .getClassExperimentsGroupByCourse(classCode);
 
+        return ApiResponse.success(response, "查询成功");
+    }
+
+    /**
+     * 通过班级实验ID查询绑定的班级编号与名称
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 班级编号与名称列表
+     */
+    @GetMapping("/class-experiments/{classExperimentId}/classes")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<List<ClassCodeNameResponse>> getBoundClassesByClassExperimentId(
+            @PathVariable("classExperimentId") Long classExperimentId) {
+        List<ClassCodeNameResponse> response = classExperimentService
+            .getBoundClassesByClassExperimentId(classExperimentId);
         return ApiResponse.success(response, "查询成功");
     }
 }
