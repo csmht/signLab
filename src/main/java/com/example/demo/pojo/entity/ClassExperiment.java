@@ -22,7 +22,6 @@ import java.util.List;
 @AutoTable
 @Table(value = "classes_experiment", comment = "班级实验表 - 记录班级参加的实验（即课次）")
 @TableName("classes_experiment")
-@TableIndex(name = "courseId_experimentId",fields = {"courseId","experimentId"},type = IndexTypeEnum.UNIQUE)
 public class ClassExperiment {
 
     /** 主键ID */
