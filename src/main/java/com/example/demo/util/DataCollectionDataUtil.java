@@ -1,5 +1,8 @@
 package com.example.demo.util;
 
+import com.example.demo.pojo.dto.mapvo.ColumnTolerance;
+import com.example.demo.pojo.dto.mapvo.DataField;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.pojo.dto.remark.FillBlankRemarkDTO;
 import com.example.demo.pojo.dto.remark.TableRemarkDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -14,8 +17,10 @@ import java.util.Map;
  * 用于将结构化的填空和表格数据转换为JSON格式存储到 remark 字段
  *
  * remark JSON 格式（按数据类型区分）：
- * - 填空类型（type=1）：{"fillBlanks":{"field":"value"},"fieldTolerances":{"field":0.1}}
- * - 表格类型（type=2）：{"tableRowHeaders":["A"],"tableColumnHeaders":["1"],"tableCellAnswers":{"A1":"value"},...}
+ * - 填空类型（type=1）：{"fillBlanks":[{"fieldName":"Uab","value":"","tolerance":5.0}]}
+ * - 表格类型（type=2）：{"tableRowHeaders":["A"],"tableColumnHeaders":["1"],
+ *   "tableCellAnswers":[{"cellPosition":"A1","value":"3.5","tolerance":5.0}],
+ *   "columnTolerances":[{"columnName":"A","tolerance":3.0}]}
  * - 文件类型（type=3）：{}
  *
  * 注意：dataType 已从 remark 中移除，请通过 DataCollection.type 获取数据类型
@@ -26,18 +31,15 @@ public class DataCollectionDataUtil {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 将填空类型数据转换为JSON（支持字段级误差）
+     * 将填空类型数据转换为JSON
      *
-     * @param fillBlanks      填空数据（字段名 -> 值）
-     * @param fieldTolerances 字段级误差映射（可选）
+     * @param dataFields 填空数据列表（fieldName + value + tolerance）
      * @return JSON字符串
      */
-    public static String convertFillBlanksToJson(Map<String, String> fillBlanks,
-                                                  Map<String, Double> fieldTolerances) {
+    public static String convertFillBlanksToJson(List<DataField> dataFields) {
         try {
             FillBlankRemarkDTO dto = FillBlankRemarkDTO.builder()
-                    .fillBlanks(fillBlanks)
-                    .fieldTolerances(fieldTolerances)
+                    .fillBlanks(dataFields)
                     .build();
             return objectMapper.writeValueAsString(dto);
         } catch (JsonProcessingException e) {
@@ -51,22 +53,19 @@ public class DataCollectionDataUtil {
      *
      * @param tableRowHeaders    表格行表头
      * @param tableColumnHeaders 表格列表头
-     * @param tableCellAnswers   表格单元格答案
-     * @param cellTolerances     单元格级误差映射（可选）
-     * @param columnTolerances   列级误差映射（可选）
+     * @param tableCellAnswers   表格单元格答案列表（cellPosition + value + tolerance）
+     * @param columnTolerances   列级误差列表（columnName + tolerance，可选）
      * @return JSON字符串
      */
     public static String convertTableToJson(List<String> tableRowHeaders,
                                            List<String> tableColumnHeaders,
-                                           Map<String, String> tableCellAnswers,
-                                           Map<String, Double> cellTolerances,
-                                           Map<String, Double> columnTolerances) {
+                                           List<TableCellAnswer> tableCellAnswers,
+                                           List<ColumnTolerance> columnTolerances) {
         try {
             TableRemarkDTO dto = TableRemarkDTO.builder()
                     .tableRowHeaders(tableRowHeaders)
                     .tableColumnHeaders(tableColumnHeaders)
                     .tableCellAnswers(tableCellAnswers)
-                    .cellTolerances(cellTolerances)
                     .columnTolerances(columnTolerances)
                     .build();
             return objectMapper.writeValueAsString(dto);
@@ -129,10 +128,10 @@ public class DataCollectionDataUtil {
      */
     public static Map<String, Double> parseFieldTolerancesFromJson(String json) {
         FillBlankRemarkDTO dto = parseFillBlankRemark(json);
-        if (dto == null || dto.getFieldTolerances() == null) {
+        if (dto == null || dto.getFillBlanks() == null) {
             return Map.of();
         }
-        return dto.getFieldTolerances();
+        return DataField.toToleranceMap(dto.getFillBlanks());
     }
 
     /**
@@ -143,10 +142,10 @@ public class DataCollectionDataUtil {
      */
     public static Map<String, Double> parseCellTolerancesFromJson(String json) {
         TableRemarkDTO dto = parseTableRemark(json);
-        if (dto == null || dto.getCellTolerances() == null) {
+        if (dto == null || dto.getTableCellAnswers() == null) {
             return Map.of();
         }
-        return dto.getCellTolerances();
+        return TableCellAnswer.toToleranceMap(dto.getTableCellAnswers());
     }
 
     /**
@@ -160,6 +159,6 @@ public class DataCollectionDataUtil {
         if (dto == null || dto.getColumnTolerances() == null) {
             return Map.of();
         }
-        return dto.getColumnTolerances();
+        return ColumnTolerance.toMap(dto.getColumnTolerances());
     }
 }

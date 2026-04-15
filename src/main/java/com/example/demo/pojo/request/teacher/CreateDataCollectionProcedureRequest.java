@@ -1,11 +1,11 @@
 package com.example.demo.pojo.request.teacher;
 
+import com.example.demo.pojo.dto.mapvo.ColumnTolerance;
 import com.example.demo.pojo.dto.mapvo.DataField;
 import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 创建数据收集步骤请求
@@ -40,8 +40,8 @@ public class CreateDataCollectionProcedureRequest {
     /** 表格单元格答案列表，当dataType=2时使用，只对数字类型单元格进行自动判分。每个单元格可单独配置tolerance属性（百分比，单位：%），优先级最高 */
     private List<TableCellAnswer> tableCellAnswers;
 
-    /** 表格列级误差映射（可选，列名→误差百分比，单位：%），同一列所有单元格共享该误差配置，优先级低于单元格级误差，高于步骤级误差 */
-    private Map<String, Double> tableColumnTolerances;
+    /** 表格列级误差列表（可选），同一列所有单元格共享该误差配置，优先级低于单元格级误差，高于步骤级误差 */
+    private List<ColumnTolerance> tableColumnTolerances;
 
     /** 步骤级误差百分比（可选，用于数值类答案的判分），类型：Double，用途：数值类答案的允许相对误差，示例：5 (表示±5%的误差)，可以为null，表示精确匹配 */
     private Double tolerance;

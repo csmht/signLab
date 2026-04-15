@@ -1,5 +1,6 @@
 package com.example.demo.pojo.dto.remark;
 
+import com.example.demo.pojo.dto.mapvo.DataField;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -7,14 +8,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * 填空类型 remark DTO
  * 用于序列化/反序列化 data_collection.remark 中的填空类型 JSON
  *
  * JSON 格式：
- * {"fillBlanks":{"field":"value"},"fieldTolerances":{"field":0.1}}
+ * {"fillBlanks":[{"fieldName":"Uab","value":"","tolerance":5.0}]}
  */
 @Data
 @Builder
@@ -24,9 +25,6 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FillBlankRemarkDTO {
 
-    /** 填空数据（字段名 -> 答案） */
-    private Map<String, String> fillBlanks;
-
-    /** 字段级误差映射（字段名 -> 误差百分比） */
-    private Map<String, Double> fieldTolerances;
+    /** 填空数据列表（字段名 + 值 + 误差） */
+    private List<DataField> fillBlanks;
 }
