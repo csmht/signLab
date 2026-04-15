@@ -5,8 +5,6 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.tangzc.autotable.annotation.AutoTable;
-import com.tangzc.autotable.annotation.TableIndex;
-import com.tangzc.autotable.annotation.enums.IndexTypeEnum;
 import com.tangzc.mpe.autotable.annotation.Column;
 import com.tangzc.mpe.autotable.annotation.Table;
 import lombok.Data;
@@ -22,7 +20,6 @@ import java.util.List;
 @AutoTable
 @Table(value = "classes_experiment", comment = "班级实验表 - 记录班级参加的实验（即课次）")
 @TableName("classes_experiment")
-@TableIndex(name = "courseId_experimentId",fields = {"courseId","experimentId"},type = IndexTypeEnum.UNIQUE)
 public class ClassExperiment {
 
     /** 主键ID */
