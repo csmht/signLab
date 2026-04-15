@@ -8,7 +8,6 @@ import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.*;
-import com.example.demo.util.DataCollectionDataUtil;
 import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -965,7 +964,7 @@ public class TeacherStudentProcedureQueryService {
                     new StudentProcedureDetailWithAnswerResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                fillDataCollectionRemark(detail, dataCollection);
+                detail.setRemark(dataCollection.getRemark());
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
 
@@ -975,12 +974,12 @@ public class TeacherStudentProcedureQueryService {
                 attachmentWrapper.eq(StudentProcedureAttachment::getStudentUsername, username);
                 List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
 
-                List<BaseSubmittedDataCollectionDetailResponse.AttachmentInfo> photos = new ArrayList<>();
-                List<BaseSubmittedDataCollectionDetailResponse.AttachmentInfo> documents = new ArrayList<>();
+                List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> photos = new ArrayList<>();
+                List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> documents = new ArrayList<>();
 
                 for (StudentProcedureAttachment attachment : attachments) {
-                    BaseSubmittedDataCollectionDetailResponse.AttachmentInfo info =
-                        new BaseSubmittedDataCollectionDetailResponse.AttachmentInfo();
+                    StudentProcedureDetailWithAnswerResponse.AttachmentInfo info =
+                        new StudentProcedureDetailWithAnswerResponse.AttachmentInfo();
                     info.setId(attachment.getId());
                     info.setFileType(attachment.getFileType());
                     info.setFileFormat(attachment.getFileFormat());
@@ -1125,7 +1124,7 @@ public class TeacherStudentProcedureQueryService {
                     new StudentProcedureDetailWithoutAnswerResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                fillDataCollectionRemark(detail, dataCollection);
+                detail.setRemark(dataCollection.getRemark());
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
                 response.setDataCollectionDetail(detail);
@@ -1244,54 +1243,6 @@ public class TeacherStudentProcedureQueryService {
      */
     private Map<Long, String> parseTopicAnswers(String answerJson) {
         return com.example.demo.util.AnswerMapJSONUntil.parseTopicData(answerJson);
-    }
-
-    private void fillDataCollectionRemark(
-            StudentProcedureDetailWithAnswerResponse.DataCollectionDetail detail,
-            DataCollection dataCollection) {
-        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
-        if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
-            detail.setTableRemark(null);
-        } else if (Integer.valueOf(2).equals(type)) {
-            detail.setFillBlankRemark(null);
-            detail.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
-        } else {
-            detail.setFillBlankRemark(null);
-            detail.setTableRemark(null);
-        }
-    }
-
-    private void fillDataCollectionRemark(
-            StudentProcedureDetailWithoutAnswerResponse.DataCollectionDetail detail,
-            DataCollection dataCollection) {
-        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
-        if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
-            detail.setTableRemark(null);
-        } else if (Integer.valueOf(2).equals(type)) {
-            detail.setFillBlankRemark(null);
-            detail.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
-        } else {
-            detail.setFillBlankRemark(null);
-            detail.setTableRemark(null);
-        }
-    }
-
-    private void fillDataCollectionRemark(
-            StudentDataCollectionProcedureDetailResponse.DataCollectionDetail detail,
-            DataCollection dataCollection) {
-        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
-        if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
-            detail.setTableRemark(null);
-        } else if (Integer.valueOf(2).equals(type)) {
-            detail.setFillBlankRemark(null);
-            detail.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
-        } else {
-            detail.setFillBlankRemark(null);
-            detail.setTableRemark(null);
-        }
     }
 
     // ============================================
@@ -1448,7 +1399,7 @@ public class TeacherStudentProcedureQueryService {
                     new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                fillDataCollectionRemark(detail, dataCollection);
+                detail.setRemark(dataCollection.getRemark());
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
 
@@ -1458,12 +1409,12 @@ public class TeacherStudentProcedureQueryService {
                 attachmentWrapper.eq(StudentProcedureAttachment::getStudentUsername, studentUsername);
                 List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
 
-                List<BaseSubmittedDataCollectionDetailResponse.AttachmentInfo> photos = new ArrayList<>();
-                List<BaseSubmittedDataCollectionDetailResponse.AttachmentInfo> documents = new ArrayList<>();
+                List<com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo> photos = new ArrayList<>();
+                List<com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo> documents = new ArrayList<>();
 
                 for (StudentProcedureAttachment attachment : attachments) {
-                    BaseSubmittedDataCollectionDetailResponse.AttachmentInfo info =
-                        new BaseSubmittedDataCollectionDetailResponse.AttachmentInfo();
+                    com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo info =
+                        new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.AttachmentInfo();
                     info.setId(attachment.getId());
                     info.setFileType(attachment.getFileType());
                     info.setFileFormat(attachment.getFileFormat());
@@ -1551,7 +1502,7 @@ public class TeacherStudentProcedureQueryService {
                     new com.example.demo.pojo.response.StudentDataCollectionProcedureDetailResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                fillDataCollectionRemark(detail, dataCollection);
+                detail.setRemark(dataCollection.getRemark());
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
 

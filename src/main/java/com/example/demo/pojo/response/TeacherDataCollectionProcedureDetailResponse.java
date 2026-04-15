@@ -1,7 +1,5 @@
 package com.example.demo.pojo.response;
 
-import com.example.demo.pojo.dto.remark.FillBlankRemarkDTO;
-import com.example.demo.pojo.dto.remark.TableRemarkDTO;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -69,14 +67,9 @@ public class TeacherDataCollectionProcedureDetailResponse {
     private Long dataCollectionType;
 
     /**
-     * 填空类型数据描述（dataCollectionType=1 时有效）
+     * 数据描述
      */
-    private FillBlankRemarkDTO fillBlankRemark;
-
-    /**
-     * 表格类型数据描述（dataCollectionType=2 时有效）
-     */
-    private TableRemarkDTO tableRemark;
+    private String dataRemark;
 
     /**
      * 是否需要提交照片

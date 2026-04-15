@@ -24,7 +24,6 @@ import com.example.demo.pojo.response.TeacherDataCollectionProcedureDetailRespon
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherTopicProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherVideoProcedureDetailResponse;
-import com.example.demo.util.DataCollectionDataUtil;
 import com.example.demo.util.ProcedureTimeCalculator;
 import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
@@ -193,7 +192,7 @@ public class TeacherProcedureQueryService {
         if (dataCollection != null) {
             response.setDataCollectionId(dataCollection.getId());
             response.setDataCollectionType(dataCollection.getType());
-            fillDataCollectionRemark(response, dataCollection);
+            response.setDataRemark(dataCollection.getRemark());
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
             response.setTolerance(dataCollection.getTolerance());
@@ -562,38 +561,10 @@ public class TeacherProcedureQueryService {
         if (dataCollection != null) {
             response.setDataCollectionId(dataCollection.getId());
             response.setDataCollectionType(dataCollection.getType());
-            fillDataCollectionRemark(response, dataCollection);
+            response.setDataRemark(dataCollection.getRemark());
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
             response.setTolerance(dataCollection.getTolerance());
-        }
-    }
-
-    private void fillDataCollectionRemark(TeacherProcedureDetailResponse response, DataCollection dataCollection) {
-        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
-        if (Integer.valueOf(1).equals(type)) {
-            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
-            response.setTableRemark(null);
-        } else if (Integer.valueOf(2).equals(type)) {
-            response.setFillBlankRemark(null);
-            response.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
-        } else {
-            response.setFillBlankRemark(null);
-            response.setTableRemark(null);
-        }
-    }
-
-    private void fillDataCollectionRemark(TeacherDataCollectionProcedureDetailResponse response, DataCollection dataCollection) {
-        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
-        if (Integer.valueOf(1).equals(type)) {
-            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
-            response.setTableRemark(null);
-        } else if (Integer.valueOf(2).equals(type)) {
-            response.setFillBlankRemark(null);
-            response.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
-        } else {
-            response.setFillBlankRemark(null);
-            response.setTableRemark(null);
         }
     }
 
