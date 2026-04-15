@@ -2,6 +2,7 @@ package com.example.demo.pojo.response;
 
 import com.example.demo.pojo.dto.mapvo.TopicChoice;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 
@@ -86,31 +87,8 @@ public class StudentProcedureDetailWithoutAnswerResponse {
      * 数据收集详情
      */
     @Data
-    public static class DataCollectionDetail {
-        /**
-         * 数据收集ID
-         */
-        private Long id;
-
-        /**
-         * 数据收集类型（1-关键数据，2-表格数据）
-         */
-        private Integer type;
-
-        /**
-         * 数据描述
-         */
-        private String remark;
-
-        /**
-         * 是否需要提交照片
-         */
-        private Boolean needPhoto;
-
-        /**
-         * 是否需要提交文档
-         */
-        private Boolean needDoc;
+    @EqualsAndHashCode(callSuper = true)
+    public static class DataCollectionDetail extends BaseDataCollectionDetailResponse {
     }
 
     /**
