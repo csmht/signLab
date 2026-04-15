@@ -1,9 +1,10 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 学生数据收集步骤详情响应
@@ -61,15 +62,101 @@ public class StudentDataCollectionProcedureDetailResponse {
      * 数据收集详情
      */
     @Data
-    @EqualsAndHashCode(callSuper = true)
-    public static class DataCollectionDetail extends BaseSubmittedDataCollectionDetailResponse {
+    public static class DataCollectionDetail {
+        /**
+         * 数据收集ID
+         */
+        private Long id;
+
+        /**
+         * 数据收集类型（1-关键数据，2-表格数据）
+         */
+        private Integer type;
+
+        /**
+         * 数据描述
+         */
+        private String remark;
+
+        /**
+         * 是否需要提交照片
+         */
+        private Boolean needPhoto;
+
+        /**
+         * 是否需要提交文档
+         */
+        private Boolean needDoc;
+
+        /**
+         * 填空答案列表
+         */
+        private List<FillBlankAnswer> fillBlankAnswers;
+
+        /**
+         * 表格答案列表
+         */
+        private List<TableCellAnswer> tableCellAnswers;
+
+        /**
+         * 正确答案（JSON格式）
+         */
+        private String correctAnswer;
+
+        /**
+         * 提交的照片文件列表
+         */
+        private List<AttachmentInfo> photos;
+
+        /**
+         * 提交的文档文件列表
+         */
+        private List<AttachmentInfo> documents;
     }
 
     /**
      * 附件信息
      */
     @Data
-    @EqualsAndHashCode(callSuper = true)
-    public static class AttachmentInfo extends BaseSubmittedDataCollectionDetailResponse.AttachmentInfo {
+    public static class AttachmentInfo {
+        /**
+         * 附件ID
+         */
+        private Long id;
+
+        /**
+         * 文件类型（1-照片，2-文档）
+         */
+        private Integer fileType;
+
+        /**
+         * 文件格式
+         */
+        private String fileFormat;
+
+        /**
+         * 原始文件名
+         */
+        private String originalFileName;
+
+        /**
+         * 文件大小（字节）
+         */
+        private Long fileSize;
+
+        /**
+         * 文件备注
+         */
+        private String remark;
+
+        /**
+         * 创建时间
+         */
+        private LocalDateTime createTime;
+
+        /**
+         * 文件下载密钥
+         */
+        private String downloadKey;
     }
 }
