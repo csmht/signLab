@@ -21,6 +21,7 @@ import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.response.StudentExperimentDetailResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailResponse;
+import com.example.demo.util.DataCollectionDataUtil;
 import com.example.demo.util.ProcedureTimeCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -288,7 +289,7 @@ public class StudentExperimentService {
         DataCollection dataCollection = dataCollectionMapper.selectById(procedure.getDataCollectionId());
         if (dataCollection != null) {
             response.setDataCollectionType(dataCollection.getType());
-            response.setDataRemark(dataCollection.getRemark());
+            fillDataCollectionRemark(response, dataCollection);
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
         }
@@ -355,32 +356,51 @@ public class StudentExperimentService {
             ExperimentalProcedure currentProcedure,
             String studentUsername,
             String classCode) {
-
-        // 第一个步骤没有前置步骤
-        if (currentProcedure.getNumber() == 1) {
+        if (currentProcedure.getNumber() == null || currentProcedure.getNumber() <= 1) {
             return true;
         }
 
-        // 查询所有步骤
-        List<ExperimentalProcedure> allProcedures = experimentalProcedureService
-                .getByExperimentId(currentProcedure.getExperimentId());
+        List<StudentExperimentalProcedure> studentProcedures =
+                studentExperimentalProcedureService.getByStudentAndExperiment(
+                        studentUsername,
+                        classCode,
+                        currentProcedure.getExperimentId());
 
-        // 检查序号小于当前步骤的步骤
-        for (ExperimentalProcedure procedure : allProcedures) {
-            if (procedure.getNumber() >= currentProcedure.getNumber()) {
-                break;
-            }
+        if (studentProcedures == null || studentProcedures.isEmpty()) {
+            return false;
+        }
 
-            // 只要有一个不可跳过的步骤未完成，则返回 false
-            if (!Boolean.TRUE.equals(procedure.getIsSkip())) {
-                boolean isCompleted = studentExperimentalProcedureService
-                        .isProcedureCompleted(studentUsername, classCode, procedure.getId());
-                if (!isCompleted) {
+        List<ExperimentalProcedure> procedures =
+                experimentalProcedureService.getByExperimentId(currentProcedure.getExperimentId());
+        if (procedures == null || procedures.isEmpty()) {
+            return true;
+        }
+
+        for (ExperimentalProcedure procedure : procedures) {
+            if (procedure.getNumber() != null && procedure.getNumber() < currentProcedure.getNumber()) {
+                boolean completed = studentProcedures.stream()
+                        .anyMatch(sp -> sp.getExperimentalProcedureId().equals(procedure.getId())
+                                && sp.getAnswer() != null
+                                && !sp.getAnswer().trim().isEmpty());
+                if (!completed) {
                     return false;
                 }
             }
         }
-
         return true;
+    }
+
+    private void fillDataCollectionRemark(StudentProcedureDetailResponse response, DataCollection dataCollection) {
+        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
+        if (Integer.valueOf(1).equals(type)) {
+            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
+            response.setTableRemark(null);
+        } else if (Integer.valueOf(2).equals(type)) {
+            response.setFillBlankRemark(null);
+            response.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
+        } else {
+            response.setFillBlankRemark(null);
+            response.setTableRemark(null);
+        }
     }
 }

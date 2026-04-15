@@ -7,9 +7,11 @@ import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
 import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.pojo.dto.mapvo.TopicChoice;
 import com.example.demo.pojo.entity.*;
+import com.example.demo.pojo.response.BaseSubmittedDataCollectionDetailResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithAnswerResponse;
 import com.example.demo.pojo.response.StudentProcedureDetailWithoutAnswerResponse;
 import com.example.demo.util.AnswerMapJSONUntil;
+import com.example.demo.util.DataCollectionDataUtil;
 import com.example.demo.util.ProcedureTimeCalculator;
 import com.example.demo.util.TimedQuizKeyGenerator;
 import com.example.demo.util.TopicAnswerContractUtil;
@@ -283,7 +285,7 @@ public class StudentProcedureQueryService {
                     new StudentProcedureDetailWithAnswerResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                detail.setRemark(dataCollection.getRemark());
+                fillDataCollectionRemark(detail, dataCollection);
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
                 detail.setTolerance(dataCollection.getTolerance());
@@ -294,12 +296,12 @@ public class StudentProcedureQueryService {
                 attachmentWrapper.eq(StudentProcedureAttachment::getStudentUsername, username);
                 List<StudentProcedureAttachment> attachments = studentProcedureAttachmentMapper.selectList(attachmentWrapper);
 
-                List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> photos = new ArrayList<>();
-                List<StudentProcedureDetailWithAnswerResponse.AttachmentInfo> documents = new ArrayList<>();
+                List<BaseSubmittedDataCollectionDetailResponse.AttachmentInfo> photos = new ArrayList<>();
+                List<BaseSubmittedDataCollectionDetailResponse.AttachmentInfo> documents = new ArrayList<>();
 
                 for (StudentProcedureAttachment attachment : attachments) {
-                    StudentProcedureDetailWithAnswerResponse.AttachmentInfo info =
-                        new StudentProcedureDetailWithAnswerResponse.AttachmentInfo();
+                    BaseSubmittedDataCollectionDetailResponse.AttachmentInfo info =
+                        new BaseSubmittedDataCollectionDetailResponse.AttachmentInfo();
                     info.setId(attachment.getId());
                     info.setFileType(attachment.getFileType());
                     info.setFileFormat(attachment.getFileFormat());
@@ -370,7 +372,7 @@ public class StudentProcedureQueryService {
                     new StudentProcedureDetailWithoutAnswerResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                detail.setRemark(dataCollection.getRemark());
+                fillDataCollectionRemark(detail, dataCollection);
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
                 response.setDataCollectionDetail(detail);
@@ -750,5 +752,37 @@ public class StudentProcedureQueryService {
             }
         }
         return new ArrayList<>();
+    }
+
+    private void fillDataCollectionRemark(
+            StudentProcedureDetailWithAnswerResponse.DataCollectionDetail detail,
+            DataCollection dataCollection) {
+        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
+        if (Integer.valueOf(1).equals(type)) {
+            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
+            detail.setTableRemark(null);
+        } else if (Integer.valueOf(2).equals(type)) {
+            detail.setFillBlankRemark(null);
+            detail.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
+        } else {
+            detail.setFillBlankRemark(null);
+            detail.setTableRemark(null);
+        }
+    }
+
+    private void fillDataCollectionRemark(
+            StudentProcedureDetailWithoutAnswerResponse.DataCollectionDetail detail,
+            DataCollection dataCollection) {
+        Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
+        if (Integer.valueOf(1).equals(type)) {
+            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
+            detail.setTableRemark(null);
+        } else if (Integer.valueOf(2).equals(type)) {
+            detail.setFillBlankRemark(null);
+            detail.setTableRemark(DataCollectionDataUtil.parseTableRemark(dataCollection.getRemark()));
+        } else {
+            detail.setFillBlankRemark(null);
+            detail.setTableRemark(null);
+        }
     }
 }

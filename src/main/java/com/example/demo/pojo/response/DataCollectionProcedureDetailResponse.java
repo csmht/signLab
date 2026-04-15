@@ -1,6 +1,7 @@
 package com.example.demo.pojo.response;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 数据收集步骤详情响应（未提交）
@@ -43,30 +44,7 @@ public class DataCollectionProcedureDetailResponse {
      * 数据收集详情
      */
     @Data
-    public static class DataCollectionDetail {
-        /**
-         * 数据收集ID
-         */
-        private Long id;
-
-        /**
-         * 数据收集类型（1-关键数据，2-表格数据，3-文件）
-         */
-        private Integer type;
-
-        /**
-         * 数据描述
-         */
-        private String remark;
-
-        /**
-         * 是否需要提交照片
-         */
-        private Boolean needPhoto;
-
-        /**
-         * 是否需要提交文档
-         */
-        private Boolean needDoc;
+    @EqualsAndHashCode(callSuper = true)
+    public static class DataCollectionDetail extends BaseDataCollectionDetailResponse {
     }
 }

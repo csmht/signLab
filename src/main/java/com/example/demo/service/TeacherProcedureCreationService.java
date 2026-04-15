@@ -34,8 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +52,6 @@ public class TeacherProcedureCreationService {
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final TopicMapper topicMapper;
-    private final ObjectMapper objectMapper;
 
     /**
      * 获取实验的最大步骤号
@@ -188,17 +185,17 @@ public class TeacherProcedureCreationService {
         String correctAnswer;
         if (request.getDataType() == 1) {
             remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
-                    dataFieldsMap, dataFieldsMap, request.getTolerance(), fieldTolerances);
+                    dataFieldsMap, fieldTolerances);
             correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
         } else if (request.getDataType() == 2) {
             remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
                     request.getTableRowHeaders(), request.getTableColumnHeaders(), tableCellAnswersMap,
-                    tableCellAnswersMap, request.getTolerance(), cellTolerances, request.getTableColumnTolerances());
+                    cellTolerances, request.getTableColumnTolerances());
             correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(tableCellAnswersMap);
         } else {
-            remark = buildDataCollectionRemark(request.getDataType(), dataFieldsMap,
-                    request.getTableRowHeaders(), request.getTableColumnHeaders());
-            correctAnswer = buildCorrectAnswerJson(request.getDataType(), dataFieldsMap, tableCellAnswersMap);
+            // 文件上传类型（type=3）：remark 无额外数据
+            remark = "{}";
+            correctAnswer = null;
         }
 
         // 3. 创建数据收集记录
@@ -433,17 +430,17 @@ public class TeacherProcedureCreationService {
                 String correctAnswer;
                 if (request.getDataType() == 1) {
                     remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
-                            dataFieldsMap, dataFieldsMap, request.getTolerance(), fieldTolerances);
+                            dataFieldsMap, fieldTolerances);
                     correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
                 } else if (request.getDataType() == 2) {
                     remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
                             request.getTableRowHeaders(), request.getTableColumnHeaders(), tableCellAnswersMap,
-                            tableCellAnswersMap, request.getTolerance(), cellTolerances, request.getTableColumnTolerances());
+                            cellTolerances, request.getTableColumnTolerances());
                     correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(tableCellAnswersMap);
                 } else {
-                    remark = buildDataCollectionRemark(request.getDataType(), dataFieldsMap,
-                            request.getTableRowHeaders(), request.getTableColumnHeaders());
-                    correctAnswer = buildCorrectAnswerJson(request.getDataType(), dataFieldsMap, tableCellAnswersMap);
+                    // 文件上传类型（type=3）：remark 无额外数据
+                    remark = "{}";
+                    correctAnswer = null;
                 }
 
                 dataCollection.setRemark(remark);
@@ -700,17 +697,17 @@ public class TeacherProcedureCreationService {
         String correctAnswer;
         if (request.getDataType() == 1) {
             remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
-                    dataFieldsMap, dataFieldsMap, request.getTolerance(), fieldTolerances);
+                    dataFieldsMap, fieldTolerances);
             correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
         } else if (request.getDataType() == 2) {
             remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
                     request.getTableRowHeaders(), request.getTableColumnHeaders(), tableCellAnswersMap,
-                    tableCellAnswersMap, request.getTolerance(), cellTolerances, request.getTableColumnTolerances());
+                    cellTolerances, request.getTableColumnTolerances());
             correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(tableCellAnswersMap);
         } else {
-            remark = buildDataCollectionRemark(request.getDataType(), dataFieldsMap,
-                    request.getTableRowHeaders(), request.getTableColumnHeaders());
-            correctAnswer = buildCorrectAnswerJson(request.getDataType(), dataFieldsMap, tableCellAnswersMap);
+            // 文件上传类型（type=3）：remark 无额外数据
+            remark = "{}";
+            correctAnswer = null;
         }
 
         // 创建数据收集记录
@@ -867,53 +864,6 @@ public class TeacherProcedureCreationService {
         }
         if (startTime.isAfter(endTime)) {
             throw new com.example.demo.exception.BusinessException(400, "开始时间不能晚于结束时间");
-        }
-    }
-
-    /**
-     * 构建数据收集的remark（数据描述JSON）
-     */
-    private String buildDataCollectionRemark(Integer dataType,
-                                             Map<String, String> dataFields,
-                                             List<String> tableRowHeaders,
-                                             List<String> tableColumnHeaders) {
-        try {
-            Map<String, Object> remarkData = new HashMap<>();
-
-            if (dataType == 1) {
-                // 填空类型：保存数据字段名称列表
-                remarkData.put("dataFields", dataFields != null ? dataFields.keySet() : List.of());
-            } else if (dataType == 2) {
-                // 表格类型：保存表格���构
-                remarkData.put("tableRowHeaders", tableRowHeaders);
-                remarkData.put("tableColumnHeaders", tableColumnHeaders);
-            }
-
-            return objectMapper.writeValueAsString(remarkData);
-        } catch (Exception e) {
-            log.error("构建数据描述JSON失败", e);
-            throw new com.example.demo.exception.BusinessException(500, "构建数据描述失败");
-        }
-    }
-
-    /**
-     * 构建数据收集的correctAnswer（正确答案JSON）
-     */
-    private String buildCorrectAnswerJson(Integer dataType,
-                                          Map<String, String> dataFields,
-                                          Map<String, String> tableCellAnswers) {
-        try {
-            if (dataType == 1) {
-                // 填空类型：使用 dataFields 作为正确答案
-                return objectMapper.writeValueAsString(dataFields);
-            } else if (dataType == 2) {
-                // 表格类型：使用 tableCellAnswers 作为正确答案
-                return objectMapper.writeValueAsString(tableCellAnswers);
-            }
-            return null;
-        } catch (Exception e) {
-            log.error("构建正确答案JSON失败", e);
-            throw new com.example.demo.exception.BusinessException(500, "构建正确答案失败");
         }
     }
 

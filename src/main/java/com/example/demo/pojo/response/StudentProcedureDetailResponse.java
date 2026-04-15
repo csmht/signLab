@@ -1,5 +1,7 @@
 package com.example.demo.pojo.response;
 
+import com.example.demo.pojo.dto.remark.FillBlankRemarkDTO;
+import com.example.demo.pojo.dto.remark.TableRemarkDTO;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -132,9 +134,14 @@ public class StudentProcedureDetailResponse {
     private Long dataCollectionType;
 
     /**
-     * 数据描述（类型2时有效）
+     * 填空类型数据描述（类型2且 dataCollectionType=1 时有效）
      */
-    private String dataRemark;
+    private FillBlankRemarkDTO fillBlankRemark;
+
+    /**
+     * 表格类型数据描述（类型2且 dataCollectionType=2 时有效）
+     */
+    private TableRemarkDTO tableRemark;
 
     /**
      * 是否需要提交照片（类型2时有效）
