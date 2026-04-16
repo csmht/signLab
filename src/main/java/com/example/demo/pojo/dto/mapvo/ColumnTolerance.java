@@ -9,28 +9,20 @@ import java.util.stream.Collectors;
 
 /**
  * 表格列级误差
- * 用于替代 Map<String, Double> 结构（列级误差映射）
- * Key: 列名，Value: 误差百分比
+ * 使用 columnIndex 定位列（从 0 开始，对应 tableColumnHeaders 数组下标）
  */
 @Data
 public class ColumnTolerance {
 
-    /**
-     * 列名（如 "A"、"B"）
-     */
-    private String columnName;
+    /** 列索引（从 0 开始，对应 tableColumnHeaders 数组下标） */
+    private Integer columnIndex;
 
-    /**
-     * 列级误差百分比（单位：%）
-     * 示例：5 表示允许±5%的相对误差
-     */
+    /** 列级误差百分比（单位：%），示例：5 表示允许±5%的相对误差 */
     private Double tolerance;
 
     /**
      * 将 List<ColumnTolerance> 转换为 Map<String, Double>
-     *
-     * @param list 列级误差列表
-     * @return Map<列名, 误差百分比>
+     * key 格式: 列索引字符串（如 "0", "1"）
      */
     public static Map<String, Double> toMap(List<ColumnTolerance> list) {
         if (list == null || list.isEmpty()) {
@@ -38,14 +30,12 @@ public class ColumnTolerance {
         }
         return list.stream()
                 .filter(ct -> ct.getTolerance() != null)
-                .collect(Collectors.toMap(ColumnTolerance::getColumnName, ColumnTolerance::getTolerance));
+                .collect(Collectors.toMap(ct -> String.valueOf(ct.getColumnIndex()), ColumnTolerance::getTolerance));
     }
 
     /**
      * 将 Map<String, Double> 转换为 List<ColumnTolerance>
-     *
-     * @param map Map<列名, 误差百分比>
-     * @return 列级误差列表
+     * key 格式: 列索引字符串（如 "0", "1"）
      */
     public static List<ColumnTolerance> fromMap(Map<String, Double> map) {
         if (map == null || map.isEmpty()) {
@@ -54,7 +44,7 @@ public class ColumnTolerance {
         return map.entrySet().stream()
                 .map(entry -> {
                     ColumnTolerance ct = new ColumnTolerance();
-                    ct.setColumnName(entry.getKey());
+                    ct.setColumnIndex(Integer.parseInt(entry.getKey()));
                     ct.setTolerance(entry.getValue());
                     return ct;
                 })

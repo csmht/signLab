@@ -312,7 +312,7 @@ public class AnswerMapJSONUntil {
      * 将数据收集答案转换为答案 JSON 字符串
      *
      * @param fillBlankAnswers 填空答案 Map<字段名, 答案>
-     * @param tableCellAnswers 表格单元格答案 Map<单元格位置, 答案>
+     * @param tableCellAnswers 表格单元格答案 Map<位置key, 答案>（位置key格式: "rowIndex-columnIndex"）
      * @return JSON 字符串，转换失败返回 null
      */
     public static String toDataCollectionJson(Map<String, String> fillBlankAnswers,

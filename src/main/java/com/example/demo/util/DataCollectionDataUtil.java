@@ -18,9 +18,9 @@ import java.util.Map;
  *
  * remark JSON 格式（按数据类型区分）：
  * - 填空类型（type=1）：{"fillBlanks":[{"fieldName":"Uab","value":"","tolerance":5.0}]}
- * - 表格类型（type=2）：{"tableRowHeaders":["A"],"tableColumnHeaders":["1"],
- *   "tableCellAnswers":[{"cellPosition":"A1","value":"3.5","tolerance":5.0}],
- *   "columnTolerances":[{"columnName":"A","tolerance":3.0}]}
+ * - 表格类型（type=2）：{"tableRowHeaders":["A","B"],"tableColumnHeaders":["1","2"],
+ *   "tableCellAnswers":[{"rowIndex":0,"columnIndex":0,"value":"3.5","tolerance":5.0}],
+ *   "columnTolerances":[{"columnIndex":0,"tolerance":3.0}]}
  * - 文件类型（type=3）：{}
  *
  * 注意：dataType 已从 remark 中移除，请通过 DataCollection.type 获取数据类型

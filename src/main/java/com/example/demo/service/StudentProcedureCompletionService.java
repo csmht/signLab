@@ -411,15 +411,15 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             // 判断表格类型答案
             if (tableCellAnswers != null && !tableCellAnswers.isEmpty()) {
                 for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
-                    String cellPosition = entry.getKey();
-                    String studentAnswer = tableCellAnswers.get(cellPosition);
+                    String positionKey = entry.getKey(); // 格式: "rowIndex-columnIndex"，如 "0-0"
+                    String studentAnswer = tableCellAnswers.get(positionKey);
 
                     // 误差优先级：单元格级 > 列级 > 步骤级
-                    Double finalTolerance = cellTolerances.get(cellPosition);
+                    Double finalTolerance = cellTolerances.get(positionKey);
                     if (finalTolerance == null) {
-                        // 解析单元格位置的列名（如A1→A，B2→B）
-                        String columnName = cellPosition.replaceAll("\\d", "");
-                        finalTolerance = columnTolerances.get(columnName);
+                        // 从位置 key 中提取列索引（如 "0-1" → "1"）
+                        String columnIndex = positionKey.split("-")[1];
+                        finalTolerance = columnTolerances.get(columnIndex);
                         if (finalTolerance == null) {
                             finalTolerance = stepTolerance;
                         }
