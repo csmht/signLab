@@ -393,7 +393,7 @@ public class StudentExperimentService {
     private void fillDataCollectionRemark(StudentProcedureDetailResponse response, DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
+            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
             response.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             response.setFillBlankRemark(null);

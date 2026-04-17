@@ -6,6 +6,7 @@ import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.pojo.dto.remark.FillBlankRemarkDTO;
 import com.example.demo.pojo.dto.remark.TableRemarkDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -106,6 +107,34 @@ public class DataCollectionDataUtil {
     }
 
     /**
+     * 从 remark JSON 和 correctAnswer JSON 中解析填空类型 DTO
+     * remark 提供字段结构与误差，correctAnswer 提供字段值
+     *
+     * @param remarkJson remark JSON字符串
+     * @param correctAnswerJson correctAnswer JSON字符串
+     * @return 填空类型 DTO，解析失败时尽量返回可用结构
+     */
+    public static FillBlankRemarkDTO parseFillBlankRemark(String remarkJson, String correctAnswerJson) {
+        FillBlankRemarkDTO dto = parseFillBlankRemark(remarkJson);
+        Map<String, String> correctAnswerMap = parseCorrectAnswer(correctAnswerJson);
+
+        if (dto != null && dto.getFillBlanks() != null && !dto.getFillBlanks().isEmpty()) {
+            if (!correctAnswerMap.isEmpty()) {
+                dto.getFillBlanks().forEach(field -> field.setValue(correctAnswerMap.get(field.getFieldName())));
+            }
+            return dto;
+        }
+
+        if (correctAnswerMap.isEmpty()) {
+            return dto;
+        }
+
+        return FillBlankRemarkDTO.builder()
+                .fillBlanks(DataField.fromMap(correctAnswerMap))
+                .build();
+    }
+
+    /**
      * 从 remark JSON 中解析为表格类型 DTO
      *
      * @param remarkJson remark JSON字符串
@@ -160,5 +189,18 @@ public class DataCollectionDataUtil {
             return Map.of();
         }
         return ColumnTolerance.toMap(dto.getColumnTolerances());
+    }
+
+    private static Map<String, String> parseCorrectAnswer(String correctAnswerJson) {
+        if (correctAnswerJson == null || correctAnswerJson.trim().isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            return objectMapper.readValue(correctAnswerJson, new TypeReference<Map<String, String>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("解析填空类型 correctAnswer 失败", e);
+            return Map.of();
+        }
     }
 }

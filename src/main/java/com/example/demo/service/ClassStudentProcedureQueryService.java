@@ -874,7 +874,7 @@ public class ClassStudentProcedureQueryService {
             DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark()));
+            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
             detail.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             detail.setFillBlankRemark(null);
