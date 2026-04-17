@@ -1,5 +1,7 @@
 package com.example.demo.pojo.dto.mapvo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -12,6 +14,7 @@ import java.util.stream.Collectors;
  * 使用 rowIndex + columnIndex 定位单元格（从 0 开始）
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TableCellAnswer {
 
     /** 行索引（从 0 开始，对应 tableRowHeaders 数组下标） */
@@ -29,6 +32,7 @@ public class TableCellAnswer {
     /**
      * 获取位置标识 key（格式: "rowIndex-columnIndex"，如 "0-0"）
      */
+    @JsonIgnore
     public String getPositionKey() {
         return rowIndex + "-" + columnIndex;
     }
