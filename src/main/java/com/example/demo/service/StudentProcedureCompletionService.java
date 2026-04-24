@@ -142,6 +142,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "提交题库答案失败");
         }
 
+        autoGradeTopicProcedure(studentProcedure.getId(), normalizedAnswers);
+
         log.info("学生 {} 在班级 {} 完成题库练习，步骤：{}，题目数：{}",
                 studentUsername, classCode, procedureId, normalizedAnswers.size());
     }
@@ -610,6 +612,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "修改题库答案失败");
         }
 
+        autoGradeTopicProcedure(studentProcedure.getId(), normalizedAnswers);
+
         log.info("学生 {} 在班级 {} 修改题库练习，步骤：{}，题目数：{}",
                 studentUsername, classCode, procedureId, normalizedAnswers.size());
     }
@@ -784,6 +788,57 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
     private boolean shouldTriggerAutoGrade(Long dataType) {
         return dataType != null && (dataType == 1L || dataType == 2L);
+    }
+
+    private void autoGradeTopicProcedure(Long studentProcedureId, Map<Long, String> answers) {
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getById(studentProcedureId);
+        if (studentProcedure == null) {
+            throw new BusinessException(500, "题库答案记录不存在");
+        }
+
+        try {
+            if (answers == null || answers.isEmpty()) {
+                resetMachineGrade(studentProcedure);
+                studentExperimentalProcedureService.updateById(studentProcedure);
+                return;
+            }
+
+            List<Topic> topics = loadTopicsByIds(answers.keySet());
+            if (topics.size() != answers.size()) {
+                resetMachineGrade(studentProcedure);
+                studentExperimentalProcedureService.updateById(studentProcedure);
+                return;
+            }
+
+            Map<Long, Topic> topicMap = new HashMap<>();
+            for (Topic topic : topics) {
+                topicMap.put(topic.getId(), topic);
+            }
+
+            int totalCount = answers.size();
+            int correctCount = 0;
+            for (Map.Entry<Long, String> entry : answers.entrySet()) {
+                Topic topic = topicMap.get(entry.getKey());
+                if (topic == null || topic.getCorrectAnswer() == null || topic.getCorrectAnswer().trim().isEmpty()) {
+                    resetMachineGrade(studentProcedure);
+                    studentExperimentalProcedureService.updateById(studentProcedure);
+                    return;
+                }
+                if (TopicAnswerContractUtil.answersEqual(topic.getType(), entry.getValue(), topic.getCorrectAnswer())) {
+                    correctCount++;
+                }
+            }
+
+            studentProcedure.setScore(new java.math.BigDecimal(correctCount * 100.0 / totalCount)
+                    .setScale(2, RoundingMode.HALF_UP));
+            studentProcedure.setIsGraded(GRADE_STATUS_AUTO_GRADED);
+            studentProcedure.setTeacherComment("系统自动评分");
+            studentExperimentalProcedureService.updateById(studentProcedure);
+        } catch (Exception e) {
+            log.error("题库练习自动评分失败，studentProcedureId={}", studentProcedureId, e);
+            resetMachineGrade(studentProcedure);
+            studentExperimentalProcedureService.updateById(studentProcedure);
+        }
     }
 
     private boolean canAutoGradeRecord(StudentExperimentalProcedure studentProcedure) {
