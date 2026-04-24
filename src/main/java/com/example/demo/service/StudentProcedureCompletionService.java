@@ -22,6 +22,8 @@ import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.DataCollectionDataUtil;
 import com.example.demo.util.TimedQuizKeyGenerator;
 import com.example.demo.util.TopicAnswerContractUtil;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -64,6 +67,10 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
     /** 步骤附件存储子目录 */
     private static final String ATTACHMENT_SUB_PATH = "attachments";
+
+    private static final Integer GRADE_STATUS_NOT_GRADED = 0;
+    private static final Integer GRADE_STATUS_TEACHER_GRADED = 1;
+    private static final Integer GRADE_STATUS_AUTO_GRADED = 2;
 
     /**
      * 完成题库练习（类型3）
@@ -258,8 +265,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             throw new BusinessException(500, "提交数据收集失败");
         }
 
-        // 6. 自动判分（只有 dataType 为 1 或 2 时才进行自动判分）
-        if (dataType != 3) {
+        if (shouldTriggerAutoGrade(dataType)) {
             autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
                                              fillBlankAnswers, tableCellAnswers);
         }
@@ -353,7 +359,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      * @param fillBlankAnswers   填空类型答案
      * @param tableCellAnswers   表格类型答案
      */
-    private void autoGradeDataCollectionProcedure(Long procedureId, Long studentAnswerId,
+    private AutoGradeExecutionResult autoGradeDataCollectionProcedure(Long procedureId, Long studentAnswerId,
                                                   java.util.Map<String, String> fillBlankAnswers,
                                                   java.util.Map<String, String> tableCellAnswers) {
         try {
@@ -362,10 +368,16 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             queryWrapper.eq(DataCollection::getExperimentalProcedureId, procedureId);
             DataCollection dataCollection = dataCollectionMapper.selectOne(queryWrapper);
 
-            if (dataCollection == null || dataCollection.getCorrectAnswer() == null
-                    || dataCollection.getCorrectAnswer().trim().isEmpty()) {
-                // 没有配置正确答案，不进行自动判分
-                return;
+            if (dataCollection == null) {
+                return AutoGradeExecutionResult.skipped("数据收集配置不存在");
+            }
+
+            if (!shouldTriggerAutoGrade(dataCollection.getType())) {
+                return AutoGradeExecutionResult.skipped("当前步骤不支持机器批改");
+            }
+
+            if (dataCollection.getCorrectAnswer() == null || dataCollection.getCorrectAnswer().trim().isEmpty()) {
+                return AutoGradeExecutionResult.skipped("未配置正确答案");
             }
 
             // 2. 解析正确答案和误差配置
@@ -376,7 +388,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             );
 
             if (correctAnswers == null || correctAnswers.isEmpty()) {
-                return;
+                return AutoGradeExecutionResult.skipped("正确答案为空");
             }
 
             // 解析字段级/单元格级/列级误差配置
@@ -437,19 +449,25 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
             // 5. 更新学生答案记录
             StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getById(studentAnswerId);
-            if (studentProcedure != null) {
-                studentProcedure.setScore(score);
-                studentProcedure.setIsGraded(2); // 2-系统自动评分
-                studentProcedure.setTeacherComment("系统自动评分");
-                studentExperimentalProcedureService.updateById(studentProcedure);
-
-                log.info("自动判分完成，步骤ID：{}，学生答案ID：{}，得分：{}/{}",
-                        procedureId, studentAnswerId, score, totalQuestions);
+            if (studentProcedure == null) {
+                return AutoGradeExecutionResult.failed("学生答案记录不存在");
             }
+            if (!canAutoGradeRecord(studentProcedure)) {
+                return AutoGradeExecutionResult.skipped("人工批改记录跳过");
+            }
+
+            studentProcedure.setScore(score);
+            studentProcedure.setIsGraded(GRADE_STATUS_AUTO_GRADED);
+            studentProcedure.setTeacherComment("系统自动评分");
+            studentExperimentalProcedureService.updateById(studentProcedure);
+
+            log.info("自动判分完成，步骤ID：{}，学生答案ID：{}，得分：{}/{}",
+                    procedureId, studentAnswerId, score, totalQuestions);
+            return AutoGradeExecutionResult.success("自动判分成功");
 
         } catch (Exception e) {
             log.error("自动判分失败", e);
-            // 判分失败不影响提交，只记录日志
+            return AutoGradeExecutionResult.failed("自动判分失败: " + e.getMessage());
         }
     }
 
@@ -730,9 +748,10 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         } else {
             studentProcedure.setAnswer(AnswerMapJSONUntil.toDataCollectionJson(fillBlankAnswers, tableCellAnswers));
         }
-        studentProcedure.setScore(null);
-        studentProcedure.setIsGraded(0);
-        studentProcedure.setTeacherComment(null);
+
+        if (canAutoGradeRecord(studentProcedure)) {
+            resetMachineGrade(studentProcedure);
+        }
 
         boolean updated = studentExperimentalProcedureService.updateById(studentProcedure);
         if (!updated) {
@@ -754,13 +773,126 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             }
         }
 
-        // 8. 重新自动判分（只有 dataType 为 1 或 2 时才进行自动判分）
-        if (dataType != 3) {
+        // 8. 重新自动判分
+        if (shouldTriggerAutoGrade(dataType) && canAutoGradeRecord(studentProcedure)) {
             autoGradeDataCollectionProcedure(procedureId, studentProcedure.getId(),
                                              fillBlankAnswers, tableCellAnswers);
         }
 
         log.info("学生 {} 在班级 {} 修改数据收集，步骤：{}", studentUsername, classCode, procedureId);
+    }
+
+    private boolean shouldTriggerAutoGrade(Long dataType) {
+        return dataType != null && (dataType == 1L || dataType == 2L);
+    }
+
+    private boolean canAutoGradeRecord(StudentExperimentalProcedure studentProcedure) {
+        return studentProcedure == null
+                || studentProcedure.getIsGraded() == null
+                || GRADE_STATUS_NOT_GRADED.equals(studentProcedure.getIsGraded())
+                || GRADE_STATUS_AUTO_GRADED.equals(studentProcedure.getIsGraded());
+    }
+
+    private void resetMachineGrade(StudentExperimentalProcedure studentProcedure) {
+        studentProcedure.setScore(null);
+        studentProcedure.setIsGraded(GRADE_STATUS_NOT_GRADED);
+        studentProcedure.setTeacherComment(null);
+    }
+
+    public AutoGradeExecutionResult autoGradeExistingDataCollectionSubmission(Long studentProcedureId) {
+        StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureService.getById(studentProcedureId);
+        if (studentProcedure == null) {
+            return AutoGradeExecutionResult.skipped("提交记录不存在");
+        }
+        if (!canAutoGradeRecord(studentProcedure)) {
+            return AutoGradeExecutionResult.skipped("人工批改记录跳过");
+        }
+
+        ExperimentalProcedure procedure = experimentalProcedureService.getById(studentProcedure.getExperimentalProcedureId());
+        if (procedure == null || procedure.getIsDeleted() || !Integer.valueOf(2).equals(procedure.getType())) {
+            return AutoGradeExecutionResult.skipped("非数据收集步骤");
+        }
+
+        LambdaQueryWrapper<DataCollection> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(DataCollection::getExperimentalProcedureId, procedure.getId());
+        DataCollection dataCollection = dataCollectionMapper.selectOne(queryWrapper);
+        if (dataCollection == null || !shouldTriggerAutoGrade(dataCollection.getType())) {
+            return AutoGradeExecutionResult.skipped("当前步骤不支持机器批改");
+        }
+
+        DataCollectionAnswerMaps answerMaps = parseStoredDataCollectionAnswer(studentProcedure.getAnswer());
+        if (answerMaps.isEmpty()) {
+            return AutoGradeExecutionResult.failed("学生答案为空或解析失败");
+        }
+
+        resetMachineGrade(studentProcedure);
+        boolean updated = studentExperimentalProcedureService.updateById(studentProcedure);
+        if (!updated) {
+            return AutoGradeExecutionResult.failed("重置机器评分状态失败");
+        }
+
+        return autoGradeDataCollectionProcedure(
+                procedure.getId(),
+                studentProcedureId,
+                answerMaps.getFillBlankAnswers(),
+                answerMaps.getTableCellAnswers()
+        );
+    }
+
+    private DataCollectionAnswerMaps parseStoredDataCollectionAnswer(String answerJson) {
+        Map<String, Object> dataMap = AnswerMapJSONUntil.parseDataAsObject(answerJson);
+        if (dataMap == null || dataMap.isEmpty()) {
+            return new DataCollectionAnswerMaps(null, null);
+        }
+        Map<String, String> fillBlankAnswers = convertToStringMap(dataMap.get("fillBlankAnswers"));
+        Map<String, String> tableCellAnswers = convertToStringMap(dataMap.get("tableCellAnswers"));
+        return new DataCollectionAnswerMaps(fillBlankAnswers, tableCellAnswers);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, String> convertToStringMap(Object value) {
+        if (!(value instanceof Map<?, ?> rawMap) || rawMap.isEmpty()) {
+            return null;
+        }
+        Map<String, String> result = new HashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            if (entry.getKey() != null && entry.getValue() != null) {
+                result.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class AutoGradeExecutionResult {
+        private boolean success;
+        private boolean skipped;
+        private String message;
+
+        public static AutoGradeExecutionResult success(String message) {
+            return new AutoGradeExecutionResult(true, false, message);
+        }
+
+        public static AutoGradeExecutionResult skipped(String message) {
+            return new AutoGradeExecutionResult(false, true, message);
+        }
+
+        public static AutoGradeExecutionResult failed(String message) {
+            return new AutoGradeExecutionResult(false, false, message);
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class DataCollectionAnswerMaps {
+        private Map<String, String> fillBlankAnswers;
+        private Map<String, String> tableCellAnswers;
+
+        private boolean isEmpty() {
+            return (fillBlankAnswers == null || fillBlankAnswers.isEmpty())
+                    && (tableCellAnswers == null || tableCellAnswers.isEmpty());
+        }
     }
 
     /**

@@ -5,9 +5,12 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.ClassExperimentMapper;
 import com.example.demo.mapper.StudentExperimentalProcedureMapper;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.StudentExperimentalProcedure;
 import com.example.demo.pojo.entity.User;
 import com.example.demo.pojo.response.StudentProcedureSubmissionResponse;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -15,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +37,7 @@ public class StudentProcedureSubmissionService {
     private final UserMapper userMapper;
     private final ClassExperimentMapper classExperimentMapper;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
+    private final StudentProcedureCompletionService studentProcedureCompletionService;
 
     /** 提交状态常量 */
     public static final Integer STATUS_NOT_GRADED = 0;      // 未评分
@@ -131,6 +138,52 @@ public class StudentProcedureSubmissionService {
     }
 
     /**
+     * 按课次重新执行机器自动批改
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 重批结果统计
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ReAutoGradeSummary reAutoGradeByClassExperimentId(Long classExperimentId) {
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "班级实验不存在");
+        }
+
+        List<StudentExperimentalProcedure> submissions = listSubmissionsByClassExperimentId(classExperimentId, classExperiment);
+        ReAutoGradeSummary summary = new ReAutoGradeSummary();
+        summary.setScannedCount(submissions.size());
+
+        for (StudentExperimentalProcedure submission : submissions) {
+            Integer gradeStatus = submission.getIsGraded();
+            if (STATUS_TEACHER_GRADED.equals(gradeStatus)) {
+                summary.setSkippedTeacherGradedCount(summary.getSkippedTeacherGradedCount() + 1);
+                continue;
+            }
+
+            StudentProcedureCompletionService.AutoGradeExecutionResult result =
+                    studentProcedureCompletionService.autoGradeExistingDataCollectionSubmission(submission.getId());
+
+            if (result.isSuccess()) {
+                summary.setReAutoGradedCount(summary.getReAutoGradedCount() + 1);
+            } else if (result.isSkipped()) {
+                summary.setSkippedUnsupportedCount(summary.getSkippedUnsupportedCount() + 1);
+            } else {
+                summary.setFailedCount(summary.getFailedCount() + 1);
+            }
+        }
+
+        log.info("课次 {} 重新机器批改完成，扫描：{}，成功：{}，跳过人工：{}，跳过其他：{}，失败：{}",
+                classExperimentId,
+                summary.getScannedCount(),
+                summary.getReAutoGradedCount(),
+                summary.getSkippedTeacherGradedCount(),
+                summary.getSkippedUnsupportedCount(),
+                summary.getFailedCount());
+        return summary;
+    }
+
+    /**
      * 构建响应对象
      */
     private StudentProcedureSubmissionResponse buildResponse(StudentExperimentalProcedure submission) {
@@ -170,8 +223,7 @@ public class StudentProcedureSubmissionService {
             Long classExperimentId, Integer submissionStatus) {
 
         // 1. 查询班级实验信息
-        com.example.demo.pojo.entity.ClassExperiment classExperiment =
-                classExperimentMapper.selectById(classExperimentId);
+        ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
             throw new BusinessException(404, "班级实验不存在");
         }
@@ -187,5 +239,47 @@ public class StudentProcedureSubmissionService {
 
         // 3. 调用原有方法
         return getCourseSubmissions(classCode, experimentId, submissionStatus);
+    }
+
+    private List<StudentExperimentalProcedure> listSubmissionsByClassExperimentId(Long classExperimentId,
+                                                                                   ClassExperiment classExperiment) {
+        LinkedHashMap<Long, StudentExperimentalProcedure> submissionMap = new LinkedHashMap<>();
+
+        LambdaQueryWrapper<StudentExperimentalProcedure> exactQuery = new LambdaQueryWrapper<>();
+        exactQuery.eq(StudentExperimentalProcedure::getClassExperimentId, classExperimentId)
+                .orderByDesc(StudentExperimentalProcedure::getCreatedTime);
+        List<StudentExperimentalProcedure> exactMatches = studentExperimentalProcedureMapper.selectList(exactQuery);
+        exactMatches.forEach(item -> submissionMap.put(item.getId(), item));
+
+        if (!submissionMap.isEmpty()) {
+            return new ArrayList<>(submissionMap.values());
+        }
+
+        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
+        if (classCodes == null || classCodes.isEmpty()) {
+            throw new BusinessException(404, "班级实验未关联任何班级");
+        }
+
+        Long experimentId = Long.parseLong(classExperiment.getExperimentId());
+        LambdaQueryWrapper<StudentExperimentalProcedure> fallbackQuery = new LambdaQueryWrapper<>();
+        fallbackQuery.eq(StudentExperimentalProcedure::getExperimentId, experimentId)
+                .in(StudentExperimentalProcedure::getClassCode, classCodes)
+                .orderByDesc(StudentExperimentalProcedure::getCreatedTime);
+        List<StudentExperimentalProcedure> fallbackMatches = studentExperimentalProcedureMapper.selectList(fallbackQuery);
+        fallbackMatches.forEach(item -> submissionMap.put(item.getId(), item));
+        return new ArrayList<>(submissionMap.values());
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class ReAutoGradeSummary {
+        private int scannedCount;
+        private int reAutoGradedCount;
+        private int skippedTeacherGradedCount;
+        private int skippedUnsupportedCount;
+        private int failedCount;
+
+        public ReAutoGradeSummary() {
+        }
     }
 }

@@ -81,6 +81,21 @@ public class TeacherProcedureController {
     }
 
     /**
+     * 按指定课次重新机器自动批改
+     *
+     * @param classExperimentId 班级实验ID
+     * @return 重批结果统计
+     */
+    @PostMapping("/class-experiments/{classExperimentId}/re-auto-grade")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<StudentProcedureSubmissionService.ReAutoGradeSummary> reAutoGradeByClassExperimentId(
+            @PathVariable("classExperimentId") Long classExperimentId) {
+        StudentProcedureSubmissionService.ReAutoGradeSummary summary =
+                studentProcedureSubmissionService.reAutoGradeByClassExperimentId(classExperimentId);
+        return ApiResponse.success(summary, "重新机器批改完成");
+    }
+
+    /**
      * 批改实验步骤请求
      */
     @Data
