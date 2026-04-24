@@ -275,6 +275,23 @@ public class ClassController {
     }
 
     /**
+     * 更新课次信息
+     *
+     * @param classExperimentId 课次ID
+     * @param request 更新请求
+     * @return 更新后的课次详情
+     */
+    @PutMapping("/course-session/{classExperimentId}")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<ClassExperimentDetailResponse> updateCourseSession(
+            @PathVariable Long classExperimentId,
+            @RequestBody UpdateClassExperimentRequest request) {
+        ClassExperimentDetailResponse response =
+                classExperimentService.updateCourseSession(classExperimentId, request);
+        return ApiResponse.success(response, "更新成功");
+    }
+
+    /**
      * 批量解绑班级
      *
      * @param experimentId 实验ID

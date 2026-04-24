@@ -14,6 +14,7 @@ import com.example.demo.pojo.entity.StudentClassRelation;
 import com.example.demo.pojo.request.BatchBindClassesToExperimentRequest;
 import com.example.demo.pojo.request.ClassExperimentQueryRequest;
 import com.example.demo.pojo.request.CourseSessionQueryRequest;
+import com.example.demo.pojo.request.UpdateClassExperimentRequest;
 import com.example.demo.pojo.response.BatchBindClassesToExperimentResponse;
 import com.example.demo.pojo.response.ClassExperimentDetailResponse;
 import com.example.demo.pojo.response.ClassExperimentListResponse;
@@ -258,6 +259,57 @@ public class ClassExperimentService extends ServiceImpl<ClassExperimentMapper, C
 
             return PageResponse.of(1L, (long) records.size(), (long) records.size(), records);
         }
+    }
+
+    /**
+     * 更新课次信息
+     *
+     * @param classExperimentId 课次ID
+     * @param request           更新请求
+     * @return 更新后的课次详情
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ClassExperimentDetailResponse updateCourseSession(Long classExperimentId,
+                                                             UpdateClassExperimentRequest request) {
+        ClassExperiment classExperiment = getById(classExperimentId);
+        if (classExperiment == null) {
+            throw new BusinessException(404, "课次不存在");
+        }
+
+        if (request == null || (request.getCourseTime() == null
+                && request.getStartTime() == null
+                && request.getEndTime() == null)) {
+            throw new BusinessException(400, "至少需要传入一个待更新字段");
+        }
+
+        if (request.getCourseTime() != null && request.getCourseTime().trim().isEmpty()) {
+            throw new BusinessException(400, "上课时间不能为空");
+        }
+
+        String courseTime = request.getCourseTime() != null
+                ? request.getCourseTime().trim()
+                : classExperiment.getCourseTime();
+        LocalDateTime startTime = request.getStartTime() != null
+                ? request.getStartTime()
+                : classExperiment.getStartTime();
+        LocalDateTime endTime = request.getEndTime() != null
+                ? request.getEndTime()
+                : classExperiment.getEndTime();
+
+        if (startTime != null && endTime != null && startTime.isAfter(endTime)) {
+            throw new BusinessException(400, "开始时间不能晚于结束时间");
+        }
+
+        classExperiment.setCourseTime(courseTime);
+        classExperiment.setStartTime(startTime);
+        classExperiment.setEndTime(endTime);
+
+        boolean success = updateById(classExperiment);
+        if (!success) {
+            throw new BusinessException(500, "更新课次失败");
+        }
+
+        return buildClassExperimentDetailResponse(classExperiment);
     }
 
     /**
