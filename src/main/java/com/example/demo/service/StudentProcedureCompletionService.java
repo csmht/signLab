@@ -3,20 +3,8 @@ package com.example.demo.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
-import com.example.demo.mapper.DataCollectionMapper;
-import com.example.demo.mapper.ProcedureTopicMapper;
-import com.example.demo.mapper.ProcedureTopicMapMapper;
-import com.example.demo.mapper.StudentProcedureAttachmentMapper;
-import com.example.demo.mapper.TimedQuizProcedureMapper;
-import com.example.demo.mapper.TopicMapper;
-import com.example.demo.pojo.entity.DataCollection;
-import com.example.demo.pojo.entity.ExperimentalProcedure;
-import com.example.demo.pojo.entity.ProcedureTopic;
-import com.example.demo.pojo.entity.ProcedureTopicMap;
-import com.example.demo.pojo.entity.StudentExperimentalProcedure;
-import com.example.demo.pojo.entity.StudentProcedureAttachment;
-import com.example.demo.pojo.entity.TimedQuizProcedure;
-import com.example.demo.pojo.entity.Topic;
+import com.example.demo.mapper.*;
+import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest;
 import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.DataCollectionDataUtil;
@@ -61,6 +49,8 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final TopicMapper topicMapper;
     private final TimedQuizKeyGenerator timedQuizKeyGenerator;
+    private final ClassExperimentMapper classExperimentMapper;
+    private final ClassExperimentClassRelationMapper classExperimentClassRelationMapper;
 
     @Value("${file.upload.path}")
     private String uploadBasePath;
@@ -136,6 +126,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setNumber(procedure.getNumber());
         studentProcedure.setAnswer(AnswerMapJSONUntil.toTopicJson(normalizedAnswers));
         studentProcedure.setCreatedTime(LocalDateTime.now());
+        getClassExperimentId(classCode, procedure, studentProcedure, classExperimentClassRelationMapper, classExperimentMapper);
 
         boolean saved = studentExperimentalProcedureService.save(studentProcedure);
         if (!saved) {
@@ -146,6 +137,12 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
 
         log.info("学生 {} 在班级 {} 完成题库练习，步骤：{}，题目数：{}",
                 studentUsername, classCode, procedureId, normalizedAnswers.size());
+    }
+
+    static void getClassExperimentId(String classCode, ExperimentalProcedure procedure, StudentExperimentalProcedure studentProcedure, ClassExperimentClassRelationMapper classExperimentClassRelationMapper, ClassExperimentMapper classExperimentMapper) {
+        List<Long> list = classExperimentClassRelationMapper.selectList(new LambdaQueryWrapper<ClassExperimentClassRelation>().eq(ClassExperimentClassRelation::getClassCode, classCode)).stream().map(ClassExperimentClassRelation::getId).toList();
+        ClassExperiment classExperiment = classExperimentMapper.selectOne(new LambdaQueryWrapper<ClassExperiment>().in(ClassExperiment::getId, list).eq(ClassExperiment::getExperimentId, procedure.getExperimentId()), false);
+        studentProcedure.setClassExperimentId(classExperiment.getId());
     }
 
     /**
@@ -253,6 +250,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setClassCode(classCode);
         studentProcedure.setExperimentalProcedureId(procedureId);
         studentProcedure.setNumber(procedure.getNumber());
+        getClassExperimentId(classCode,procedure,studentProcedure,classExperimentClassRelationMapper,classExperimentMapper);
 
         // 根据数据类型生成不同的答案 JSON
         if (dataType == 3) {
@@ -1086,6 +1084,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
         studentProcedure.setAnswer(AnswerMapJSONUntil.toTimedQuizJson(normalizedAnswers));
         studentProcedure.setIsLocked(true);  // 锁定答案，不允许修改
         studentProcedure.setCreatedTime(LocalDateTime.now());
+        getClassExperimentId(classCode,procedure,studentProcedure,classExperimentClassRelationMapper,classExperimentMapper);
 
         boolean saved = studentExperimentalProcedureService.save(studentProcedure);
         if (!saved) {

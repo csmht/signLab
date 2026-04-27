@@ -13,8 +13,6 @@ spring:
       max-file-size: 500MB
       max-request-size: 500MB
 
-
-
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

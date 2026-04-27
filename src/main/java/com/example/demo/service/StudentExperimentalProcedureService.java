@@ -39,6 +39,7 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
     private final ClassExperimentMapper classExperimentMapper;
     private final ClassExperimentClassRelationMapper classExperimentClassRelationMapper;
     private final StudentProcedureExtensionService studentProcedureExtensionService;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
 
     /**
      * 查询学生在指定班级实验中的所有步骤答案
@@ -235,6 +236,8 @@ public class StudentExperimentalProcedureService extends ServiceImpl<StudentExpe
         studentProcedure.setExperimentId(procedure.getExperimentId());
         studentProcedure.setStudentUsername(studentUsername);
         studentProcedure.setClassCode(classCode);
+        StudentProcedureCompletionService.getClassExperimentId(classCode, procedure, studentProcedure, classExperimentClassRelationMapper, classExperimentMapper);
+
         studentProcedure.setExperimentalProcedureId(experimentalProcedureId);
         studentProcedure.setNumber(procedure.getNumber());
         studentProcedure.setAnswer(AnswerMapJSONUntil.buildVideo());
