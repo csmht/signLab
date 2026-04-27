@@ -45,6 +45,10 @@ public class ProcedureTopic {
     @Column(comment = "题目类型限制（仅在随机抽取时有效，格式 1,2,3）" , type = "varchar(255)")
     private String topicTypes;
 
+    /** 标签匹配方式：0-命中任一标签，1-必须命中全部标签 */
+    @Column(comment = "标签匹配方式：0-命中任一标签，1-必须命中全部标签", type = "bit", defaultValue = "1", notNull = true)
+    private Boolean tagMatchAll;
+
     /** 创建时间 */
     @Column(comment = "创建时间", type = "datetime", defaultValue = "CURRENT_TIMESTAMP")
     private LocalDateTime createdTime;

@@ -50,6 +50,13 @@ public class CreateClassroomQuizRequest {
     private List<Long> topicTags;
 
     /**
+     * 标签匹配方式
+     * false: 命中任一标签
+     * true: 必须命中全部标签
+     */
+    private Boolean tagMatchAll;
+
+    /**
      * 题目类型列表（仅在随机抽取时有效）
      * 1-单选，2-多选，3-判断，4-填空，6-其他
      */

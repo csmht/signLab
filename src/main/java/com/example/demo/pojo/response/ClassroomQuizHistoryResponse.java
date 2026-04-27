@@ -62,6 +62,9 @@ public class ClassroomQuizHistoryResponse {
         /** 题目类型限制（仅在随机抽取时有效） */
         private String topicTypes;
 
+        /** 标签匹配方式：false-命中任一标签，true-必须命中全部标签 */
+        private Boolean tagMatchAll;
+
         /** 选定的题目数量（非随机模式下） */
         private Integer selectedTopicCount;
 
@@ -104,6 +107,7 @@ public class ClassroomQuizHistoryResponse {
             info.setNumber(entity.getNumber());
             info.setTags(entity.getTags());
             info.setTopicTypes(entity.getTopicTypes());
+            info.setTagMatchAll(entity.getTagMatchAll());
             info.setSelectedTopicCount(selectedTopicCount);
             return info;
         }

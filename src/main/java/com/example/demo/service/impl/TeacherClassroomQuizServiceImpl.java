@@ -111,6 +111,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             throw new BusinessException(400,"随机抽题必须携带标签");
         }
         procedureTopic.setTags(s);
+        procedureTopic.setTagMatchAll(Boolean.TRUE.equals(request.getTagMatchAll()));
         procedureTopic.setTopicTypes(joinIntegerListToString(request.getTopicTypes()));
         procedureTopic.setCreatedTime(LocalDateTime.now());
         procedureTopic.setIsDeleted(false);
@@ -466,6 +467,10 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                 if (!tagIdList.isEmpty()) {
                     LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
                     tagWrapper.in(TopicTagMap::getTagId, tagIdList);
+                    tagWrapper.groupBy(TopicTagMap::getTopicId);
+                    if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
+                        tagWrapper.having("COUNT(DISTINCT tag_id) >= " + tagIdList.size());
+                    }
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
