@@ -2,9 +2,11 @@ package com.example.demo.controller.teacher;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
-import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequest;
+import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequestV2;
+import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ClassroomQuizHistoryResponse;
+import com.example.demo.pojo.response.ClassroomQuizHistoryResponseV2;
 import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.TeacherClassroomQuizService;
@@ -27,11 +29,24 @@ public class TeacherClassroomQuizController {
     private final TeacherClassroomQuizService teacherClassroomQuizService;
 
     /**
-     * 创建课堂小测
+     * 创建课堂小测（旧版）
+     * 仅支持标签命中任一题目，不支持标签全匹配。
      */
+    @Deprecated
     @PostMapping
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<Long> createClassroomQuiz(@RequestBody CreateClassroomQuizRequest request) {
+        Long quizId = teacherClassroomQuizService.createClassroomQuiz(request);
+        return ApiResponse.success(quizId, "创建成功");
+    }
+
+    /**
+     * 创建课堂小测（新版）
+     * 支持标签命中任一题目与必须命中全部标签两种模式。
+     */
+    @PostMapping("/v2")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<Long> createClassroomQuizV2(@RequestBody CreateClassroomQuizRequestV2 request) {
         Long quizId = teacherClassroomQuizService.createClassroomQuiz(request);
         return ApiResponse.success(quizId, "创建成功");
     }
@@ -81,13 +96,26 @@ public class TeacherClassroomQuizController {
     }
 
     /**
-     * 查询教师发布的历史小测列表
+     * 查询教师发布的历史小测列表（旧版）
+     * 旧版响应不包含标签全匹配方式。
      */
+    @Deprecated
     @GetMapping("/history")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<List<ClassroomQuizHistoryResponse>> getHistoryQuizzes(
+    public ApiResponse<List<ClassroomQuizHistoryResponse>> getHistoryQuizzesLegacy(
             @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
-        List<ClassroomQuizHistoryResponse> quizzes = teacherClassroomQuizService.getHistoryQuizzes(classExperimentId);
+        List<ClassroomQuizHistoryResponse> quizzes = teacherClassroomQuizService.getHistoryQuizzesLegacy(classExperimentId);
+        return ApiResponse.success(quizzes, "查询成功");
+    }
+
+    /**
+     * 查询教师发布的历史小测列表（新版）
+     */
+    @GetMapping("/history/v2")
+    @RequireRole(value = UserRole.TEACHER)
+    public ApiResponse<List<ClassroomQuizHistoryResponseV2>> getHistoryQuizzesV2(
+            @RequestParam(value = "classExperimentId", required = false) Long classExperimentId) {
+        List<ClassroomQuizHistoryResponseV2> quizzes = teacherClassroomQuizService.getHistoryQuizzes(classExperimentId);
         return ApiResponse.success(quizzes, "查询成功");
     }
 }
