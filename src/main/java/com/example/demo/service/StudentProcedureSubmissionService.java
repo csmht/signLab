@@ -228,17 +228,17 @@ public class StudentProcedureSubmissionService {
             throw new BusinessException(404, "班级实验不存在");
         }
 
-        // 2. 获取关联的班级列表（使用第一个班级）
-        List<String> classCodes = classExperimentClassRelationService.getClassCodesByExperimentId(classExperimentId);
-        if (classCodes == null || classCodes.isEmpty()) {
-            throw new BusinessException(404, "班级实验未关联任何班级");
+        // 2. 按课次精确查询提交，兼容历史数据回退
+        List<StudentExperimentalProcedure> submissions = listSubmissionsByClassExperimentId(classExperimentId, classExperiment);
+
+        // 3. 按提交状态过滤
+        if (submissionStatus != null) {
+            submissions = submissions.stream()
+                    .filter(item -> submissionStatus.equals(item.getIsGraded()))
+                    .toList();
         }
-        String classCode = classCodes.get(0);
 
-        Long experimentId = Long.parseLong(classExperiment.getExperimentId());
-
-        // 3. 调用原有方法
-        return getCourseSubmissions(classCode, experimentId, submissionStatus);
+        return submissions.stream().map(this::buildResponse).collect(Collectors.toList());
     }
 
     private List<StudentExperimentalProcedure> listSubmissionsByClassExperimentId(Long classExperimentId,
@@ -260,15 +260,18 @@ public class StudentProcedureSubmissionService {
             throw new BusinessException(404, "班级实验未关联任何班级");
         }
 
+        // 仅在当前课次没有精确落库数据时，才回退到历史兼容查询
         Long experimentId = Long.parseLong(classExperiment.getExperimentId());
         LambdaQueryWrapper<StudentExperimentalProcedure> fallbackQuery = new LambdaQueryWrapper<>();
         fallbackQuery.eq(StudentExperimentalProcedure::getExperimentId, experimentId)
                 .in(StudentExperimentalProcedure::getClassCode, classCodes)
+                .isNull(StudentExperimentalProcedure::getClassExperimentId)
                 .orderByDesc(StudentExperimentalProcedure::getCreatedTime);
         List<StudentExperimentalProcedure> fallbackMatches = studentExperimentalProcedureMapper.selectList(fallbackQuery);
         fallbackMatches.forEach(item -> submissionMap.put(item.getId(), item));
         return new ArrayList<>(submissionMap.values());
     }
+
 
     @Data
     @AllArgsConstructor

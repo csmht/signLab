@@ -140,8 +140,22 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
     }
 
     static void getClassExperimentId(String classCode, ExperimentalProcedure procedure, StudentExperimentalProcedure studentProcedure, ClassExperimentClassRelationMapper classExperimentClassRelationMapper, ClassExperimentMapper classExperimentMapper) {
-        List<Long> list = classExperimentClassRelationMapper.selectList(new LambdaQueryWrapper<ClassExperimentClassRelation>().eq(ClassExperimentClassRelation::getClassCode, classCode)).stream().map(ClassExperimentClassRelation::getId).toList();
-        ClassExperiment classExperiment = classExperimentMapper.selectOne(new LambdaQueryWrapper<ClassExperiment>().in(ClassExperiment::getId, list).eq(ClassExperiment::getExperimentId, procedure.getExperimentId()), false);
+        List<Long> list = classExperimentClassRelationMapper.selectList(
+                new LambdaQueryWrapper<ClassExperimentClassRelation>()
+                        .eq(ClassExperimentClassRelation::getClassCode, classCode)
+        ).stream().map(ClassExperimentClassRelation::getClassExperimentId).toList();
+        if (list.isEmpty()) {
+            throw new BusinessException(404, "班级未关联任何课次");
+        }
+        ClassExperiment classExperiment = classExperimentMapper.selectOne(
+                new LambdaQueryWrapper<ClassExperiment>()
+                        .in(ClassExperiment::getId, list)
+                        .eq(ClassExperiment::getExperimentId, procedure.getExperimentId()),
+                false
+        );
+        if (classExperiment == null) {
+            throw new BusinessException(404, "未找到匹配的课次");
+        }
         studentProcedure.setClassExperimentId(classExperiment.getId());
     }
 

@@ -89,11 +89,24 @@ public class StudentProcedureQueryService {
             LambdaQueryWrapper<ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
 
             if (studentProcedure.getClassExperimentId() == null) {
-                StudentClassRelation studentClassRelation = studentClassRelationMapper.selectOne(new LambdaQueryWrapper<StudentClassRelation>().eq(StudentClassRelation::getStudentUsername, username), false);
-                Stream<Long> longStream = classExperimentClassRelationMapper.selectList(new LambdaQueryWrapper<ClassExperimentClassRelation>().eq(ClassExperimentClassRelation::getClassCode, studentClassRelation.getClassCode())).stream().map(ClassExperimentClassRelation::getClassExperimentId);
+                StudentClassRelation studentClassRelation = studentClassRelationMapper.selectOne(
+                        new LambdaQueryWrapper<StudentClassRelation>()
+                                .eq(StudentClassRelation::getStudentUsername, username),
+                        false
+                );
+                if (studentClassRelation == null) {
+                    throw new BusinessException(404, "未找到学生班级信息");
+                }
+                Stream<Long> longStream = classExperimentClassRelationMapper.selectList(
+                                new LambdaQueryWrapper<ClassExperimentClassRelation>()
+                                        .eq(ClassExperimentClassRelation::getClassCode, studentClassRelation.getClassCode()))
+                        .stream()
+                        .map(ClassExperimentClassRelation::getClassExperimentId);
                 classExperimentWrapper.in(ClassExperiment::getId, longStream);
                 classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
                 classExperimentWrapper.eq(ClassExperiment::getExperimentId, experimentId);
+                classExperimentWrapper.orderByDesc(ClassExperiment::getStartTime);
+                classExperimentWrapper.last("LIMIT 1");
             }else {
                 classExperimentWrapper.eq(ClassExperiment::getId, studentProcedure.getClassExperimentId());
             }
