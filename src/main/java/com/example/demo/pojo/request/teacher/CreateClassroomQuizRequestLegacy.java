@@ -5,10 +5,10 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 创建课堂小测请求
+ * 创建课堂小测请求（旧版）
  */
 @Data
-public class CreateClassroomQuizRequest {
+public class CreateClassroomQuizRequestLegacy {
 
     /**
      * 班级实验ID
@@ -30,12 +30,8 @@ public class CreateClassroomQuizRequest {
      */
     private Integer quizTimeLimit;
 
-    // ==================== 以下为题库配置字段（仅当 procedureTopicId 为空时生效） ====================
-
     /**
      * 是否随机抽取
-     * true: 随机抽取模式，根据标签和类型随机抽题
-     * false: 教师选定模式，使用 teacherSelectedTopicIds 指定题目
      */
     private Boolean isRandom;
 
@@ -50,15 +46,7 @@ public class CreateClassroomQuizRequest {
     private List<Long> topicTags;
 
     /**
-     * 标签匹配方式
-     * false: 命中任一标签
-     * true: 必须命中全部标签
-     */
-    private Boolean tagMatchAll;
-
-    /**
      * 题目类型列表（仅在随机抽取时有效）
-     * 1-单选，2-多选，3-判断，4-填空，6-其他
      */
     private List<Integer> topicTypes;
 

@@ -7,10 +7,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 教师历史小测响应
+ * 教师历史小测响应（新版）
  */
 @Data
-public class ClassroomQuizHistoryResponse {
+public class ClassroomQuizHistoryResponseV2 {
 
     /** 小测ID */
     private Long id;
@@ -45,59 +45,26 @@ public class ClassroomQuizHistoryResponse {
     /** 题库配置信息 */
     private ProcedureTopicInfo procedureTopic;
 
-    /**
-     * 题库配置信息（简化版）
-     */
     @Data
     public static class ProcedureTopicInfo {
-        /** 是否随机抽取 */
         private Boolean isRandom;
-
-        /** 题目数量（仅在随机抽取时有效） */
         private Integer number;
-
-        /** 标签限制（仅在随机抽取时有效，格式 id1,id2） */
         private String tags;
-
-        /** 题目类型限制（仅在随机抽取时有效） */
         private String topicTypes;
-
-        /** 标签匹配方式：false-命中任一标签，true-必须命中全部标签 */
         private Boolean tagMatchAll;
-
-        /** 选定的题目数量（非随机模式下） */
         private Integer selectedTopicCount;
-
-        /** 题目列表 */
         private List<TopicInfo> topics;
 
-        /**
-         * 题目信息
-         */
         @Data
         public static class TopicInfo {
-            /** 题目ID */
             private Long topicId;
-
-            /** 题号 */
             private Integer number;
-
-            /** 题目类型 */
             private Integer type;
-
-            /** 题目内容 */
             private String content;
-
-            /** 选项内容 */
             private String choices;
-
-            /** 正确答案 */
             private String correctAnswer;
         }
 
-        /**
-         * 从 ProcedureTopic 实体创建（不包含题目列表）
-         */
         public static ProcedureTopicInfo fromEntity(ProcedureTopic entity, Integer selectedTopicCount) {
             if (entity == null) {
                 return null;

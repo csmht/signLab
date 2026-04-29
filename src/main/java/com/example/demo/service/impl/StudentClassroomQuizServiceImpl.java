@@ -360,6 +360,10 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                 if (!tagIdList.isEmpty()) {
                     LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
                     tagWrapper.in(TopicTagMap::getTagId, tagIdList);
+                    tagWrapper.groupBy(TopicTagMap::getTopicId);
+                    if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
+                        tagWrapper.having("COUNT(DISTINCT tag_id) >= " + tagIdList.size());
+                    }
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
@@ -383,7 +387,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                                 }
                             }
 
-                            topicWrapper.last("ORDER BY RAND() LIMIT "+ procedureTopic.getNumber());
+                            topicWrapper.last("ORDER BY RAND() LIMIT " + procedureTopic.getNumber());
                             return topicMapper.selectList(topicWrapper);
                         }
                     }

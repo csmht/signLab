@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 学生步骤查询服务
@@ -46,6 +47,8 @@ public class StudentProcedureQueryService {
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final TimedQuizKeyGenerator timedQuizKeyGenerator;
+    private final ClassExperimentClassRelationMapper classExperimentClassRelationMapper;
+    private final StudentClassRelationMapper studentClassRelationMapper;
 
     /**
      * 查询已提交的步骤详情（带答案）
@@ -71,8 +74,8 @@ public class StudentProcedureQueryService {
 
         // 查询学生提交记录
         LambdaQueryWrapper<StudentExperimentalProcedure> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
-        wrapper.eq(StudentExperimentalProcedure::getStudentUsername, username);
+            wrapper.eq(StudentExperimentalProcedure::getExperimentalProcedureId, procedureId);
+            wrapper.eq(StudentExperimentalProcedure::getStudentUsername, username);
         StudentExperimentalProcedure studentProcedure = studentExperimentalProcedureMapper.selectOne(wrapper);
 
         if (studentProcedure == null) {
@@ -83,10 +86,32 @@ public class StudentProcedureQueryService {
         boolean isAfterEndTime = false;
         try {
             // 查询班级实验
-            LambdaQueryWrapper<com.example.demo.pojo.entity.ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
-            classExperimentWrapper.eq(com.example.demo.pojo.entity.ClassExperiment::getCourseId, courseId);
-            classExperimentWrapper.eq(com.example.demo.pojo.entity.ClassExperiment::getExperimentId, experimentId);
-            com.example.demo.pojo.entity.ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentWrapper);
+            LambdaQueryWrapper<ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
+
+            if (studentProcedure.getClassExperimentId() == null) {
+                StudentClassRelation studentClassRelation = studentClassRelationMapper.selectOne(
+                        new LambdaQueryWrapper<StudentClassRelation>()
+                                .eq(StudentClassRelation::getStudentUsername, username),
+                        false
+                );
+                if (studentClassRelation == null) {
+                    throw new BusinessException(404, "未找到学生班级信息");
+                }
+                Stream<Long> longStream = classExperimentClassRelationMapper.selectList(
+                                new LambdaQueryWrapper<ClassExperimentClassRelation>()
+                                        .eq(ClassExperimentClassRelation::getClassCode, studentClassRelation.getClassCode()))
+                        .stream()
+                        .map(ClassExperimentClassRelation::getClassExperimentId);
+                classExperimentWrapper.in(ClassExperiment::getId, longStream);
+                classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
+                classExperimentWrapper.eq(ClassExperiment::getExperimentId, experimentId);
+                classExperimentWrapper.orderByDesc(ClassExperiment::getStartTime);
+                classExperimentWrapper.last("LIMIT 1");
+            }else {
+                classExperimentWrapper.eq(ClassExperiment::getId, studentProcedure.getClassExperimentId());
+            }
+
+            ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentWrapper,false);
 
             if (classExperiment != null && procedure.getOffsetMinutes() != null) {
                 // 使用工具类计算步骤时间

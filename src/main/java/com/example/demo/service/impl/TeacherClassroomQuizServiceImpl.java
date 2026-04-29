@@ -6,7 +6,9 @@ import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequest;
+import com.example.demo.pojo.request.teacher.CreateClassroomQuizRequestV2;
 import com.example.demo.pojo.response.ClassroomQuizHistoryResponse;
+import com.example.demo.pojo.response.ClassroomQuizHistoryResponseV2;
 import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
@@ -49,7 +51,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long createClassroomQuiz(CreateClassroomQuizRequest request) {
+    public Long createClassroomQuiz(CreateClassroomQuizRequestV2 request) {
         log.info("创建课堂小测，请求: {}", request);
 
         // 验证班级实验ID是否存在
@@ -83,7 +85,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
     /**
      * 为课堂小测创建题库配置
      */
-    private Long createProcedureTopicForQuiz(CreateClassroomQuizRequest request) {
+    private Long createProcedureTopicForQuiz(CreateClassroomQuizRequestV2 request) {
         // 验证题库配置字段
         if (request.getIsRandom() == null) {
             throw new BusinessException(400, "是否随机抽取不能为空");
@@ -111,6 +113,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             throw new BusinessException(400,"随机抽题必须携带标签");
         }
         procedureTopic.setTags(s);
+        procedureTopic.setTagMatchAll(Boolean.TRUE.equals(request.getTagMatchAll()));
         procedureTopic.setTopicTypes(joinIntegerListToString(request.getTopicTypes()));
         procedureTopic.setCreatedTime(LocalDateTime.now());
         procedureTopic.setIsDeleted(false);
@@ -466,6 +469,10 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                 if (!tagIdList.isEmpty()) {
                     LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
                     tagWrapper.in(TopicTagMap::getTagId, tagIdList);
+                    tagWrapper.groupBy(TopicTagMap::getTopicId);
+                    if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
+                        tagWrapper.having("COUNT(DISTINCT tag_id) >= " + tagIdList.size());
+                    }
                     List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
                     if (!topicTagMaps.isEmpty()) {
@@ -676,7 +683,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
     }
 
     @Override
-    public List<ClassroomQuizHistoryResponse> getHistoryQuizzes(Long classExperimentId) {
+    public List<ClassroomQuizHistoryResponseV2> getHistoryQuizzes(Long classExperimentId) {
         log.info("查询教师历史小测列表，班级实验ID: {}", classExperimentId);
 
         // 获取当前教师用户名
@@ -698,7 +705,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
 
         // 转换为响应对象
         return quizzes.stream().map(quiz -> {
-            ClassroomQuizHistoryResponse response = new ClassroomQuizHistoryResponse();
+            ClassroomQuizHistoryResponseV2 response = new ClassroomQuizHistoryResponseV2();
             response.setId(quiz.getId());
             response.setClassExperimentId(quiz.getClassExperimentId());
             response.setQuizTitle(quiz.getQuizTitle());
@@ -713,22 +720,20 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
             // 查询题库配置信息
             ProcedureTopic procedureTopic = procedureTopicMapper.selectById(quiz.getProcedureTopicId());
             if (procedureTopic != null) {
-                // 非随机模式下，查询选定的题���数量
                 Integer selectedTopicCount = null;
                 if (!Boolean.TRUE.equals(procedureTopic.getIsRandom())) {
                     LambdaQueryWrapper<ProcedureTopicMap> mapWrapper = new LambdaQueryWrapper<>();
                     mapWrapper.eq(ProcedureTopicMap::getProcedureTopicId, procedureTopic.getId());
                     selectedTopicCount = Math.toIntExact(procedureTopicMapMapper.selectCount(mapWrapper));
                 }
-                ClassroomQuizHistoryResponse.ProcedureTopicInfo procedureTopicInfo =
-                        ClassroomQuizHistoryResponse.ProcedureTopicInfo.fromEntity(procedureTopic, selectedTopicCount);
+                ClassroomQuizHistoryResponseV2.ProcedureTopicInfo procedureTopicInfo =
+                        ClassroomQuizHistoryResponseV2.ProcedureTopicInfo.fromEntity(procedureTopic, selectedTopicCount);
 
-                // 查询题目列表
                 List<Topic> topics = getTopicsForQuiz(quiz, procedureTopic);
-                List<ClassroomQuizHistoryResponse.ProcedureTopicInfo.TopicInfo> topicInfos = topics.stream()
+                List<ClassroomQuizHistoryResponseV2.ProcedureTopicInfo.TopicInfo> topicInfos = topics.stream()
                         .map(topic -> {
-                            ClassroomQuizHistoryResponse.ProcedureTopicInfo.TopicInfo topicInfo =
-                                new ClassroomQuizHistoryResponse.ProcedureTopicInfo.TopicInfo();
+                            ClassroomQuizHistoryResponseV2.ProcedureTopicInfo.TopicInfo topicInfo =
+                                new ClassroomQuizHistoryResponseV2.ProcedureTopicInfo.TopicInfo();
                             topicInfo.setTopicId(topic.getId());
                             topicInfo.setNumber(topic.getNumber());
                             topicInfo.setType(topic.getType());
