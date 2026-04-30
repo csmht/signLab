@@ -373,35 +373,26 @@ public class TeacherProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+                    List<Long> topicIds = topicTagMapMapper.selectDistinctTopicIdsByAnyTags(tagIdList);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                            .map(TopicTagMap::getTopicId)
-                            .distinct()
-                            .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            // 添加题目类型过滤
-                            if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
-                                String[] typeArray = timedQuiz.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                    .filter(s -> s != null && !s.isEmpty())
-                                    .map(Integer::parseInt)
-                                    .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        // 添加题目类型过滤
+                        if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
+                            String[] typeArray = timedQuiz.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                .filter(s -> s != null && !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.orderByAsc(Topic::getNumber);
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.orderByAsc(Topic::getNumber);
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }
