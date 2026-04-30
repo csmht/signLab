@@ -358,38 +358,30 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                         .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    tagWrapper.groupBy(TopicTagMap::getTopicId);
+                    List<Long> topicIds;
                     if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
-                        tagWrapper.having("COUNT(DISTINCT tag_id) >= " + tagIdList.size());
+                        topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
+                    } else {
+                        topicIds = topicTagMapMapper.selectDistinctTopicIdsByAnyTags(tagIdList);
                     }
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                                .map(TopicTagMap::getTopicId)
-                                .distinct()
-                                .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
-                                String[] typeArray = procedureTopic.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                        .filter(s -> s != null && !s.isEmpty())
-                                        .map(Integer::parseInt)
-                                        .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
+                            String[] typeArray = procedureTopic.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                    .filter(s -> s != null && !s.isEmpty())
+                                    .map(Integer::parseInt)
+                                    .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.last("ORDER BY RAND() LIMIT " + procedureTopic.getNumber());
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.last("ORDER BY RAND() LIMIT " + procedureTopic.getNumber());
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }

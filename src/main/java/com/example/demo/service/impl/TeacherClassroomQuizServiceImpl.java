@@ -109,8 +109,8 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
         String s = joinListToString(request.getTopicTags());
-        if(s.isEmpty() && request.getIsRandom()){
-            throw new BusinessException(400,"随机抽题必须携带标签");
+        if (Boolean.TRUE.equals(request.getIsRandom()) && (s == null || s.isEmpty())) {
+            throw new BusinessException(400, "随机抽题必须携带标签");
         }
         procedureTopic.setTags(s);
         procedureTopic.setTagMatchAll(Boolean.TRUE.equals(request.getTagMatchAll()));
@@ -467,39 +467,31 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                         .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    tagWrapper.groupBy(TopicTagMap::getTopicId);
+                    List<Long> topicIds;
                     if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
-                        tagWrapper.having("COUNT(DISTINCT tag_id) >= " + tagIdList.size());
+                        topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
+                    } else {
+                        topicIds = topicTagMapMapper.selectDistinctTopicIdsByAnyTags(tagIdList);
                     }
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                                .map(TopicTagMap::getTopicId)
-                                .distinct()
-                                .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            // 添加题目类型过滤
-                            if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
-                                String[] typeArray = procedureTopic.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                        .filter(s -> s != null && !s.isEmpty())
-                                        .map(Integer::parseInt)
-                                        .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        // 添加题目类型过滤
+                        if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
+                            String[] typeArray = procedureTopic.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                    .filter(s -> s != null && !s.isEmpty())
+                                    .map(Integer::parseInt)
+                                    .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.orderByAsc(Topic::getNumber);
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.orderByAsc(Topic::getNumber);
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }

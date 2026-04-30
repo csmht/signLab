@@ -250,7 +250,7 @@ public class TeacherProcedureCreationService {
         // 自动计算步骤号
         Integer newNumber = getMaxProcedureNumber(request.getExperimentId()) + 1;
 
-        // 1. 先创���步骤实体
+        // 1. 先创步骤实体
         ExperimentalProcedure procedure = new ExperimentalProcedure();
         procedure.setExperimentId(request.getExperimentId());
         procedure.setNumber(newNumber);
