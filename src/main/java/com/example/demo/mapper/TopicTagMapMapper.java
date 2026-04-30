@@ -30,7 +30,7 @@ public interface TopicTagMapMapper extends BaseMapper<TopicTagMap> {
             "        #{tagId}" +
             "    </foreach>" +
             "    GROUP BY topic_id " +
-            "    HAVING COUNT(DISTINCT tag_id) = #{tagCount}" +
+            "    HAVING COUNT(DISTINCT tag_id) >= #{tagCount}" +
             ")" +
             "</script>")
     List<Long> selectTopicIdsByAllTags(@Param("tagIds") List<Long> tagIds, @Param("tagCount") int tagCount);
