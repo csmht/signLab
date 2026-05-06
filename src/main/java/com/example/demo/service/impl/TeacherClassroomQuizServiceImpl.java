@@ -13,6 +13,7 @@ import com.example.demo.pojo.response.ClassroomQuizStatisticsResponse;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.TeacherClassroomQuizService;
+import com.example.demo.service.TopicTagMatchService;
 import com.example.demo.util.AnswerMapJSONUntil;
 import com.example.demo.util.SecurityUtil;
 import com.example.demo.util.TopicAnswerContractUtil;
@@ -42,7 +43,7 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final com.example.demo.util.ClassroomQuizScorer classroomQuizScorer;
     private final StudentClassRelationMapper studentClassRelationMapper;
@@ -467,12 +468,9 @@ public class TeacherClassroomQuizServiceImpl extends ServiceImpl<ClassroomQuizMa
                         .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    List<Long> topicIds;
-                    if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
-                        topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
-                    } else {
-                        topicIds = topicTagMapMapper.selectDistinctTopicIdsByAnyTags(tagIdList);
-                    }
+                    List<Long> topicIds = Boolean.TRUE.equals(procedureTopic.getTagMatchAll())
+                            ? topicTagMatchService.selectTopicIdsByAllTags(tagIdList)
+                            : topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
                     if (!topicIds.isEmpty()) {
                         LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();

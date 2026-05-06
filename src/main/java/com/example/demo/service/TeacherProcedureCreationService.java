@@ -797,8 +797,8 @@ public class TeacherProcedureCreationService {
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
         String s = request.getTopicTagsToString();
-        if(s.isEmpty() && request.getIsRandom()){
-            throw new BusinessException(400,"随机抽题必须携带标签");
+        if (Boolean.TRUE.equals(request.getIsRandom()) && (s == null || s.isEmpty())) {
+            throw new BusinessException(400, "随机抽题必须携带标签");
         }
         procedureTopic.setTags(s);
         procedureTopic.setTopicTypes(request.getTopicTypesToString());
