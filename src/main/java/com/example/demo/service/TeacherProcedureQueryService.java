@@ -6,10 +6,10 @@ import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TopicMapper;
+import com.example.demo.service.TopicTagMatchService;
 import com.example.demo.mapper.VideoFileMapper;
 import com.example.demo.mapper.TagMapper;
 import com.example.demo.mapper.TimedQuizProcedureMapper;
-import com.example.demo.mapper.TopicTagMapMapper;
 import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
@@ -19,7 +19,6 @@ import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.entity.Tag;
 import com.example.demo.pojo.entity.TimedQuizProcedure;
-import com.example.demo.pojo.entity.TopicTagMap;
 import com.example.demo.pojo.response.TeacherDataCollectionProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherTopicProcedureDetailResponse;
@@ -55,7 +54,7 @@ public class TeacherProcedureQueryService {
     private final ClassExperimentMapper classExperimentMapper;
     private final TagMapper tagMapper;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
 
     /**
      * 查询步骤详情(包含类型特定的完整信息)
@@ -373,7 +372,7 @@ public class TeacherProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    List<Long> topicIds = topicTagMapMapper.selectDistinctTopicIdsByAnyTags(tagIdList);
+                    List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
                     if (!topicIds.isEmpty()) {
                         LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
