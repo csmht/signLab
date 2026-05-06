@@ -15,6 +15,21 @@ import java.util.List;
 public interface TopicTagMapMapper extends BaseMapper<TopicTagMap> {
 
     /**
+     * 查询命中任一指定标签的题目ID
+     *
+     * @param tagIds 标签ID列表
+     * @return 题目ID列表
+     */
+    @Select("<script>" +
+            "SELECT DISTINCT topic_id FROM topic_tag_map " +
+            "WHERE tag_id IN " +
+            "<foreach collection='tagIds' item='tagId' open='(' separator=',' close=')'>" +
+            "    #{tagId}" +
+            "</foreach>" +
+            "</script>")
+    List<Long> selectDistinctTopicIdsByAnyTags(@Param("tagIds") List<Long> tagIds);
+
+    /**
      * 查询包含所有指定标签的题目ID
      *
      * @param tagIds 标签ID列表

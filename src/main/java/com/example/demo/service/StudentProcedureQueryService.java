@@ -40,7 +40,7 @@ public class StudentProcedureQueryService {
     private final DataCollectionMapper dataCollectionMapper;
     private final ProcedureTopicMapper procedureTopicMapper;
     private final TopicMapper topicMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final DownloadService downloadService;
     private final ClassExperimentMapper classExperimentMapper;
@@ -520,8 +520,7 @@ public class StudentProcedureQueryService {
                     .toList();
 
                 if (!tagIdList.isEmpty()) {
-                    // 查询包含所有指定标签的题目（AND逻辑）
-                    List<Long> topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
+                    List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
                     if (!topicIds.isEmpty()) {
                         LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
@@ -747,8 +746,7 @@ public class StudentProcedureQueryService {
                 .toList();
 
             if (!tagIdList.isEmpty()) {
-                // 查询包含所有指定标签的题目（AND逻辑）
-                List<Long> topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
+                List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
                 if (!topicIds.isEmpty()) {
                     LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();

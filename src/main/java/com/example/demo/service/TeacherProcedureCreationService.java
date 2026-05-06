@@ -250,7 +250,7 @@ public class TeacherProcedureCreationService {
         // 自动计算步骤号
         Integer newNumber = getMaxProcedureNumber(request.getExperimentId()) + 1;
 
-        // 1. 先创���步骤实体
+        // 1. 先创步骤实体
         ExperimentalProcedure procedure = new ExperimentalProcedure();
         procedure.setExperimentId(request.getExperimentId());
         procedure.setNumber(newNumber);
@@ -274,8 +274,8 @@ public class TeacherProcedureCreationService {
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
         String s = joinTopicTags(request.getTopicTags());
-        if(s.isEmpty() && request.getIsRandom()){
-            throw new BusinessException(400,"随机抽题必须携带标签");
+        if (Boolean.TRUE.equals(request.getIsRandom()) && (s == null || s.isEmpty())) {
+            throw new BusinessException(400, "随机抽题必须携带标签");
         }
         procedureTopic.setTags(s);
         procedureTopic.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
@@ -507,8 +507,8 @@ public class TeacherProcedureCreationService {
                 procedureTopic.setIsRandom(request.getIsRandom());
                 procedureTopic.setNumber(request.getTopicNumber());
                 String s = joinTopicTags(request.getTopicTags());
-                if(s.isEmpty() && request.getIsRandom()){
-                    throw new BusinessException(400,"随机抽题必须携带标签");
+                if (Boolean.TRUE.equals(request.getIsRandom()) && (s == null || s.isEmpty())) {
+                    throw new BusinessException(400, "随机抽题必须携带标签");
                 }
                 procedureTopic.setTags(s);
                 procedureTopic.setTopicTypes(joinTopicTypes(request.getTopicTypes()));
@@ -797,8 +797,8 @@ public class TeacherProcedureCreationService {
         procedureTopic.setIsRandom(request.getIsRandom());
         procedureTopic.setNumber(request.getTopicNumber());
         String s = request.getTopicTagsToString();
-        if(s.isEmpty() && request.getIsRandom()){
-            throw new BusinessException(400,"随机抽题必须携带标签");
+        if (Boolean.TRUE.equals(request.getIsRandom()) && (s == null || s.isEmpty())) {
+            throw new BusinessException(400, "随机抽题必须携带标签");
         }
         procedureTopic.setTags(s);
         procedureTopic.setTopicTypes(request.getTopicTypesToString());
@@ -869,7 +869,7 @@ public class TeacherProcedureCreationService {
      */
     private String joinTopicTags(List<Long> topicTags) {
         if (topicTags == null || topicTags.isEmpty()) {
-            throw new BusinessException(400,"至少添加一个标签");
+            return null;
         }
 
         StringBuilder sb = new StringBuilder();

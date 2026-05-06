@@ -6,10 +6,10 @@ import com.example.demo.mapper.DataCollectionMapper;
 import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TopicMapper;
+import com.example.demo.service.TopicTagMatchService;
 import com.example.demo.mapper.VideoFileMapper;
 import com.example.demo.mapper.TagMapper;
 import com.example.demo.mapper.TimedQuizProcedureMapper;
-import com.example.demo.mapper.TopicTagMapMapper;
 import com.example.demo.pojo.entity.ClassExperiment;
 import com.example.demo.pojo.entity.DataCollection;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
@@ -19,7 +19,6 @@ import com.example.demo.pojo.entity.Topic;
 import com.example.demo.pojo.entity.VideoFile;
 import com.example.demo.pojo.entity.Tag;
 import com.example.demo.pojo.entity.TimedQuizProcedure;
-import com.example.demo.pojo.entity.TopicTagMap;
 import com.example.demo.pojo.response.TeacherDataCollectionProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherProcedureDetailResponse;
 import com.example.demo.pojo.response.TeacherTopicProcedureDetailResponse;
@@ -55,7 +54,7 @@ public class TeacherProcedureQueryService {
     private final ClassExperimentMapper classExperimentMapper;
     private final TagMapper tagMapper;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
 
     /**
      * 查询步骤详情(包含类型特定的完整信息)
@@ -373,35 +372,26 @@ public class TeacherProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+                    List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                            .map(TopicTagMap::getTopicId)
-                            .distinct()
-                            .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            // 添加题目类型过滤
-                            if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
-                                String[] typeArray = timedQuiz.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                    .filter(s -> s != null && !s.isEmpty())
-                                    .map(Integer::parseInt)
-                                    .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        // 添加题目类型过滤
+                        if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
+                            String[] typeArray = timedQuiz.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                .filter(s -> s != null && !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.orderByAsc(Topic::getNumber);
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.orderByAsc(Topic::getNumber);
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }

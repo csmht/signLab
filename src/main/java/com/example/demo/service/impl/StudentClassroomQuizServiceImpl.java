@@ -9,6 +9,7 @@ import com.example.demo.pojo.request.student.SubmitClassroomQuizAnswerRequest;
 import com.example.demo.pojo.response.StudentClassroomQuizDetailResponse;
 import com.example.demo.service.ClassExperimentClassRelationService;
 import com.example.demo.service.StudentClassroomQuizService;
+import com.example.demo.service.TopicTagMatchService;
 import com.example.demo.util.ClassroomQuizScorer;
 import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
     private final ProcedureTopicMapper procedureTopicMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
     private final ClassroomQuizScorer classroomQuizScorer;
     private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final StudentClassRelationMapper studentClassRelationMapper;
@@ -358,38 +359,27 @@ public class StudentClassroomQuizServiceImpl implements StudentClassroomQuizServ
                         .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    tagWrapper.groupBy(TopicTagMap::getTopicId);
-                    if (Boolean.TRUE.equals(procedureTopic.getTagMatchAll())) {
-                        tagWrapper.having("COUNT(DISTINCT tag_id) >= " + tagIdList.size());
-                    }
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+                    List<Long> topicIds = Boolean.TRUE.equals(procedureTopic.getTagMatchAll())
+                            ? topicTagMatchService.selectTopicIdsByAllTags(tagIdList)
+                            : topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                                .map(TopicTagMap::getTopicId)
-                                .distinct()
-                                .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
-                                String[] typeArray = procedureTopic.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                        .filter(s -> s != null && !s.isEmpty())
-                                        .map(Integer::parseInt)
-                                        .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
+                            String[] typeArray = procedureTopic.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                    .filter(s -> s != null && !s.isEmpty())
+                                    .map(Integer::parseInt)
+                                    .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.last("ORDER BY RAND() LIMIT " + procedureTopic.getNumber());
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.last("ORDER BY RAND() LIMIT " + procedureTopic.getNumber());
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }

@@ -41,7 +41,7 @@ public class ClassStudentProcedureQueryService {
     private final DataCollectionMapper dataCollectionMapper;
     private final ProcedureTopicMapper procedureTopicMapper;
     private final TopicMapper topicMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final ClassExperimentMapper classExperimentMapper;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
@@ -716,7 +716,7 @@ public class ClassStudentProcedureQueryService {
                     .toList();
 
                 if (!tagIdList.isEmpty()) {
-                    List<Long> topicIds = topicTagMapMapper.selectTopicIdsByAllTags(tagIdList, tagIdList.size());
+                    List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
                     if (!topicIds.isEmpty()) {
                         LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
@@ -804,17 +804,7 @@ public class ClassStudentProcedureQueryService {
                 .toList();
 
             if (!tagIdList.isEmpty()) {
-                String sql = "SELECT topic_id FROM topic_tag_map " +
-                            "WHERE tag_id IN (" + tagIdList.stream().map(String::valueOf).collect(Collectors.joining(",")) + ") " +
-                            "GROUP BY topic_id " +
-                            "HAVING COUNT(DISTINCT tag_id) = " + tagIdList.size();
-
-                List<Long> topicIds = topicTagMapMapper.selectList(
-                    new LambdaQueryWrapper<TopicTagMap>().apply(sql)
-                ).stream()
-                .map(TopicTagMap::getTopicId)
-                .distinct()
-                .collect(Collectors.toList());
+                List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
                 if (!topicIds.isEmpty()) {
                     LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();

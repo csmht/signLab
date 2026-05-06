@@ -9,6 +9,7 @@ import com.example.demo.mapper.*;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.response.*;
 import com.example.demo.util.DataCollectionDataUtil;
+import com.example.demo.service.TopicTagMatchService;
 import com.example.demo.util.TopicAnswerContractUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,7 @@ public class TeacherStudentProcedureQueryService {
     private final StudentProcedureAttachmentMapper studentProcedureAttachmentMapper;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
     private final TopicMapper topicMapper;
-    private final TopicTagMapMapper topicTagMapMapper;
+    private final TopicTagMatchService topicTagMatchService;
     private final ProcedureTopicMapper procedureTopicMapper;
     private final DataCollectionMapper dataCollectionMapper;
     private final VideoFileMapper videoFileMapper;
@@ -1185,35 +1186,26 @@ public class TeacherStudentProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+                    List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                            .map(TopicTagMap::getTopicId)
-                            .distinct()
-                            .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            // 添加题目类型过滤
-                            if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
-                                String[] typeArray = procedureTopic.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                    .filter(s -> s != null && !s.isEmpty())
-                                    .map(Integer::parseInt)
-                                    .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        // 添加题目类型过滤
+                        if (procedureTopic.getTopicTypes() != null && !procedureTopic.getTopicTypes().isEmpty()) {
+                            String[] typeArray = procedureTopic.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                .filter(s -> s != null && !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.orderByAsc(Topic::getNumber);
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.orderByAsc(Topic::getNumber);
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }
@@ -1969,35 +1961,26 @@ public class TeacherStudentProcedureQueryService {
                     .collect(Collectors.toList());
 
                 if (!tagIdList.isEmpty()) {
-                    LambdaQueryWrapper<TopicTagMap> tagWrapper = new LambdaQueryWrapper<>();
-                    tagWrapper.in(TopicTagMap::getTagId, tagIdList);
-                    List<TopicTagMap> topicTagMaps = topicTagMapMapper.selectList(tagWrapper);
+                    List<Long> topicIds = topicTagMatchService.selectTopicIdsByGroupedTags(tagIdList);
 
-                    if (!topicTagMaps.isEmpty()) {
-                        List<Long> topicIds = topicTagMaps.stream()
-                            .map(TopicTagMap::getTopicId)
-                            .distinct()
-                            .collect(Collectors.toList());
+                    if (!topicIds.isEmpty()) {
+                        LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
+                        topicWrapper.in(Topic::getId, topicIds);
 
-                        if (!topicIds.isEmpty()) {
-                            LambdaQueryWrapper<Topic> topicWrapper = new LambdaQueryWrapper<>();
-                            topicWrapper.in(Topic::getId, topicIds);
-
-                            // 添加题目类型过滤
-                            if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
-                                String[] typeArray = timedQuiz.getTopicTypes().split(",");
-                                List<Integer> types = Arrays.stream(typeArray)
-                                    .filter(s -> s != null && !s.isEmpty())
-                                    .map(Integer::parseInt)
-                                    .collect(Collectors.toList());
-                                if (!types.isEmpty()) {
-                                    topicWrapper.in(Topic::getType, types);
-                                }
+                        // 添加题目类型过滤
+                        if (timedQuiz.getTopicTypes() != null && !timedQuiz.getTopicTypes().isEmpty()) {
+                            String[] typeArray = timedQuiz.getTopicTypes().split(",");
+                            List<Integer> types = Arrays.stream(typeArray)
+                                .filter(s -> s != null && !s.isEmpty())
+                                .map(Integer::parseInt)
+                                .collect(Collectors.toList());
+                            if (!types.isEmpty()) {
+                                topicWrapper.in(Topic::getType, types);
                             }
-
-                            topicWrapper.orderByAsc(Topic::getNumber);
-                            return topicMapper.selectList(topicWrapper);
                         }
+
+                        topicWrapper.orderByAsc(Topic::getNumber);
+                        return topicMapper.selectList(topicWrapper);
                     }
                 }
             }

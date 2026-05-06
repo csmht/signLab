@@ -77,6 +77,9 @@ public class InsertTopicProcedureRequest {
      * @return 转换后的字符串
      */
     public String getTopicTagsToString() {
+        if (topicTags == null || topicTags.isEmpty()) {
+            return null;
+        }
         StringBuilder tags = new StringBuilder();
         for (int i = 0; i < topicTags.size(); i++) {
             tags.append(topicTags.get(i));
