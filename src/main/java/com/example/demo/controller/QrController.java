@@ -31,8 +31,8 @@ public class QrController {
      */
     @GetMapping("/teacher")
     @RequireRole(value = UserRole.TEACHER)
-    public ApiResponse<TeacherQrVO> getQr(Long classExperimentId) {
-        TeacherQrVO teacherQrVO = qrService.getTeacherQrVO(classExperimentId);
+    public ApiResponse<TeacherQrVO> getQr(Long classExperimentId,Long duration) {
+        TeacherQrVO teacherQrVO = qrService.getTeacherQrVO(classExperimentId,duration);
         return ApiResponse.success(teacherQrVO);
     }
 
@@ -47,8 +47,9 @@ public class QrController {
     @RequireRole(value = UserRole.TEACHER)
     public ApiResponse<TeacherQrVO> getQrByClassAndExperiment(
             @RequestParam("classCode") String classCode,
-            @RequestParam("experimentId") Long experimentId) {
-        TeacherQrVO teacherQrVO = qrService.getTeacherQrVOByClassAndExperiment(classCode, experimentId);
+            @RequestParam("experimentId") Long experimentId,
+            @RequestParam("qrDuration") Long duration) {
+        TeacherQrVO teacherQrVO = qrService.getTeacherQrVOByClassAndExperiment(classCode, experimentId,duration);
         return ApiResponse.success(teacherQrVO);
     }
 
