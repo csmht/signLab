@@ -35,13 +35,13 @@ public class QrService {
      * @param classExperimentId 班级实验ID
      * @return 二维码数据
      */
-    public TeacherQrVO getTeacherQrVO(Long classExperimentId) {
+    public TeacherQrVO getTeacherQrVO(Long classExperimentId,Long duration) {
         ClassExperiment classExperiment = classExperimentMapper.selectById(classExperimentId);
         if (classExperiment == null) {
             throw new BusinessException(404, "班级实验不存在");
         }
 
-        return generateQrVO(classExperiment);
+        return generateQrVO(classExperiment,duration);
     }
 
     /**
@@ -51,7 +51,7 @@ public class QrService {
      * @param experimentId 实验ID
      * @return 二维码数据
      */
-    public TeacherQrVO getTeacherQrVOByClassAndExperiment(String classCode, Long experimentId) {
+    public TeacherQrVO getTeacherQrVOByClassAndExperiment(String classCode, Long experimentId,Long duration) {
         // 通过关联表查询班级实验ID
         List<Long> experimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
 
@@ -59,7 +59,7 @@ public class QrService {
         for (Long id : experimentIds) {
             ClassExperiment ce = classExperimentMapper.selectById(id);
             if (ce != null && ce.getExperimentId().equals(String.valueOf(experimentId))) {
-                return generateQrVO(ce);
+                return generateQrVO(ce,duration);
             }
         }
 
@@ -72,10 +72,13 @@ public class QrService {
      * @param classExperiment 班级实验
      * @return 二维码数据
      */
-    private TeacherQrVO generateQrVO(ClassExperiment classExperiment) {
+    private TeacherQrVO generateQrVO(ClassExperiment classExperiment,Long duration) {
         Optional<String> currentUsername = SecurityUtil.getCurrentUsername();
         TeacherQr teacherQr = new TeacherQr();
         currentUsername.ifPresent(teacherQr::setTeacherName);
+
+        duration = (duration == null || duration <= 1 || duration > 60)?this.duration:duration;
+
         teacherQr.setEndTime(LocalDateTime.now().plusSeconds(duration + 2));
         // 使用 classExperimentId 而不是 classCode
         teacherQr.setClassExperimentId(classExperiment.getId().toString());
