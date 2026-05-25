@@ -1,5 +1,6 @@
 package com.example.demo.pojo.dto.mapvo;
 
+import com.example.demo.exception.BusinessException;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -41,8 +42,12 @@ public class DataField {
         if (fields == null || fields.isEmpty()) {
             return Map.of();
         }
-        return fields.stream()
-                .collect(Collectors.toMap(DataField::getFieldName, DataField::getValue));
+        try {
+            return fields.stream()
+                    .collect(Collectors.toMap(DataField::getFieldName, DataField::getValue));
+        } catch (IllegalStateException e) {
+            throw new BusinessException(400,"一个步骤不能有相同名字的数据");
+        }
     }
 
     /**
