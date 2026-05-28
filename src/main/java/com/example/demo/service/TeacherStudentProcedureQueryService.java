@@ -648,12 +648,6 @@ public class TeacherStudentProcedureQueryService {
         );
         int totalProcedures = procedures.size();
 
-        // 筛选占比不为零的步骤（必须完成的步骤）
-        List<Long> requiredProcedureIds = procedures.stream()
-            .filter(p -> p.getProportion() != null && p.getProportion() > 0)
-            .map(ExperimentalProcedure::getId)
-            .collect(Collectors.toList());
-
         // 查询班级学生在该实验的所有步骤提交记录
         List<StudentExperimentalProcedure> studentProcedures;
         studentProcedures = studentExperimentalProcedureService.list(
@@ -679,21 +673,16 @@ public class TeacherStudentProcedureQueryService {
             ? BigDecimal.valueOf(submittedCount).divide(BigDecimal.valueOf(response.getTotalStudents()), 4, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
-        // 计算平均分（只计算非 0 分学生的平均分）
+        // 计算平均分，未完成或未批改的步骤按 0 分计入学生总分后统一参与统计
         BigDecimal totalScoreSum = BigDecimal.ZERO;
-        int validStudentCount = 0;  // 非 0 分学生数量
         for (String username : studentUserName) {
             List<StudentExperimentalProcedure> studentProcList = studentProcedureMap.getOrDefault(username, Collections.emptyList());
             BigDecimal studentScore = ScoreCalculationUtil.calculateExperimentScore(procedures, studentProcList);
-            // 只统计非 0 分的学生
-            if (studentScore.compareTo(BigDecimal.ZERO) > 0) {
-                totalScoreSum = totalScoreSum.add(studentScore);
-                validStudentCount++;
-            }
+            totalScoreSum = totalScoreSum.add(studentScore);
         }
 
-        BigDecimal averageScore = validStudentCount > 0
-            ? totalScoreSum.divide(BigDecimal.valueOf(validStudentCount), 2, RoundingMode.HALF_UP)
+        BigDecimal averageScore = response.getTotalStudents() > 0
+            ? totalScoreSum.divide(BigDecimal.valueOf(response.getTotalStudents()), 2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
         // 构建步骤统计列表
@@ -754,9 +743,10 @@ public class TeacherStudentProcedureQueryService {
             info.setTotalCount(totalProcedures);
             info.setProgress(completedCount + "/" + totalProcedures);
 
-            // 使用业务规则计算总得分
+            // 使用业务规则计算总得分，未完成或未批改的步骤按 0 分参与统计
             BigDecimal totalScore = ScoreCalculationUtil.calculateExperimentScore(procedures, studentProcList);
             info.setTotalScore(totalScore);
+            info.setAllProceduresGraded(ScoreCalculationUtil.isAllProceduresGraded(procedures, studentProcList));
 
             // 最后提交时间
             studentProcList.stream()

@@ -90,7 +90,7 @@ public class ScoreCalculationUtil {
     }
 
     /**
-     * 检查实验是否所有必须步骤都已批改
+     * 检查实验是否所有有分数占比的步骤都已批改
      *
      * @param procedures 实验步骤列表
      * @param studentProcedures 学生的步骤提交记录

@@ -145,6 +145,11 @@ public class ClassExperimentStatisticsResponse {
         private BigDecimal totalScore;
 
         /**
+         * 是否已完成全部有分数占比步骤的批改
+         */
+        private Boolean allProceduresGraded;
+
+        /**
          * 提交时间（最后提交时间）
          */
         private LocalDateTime lastSubmissionTime;
