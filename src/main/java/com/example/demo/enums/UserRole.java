@@ -1,5 +1,7 @@
 package com.example.demo.enums;
 
+import com.example.demo.exception.BusinessException;
+
 public enum UserRole {
     ADMIN("admin", "管理员", 3),
     TEACHER("teacher", "教师", 2),
@@ -33,7 +35,7 @@ public enum UserRole {
                 return role;
             }
         }
-        throw new IllegalArgumentException("未知角色: " + code);
+        throw new BusinessException("未知角色: " + code);
     }
 
     public String getAuthority() {

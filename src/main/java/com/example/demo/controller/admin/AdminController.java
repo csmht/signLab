@@ -2,11 +2,15 @@ package com.example.demo.controller.admin;
 
 import com.example.demo.annotation.RequireRole;
 import com.example.demo.enums.UserRole;
+import com.example.demo.mapper.UserMapper;
+import com.example.demo.pojo.entity.User;
+import com.example.demo.pojo.request.AdminAddUserRequest;
 import com.example.demo.pojo.request.ClassExperimentQueryRequest;
 import com.example.demo.pojo.response.ApiResponse;
 import com.example.demo.pojo.response.ClassExperimentListResponse;
 import com.example.demo.pojo.response.PageResponse;
 import com.example.demo.service.ClassExperimentService;
+import com.example.demo.util.ResetPasswordUntil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final ClassExperimentService classExperimentService;
+    private final UserMapper userMapper;
+    private final ResetPasswordUntil resetPasswordUntil;
 
     /**
      * 查询所有班级实验（课次）列表
@@ -36,4 +42,11 @@ public class AdminController {
         return ApiResponse.success(response, "查询成功");
     }
 
+    @PostMapping("/add/user")
+    public ApiResponse<Boolean> addUserAdmin(
+            AdminAddUserRequest request) {
+        User user = request.convertToUser(resetPasswordUntil.getResetPassword(request.getUsername()));
+        int insert = userMapper.insert(user);
+        return ApiResponse.success(insert == 1, "添加成功");
+    }
 }

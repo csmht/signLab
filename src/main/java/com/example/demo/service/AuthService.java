@@ -14,6 +14,7 @@ import com.example.demo.pojo.request.SetPasswordRequest;
 import com.example.demo.pojo.response.*;
 import com.example.demo.util.JwtUtil;
 import com.example.demo.util.PasswordUtil;
+import com.example.demo.util.ResetPasswordUntil;
 import com.example.demo.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final WeChatService weChatService;
     private final PasswordUtil passwordUtil;
+    private final ResetPasswordUntil resetPasswordUntil;
 
     /**
      * 用户登录
@@ -535,10 +537,7 @@ public class AuthService {
                     throw new BusinessException(404, "用户不存在，用户名: " + username + "重置失败");
                 }
 
-                String lastFourDigits = username.length() >= 4 ?
-                        username.substring(username.length() - 4) :
-                        username;
-                String password = "syjx@" + lastFourDigits;
+                String password = resetPasswordUntil.getResetPassword(username);
                 String encodedPassword = passwordUtil.encode(password);
                 user.setPassword(encodedPassword);
                 user.setPasswordSet(1);
@@ -600,14 +599,7 @@ public class AuthService {
                 }
 
                 // 生成密码
-                String rawPassword;
-
-                // 教师：syjx@ + 工号后四位
-                String lastFourDigits = userRequest.getUsername().length() >= 4 ?
-                        userRequest.getUsername().substring(userRequest.getUsername().length() - 4) :
-                        userRequest.getUsername();
-                rawPassword = "syjx@" + lastFourDigits;
-
+                String rawPassword = resetPasswordUntil.getResetPassword(userRequest.getUsername());
 
                 // BCrypt加密密码
                 String encodedPassword = passwordUtil.encode(rawPassword);
