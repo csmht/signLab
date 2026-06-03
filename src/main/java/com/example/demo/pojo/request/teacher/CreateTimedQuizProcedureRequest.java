@@ -38,6 +38,11 @@ public class CreateTimedQuizProcedureRequest {
     /** 老师选定的题目ID列表（仅在非随机模式时有效） */
     private List<Long> teacherSelectedTopicIds;
 
+    /**
+     * 答案是否在结束后才可见
+     */
+    private Boolean answerAfterEnd;
+
     // ===== 时间配置 =====
 
     /** 步骤开始时间偏移量(分钟),默认为0 */

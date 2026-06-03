@@ -43,6 +43,7 @@ public class ClassStudentProcedureQueryService {
     private final TopicMapper topicMapper;
     private final TopicTagMatchService topicTagMatchService;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final ClassExperimentMapper classExperimentMapper;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final DownloadService downloadService;
@@ -158,20 +159,23 @@ public class ClassStudentProcedureQueryService {
         // 5. 批量获取学生姓名
         Map<String, String> studentNameMap = batchGetStudentNames(studentUsernames);
 
-        // 6. 计算是否已过答题时间
-        boolean isAfterEndTime = calculateIsAfterEndTime(request.getCourseId(), request.getExperimentId(), procedure);
-
-        // 7. 构建响应
+        // 6. 构建响应
         ClassStudentProcedureDetailResponse<T> response = new ClassStudentProcedureDetailResponse<>();
         response.setProcedureId(procedure.getId());
         response.setProcedureNumber(procedure.getNumber());
         response.setProcedureType(procedure.getType());
         response.setProcedureRemark(procedure.getRemark());
         response.setProportion(procedure.getProportion());
-        response.setIsAfterEndTime(isAfterEndTime);
 
+        boolean hasAnySubmissionAfterEndTime = false;
         List<ClassStudentProcedureDetailResponse.StudentProcedureItem<T>> items = new ArrayList<>();
         for (StudentExperimentalProcedure submission : submissions) {
+            boolean submissionIsAfterEndTime = calculateIsAfterEndTime(
+                    request.getCourseId(), request.getClassCode(), request.getExperimentId(), procedure, submission);
+            if (submissionIsAfterEndTime) {
+                hasAnySubmissionAfterEndTime = true;
+            }
+
             ClassStudentProcedureDetailResponse.StudentProcedureItem<T> item =
                 new ClassStudentProcedureDetailResponse.StudentProcedureItem<>();
             item.setStudentUsername(submission.getStudentUsername());
@@ -181,12 +185,14 @@ public class ClassStudentProcedureQueryService {
             item.setTeacherComment(submission.getTeacherComment());
             item.setIsGraded(submission.getIsGraded());
 
-            // 根据类型填充详情
-            T detail = (T) fillCompletedDetail(procedure, submission, submission.getStudentUsername(), isAfterEndTime, procedureType);
+            // 根据当前提交所属课次填充详情
+            T detail = (T) fillCompletedDetail(
+                    procedure, submission, submission.getStudentUsername(), submissionIsAfterEndTime, procedureType);
             item.setDetail(detail);
 
             items.add(item);
         }
+        response.setIsAfterEndTime(hasAnySubmissionAfterEndTime);
         response.setStudents(items);
 
         return response;
@@ -320,30 +326,69 @@ public class ClassStudentProcedureQueryService {
     }
 
     /**
-     * 计算是否已过答题时间
+     * 判断已提交步骤是否允许返回答案信息
+     *
+     * @param procedure 步骤信息
+     * @param isAfterEndTime 当前是否已过步骤结束时间
+     * @return true-允许返回答案，false-不允许返回答案
      */
-    private boolean calculateIsAfterEndTime(String courseId, Long experimentId, ExperimentalProcedure procedure) {
+    private boolean canShowAnswerAfterSubmission(ExperimentalProcedure procedure, boolean isAfterEndTime) {
+        return !Boolean.TRUE.equals(procedure.getAnswerAfterEnd()) || isAfterEndTime;
+    }
+
+    /**
+     * 按当前提交所属课次计算是否已过答题时间
+     */
+    private boolean calculateIsAfterEndTime(String courseId, String classCode,
+                                            Long experimentId, ExperimentalProcedure procedure,
+                                            StudentExperimentalProcedure submission) {
         try {
-            LambdaQueryWrapper<ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
-            classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
-            classExperimentWrapper.eq(ClassExperiment::getExperimentId, experimentId);
-            ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentWrapper);
+            ClassExperiment classExperiment = null;
 
-            if (classExperiment != null && procedure.getOffsetMinutes() != null) {
-                LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
-                        ProcedureTimeCalculator.calculateStartTime(
-                                classExperiment.getStartTime(),
-                                procedure.getOffsetMinutes()
-                        ),
-                        procedure.getDurationMinutes()
-                );
-
-                if (endTime != null) {
-                    return LocalDateTime.now().isAfter(endTime);
+            // 优先按提交记录落库的班级实验ID精确计算，避免多课次场景串判
+            if (submission.getClassExperimentId() != null) {
+                classExperiment = classExperimentMapper.selectById(submission.getClassExperimentId());
+                if (classExperiment != null
+                        && (!Objects.equals(classExperiment.getCourseId(), courseId)
+                        || !Objects.equals(classExperiment.getExperimentId(), String.valueOf(experimentId)))) {
+                    log.warn("提交记录的班级实验与当前查询条件不匹配，submissionId: {}, classExperimentId: {}",
+                            submission.getId(), submission.getClassExperimentId());
+                    classExperiment = null;
                 }
             }
+
+            // 历史兼容：仅在缺少 classExperimentId 时，回退到班级维度查找最近课次
+            if (classExperiment == null) {
+                List<Long> classExperimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+                if (classExperimentIds.isEmpty()) {
+                    return false;
+                }
+
+                LambdaQueryWrapper<ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
+                classExperimentWrapper.in(ClassExperiment::getId, classExperimentIds);
+                classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
+                classExperimentWrapper.eq(ClassExperiment::getExperimentId, String.valueOf(experimentId));
+                classExperimentWrapper.orderByDesc(ClassExperiment::getStartTime);
+                classExperimentWrapper.last("LIMIT 1");
+                classExperiment = classExperimentMapper.selectOne(classExperimentWrapper, false);
+            }
+
+            if (classExperiment == null || procedure.getOffsetMinutes() == null) {
+                return false;
+            }
+
+            LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
+                    ProcedureTimeCalculator.calculateStartTime(
+                            classExperiment.getStartTime(),
+                            procedure.getOffsetMinutes()
+                    ),
+                    procedure.getDurationMinutes()
+            );
+
+            return endTime != null && LocalDateTime.now().isAfter(endTime);
         } catch (Exception e) {
-            log.error("计算步骤时间失败", e);
+            log.error("按提交课次计算步骤时间失败，submissionId: {}, classExperimentId: {}, classCode: {}, courseId: {}, experimentId: {}",
+                    submission.getId(), submission.getClassExperimentId(), classCode, courseId, experimentId, e);
         }
         return false;
     }
@@ -482,8 +527,9 @@ public class ClassStudentProcedureQueryService {
                         detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                     }
 
-                    // 如果已过答题时间，返回正确答案
-                    if (isAfterEndTime && dataCollection.getCorrectAnswer() != null) {
+                    // 根据答案展示时机配置决定是否返回正确答案
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)
+                            && dataCollection.getCorrectAnswer() != null) {
                         detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
                     }
                 }
@@ -556,11 +602,13 @@ public class ClassStudentProcedureQueryService {
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
-                    // 返回正确答案和是否正确
-                    item.setCorrectAnswer(
-                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
-                    item.setIsCorrect(
-                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    // 根据答案展示时机配置决定是否返回正确答案和判题结果
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)) {
+                        item.setCorrectAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                        item.setIsCorrect(
+                            TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    }
 
                     topicItems.add(item);
                 }
@@ -648,11 +696,13 @@ public class ClassStudentProcedureQueryService {
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
-                    // 返回正确答案和是否正确
-                    item.setCorrectAnswer(
-                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
-                    item.setIsCorrect(
-                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    // 根据答案展示时机配置决定是否返回正确答案和判题结果
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)) {
+                        item.setCorrectAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                        item.setIsCorrect(
+                            TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    }
 
                     topicItems.add(item);
                 }

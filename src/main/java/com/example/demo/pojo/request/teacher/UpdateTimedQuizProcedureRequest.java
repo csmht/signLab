@@ -38,6 +38,11 @@ public class UpdateTimedQuizProcedureRequest {
     /** 老师选定的题目ID列表 */
     private List<Long> teacherSelectedTopicIds;
 
+    /**
+     * 答案是否在结束后才可见
+     */
+    private Boolean answerAfterEnd;
+
     // ===== 时间配置 =====
 
     /** 步骤开始时间偏移量(分钟) */
