@@ -43,6 +43,7 @@ public class ClassStudentProcedureQueryService {
     private final TopicMapper topicMapper;
     private final TopicTagMatchService topicTagMatchService;
     private final ProcedureTopicMapMapper procedureTopicMapMapper;
+    private final ClassExperimentClassRelationService classExperimentClassRelationService;
     private final ClassExperimentMapper classExperimentMapper;
     private final TimedQuizProcedureMapper timedQuizProcedureMapper;
     private final DownloadService downloadService;
@@ -158,8 +159,9 @@ public class ClassStudentProcedureQueryService {
         // 5. 批量获取学生姓名
         Map<String, String> studentNameMap = batchGetStudentNames(studentUsernames);
 
-        // 6. 计算是否已过答题时间
-        boolean isAfterEndTime = calculateIsAfterEndTime(request.getCourseId(), request.getExperimentId(), procedure);
+        // 6. 按班级实验计算是否已过答题时间，避免多班级实验或合班场景取错时间
+        boolean isAfterEndTime = calculateIsAfterEndTime(
+                request.getCourseId(), request.getClassCode(), request.getExperimentId(), procedure);
 
         // 7. 构建响应
         ClassStudentProcedureDetailResponse<T> response = new ClassStudentProcedureDetailResponse<>();
@@ -331,16 +333,27 @@ public class ClassStudentProcedureQueryService {
     }
 
     /**
-     * 计算是否已过答题时间
+     * 按班级实验计算是否已过答题时间
      */
-    private boolean calculateIsAfterEndTime(String courseId, Long experimentId, ExperimentalProcedure procedure) {
+    private boolean calculateIsAfterEndTime(String courseId, String classCode,
+                                            Long experimentId, ExperimentalProcedure procedure) {
         try {
-            LambdaQueryWrapper<ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
-            classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
-            classExperimentWrapper.eq(ClassExperiment::getExperimentId, experimentId);
-            ClassExperiment classExperiment = classExperimentMapper.selectOne(classExperimentWrapper);
+            List<Long> classExperimentIds = classExperimentClassRelationService.getExperimentIdsByClassCode(classCode);
+            if (classExperimentIds.isEmpty()) {
+                return false;
+            }
 
-            if (classExperiment != null && procedure.getOffsetMinutes() != null) {
+            LambdaQueryWrapper<ClassExperiment> classExperimentWrapper = new LambdaQueryWrapper<>();
+            classExperimentWrapper.in(ClassExperiment::getId, classExperimentIds);
+            classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
+            classExperimentWrapper.eq(ClassExperiment::getExperimentId, String.valueOf(experimentId));
+            List<ClassExperiment> classExperiments = classExperimentMapper.selectList(classExperimentWrapper);
+
+            if (classExperiments.isEmpty() || procedure.getOffsetMinutes() == null) {
+                return false;
+            }
+
+            for (ClassExperiment classExperiment : classExperiments) {
                 LocalDateTime endTime = ProcedureTimeCalculator.calculateEndTime(
                         ProcedureTimeCalculator.calculateStartTime(
                                 classExperiment.getStartTime(),
@@ -349,12 +362,13 @@ public class ClassStudentProcedureQueryService {
                         procedure.getDurationMinutes()
                 );
 
-                if (endTime != null) {
-                    return LocalDateTime.now().isAfter(endTime);
+                if (endTime != null && LocalDateTime.now().isAfter(endTime)) {
+                    return true;
                 }
             }
         } catch (Exception e) {
-            log.error("计算步骤时间失败", e);
+            log.error("按班级实验计算步骤时间失败，classCode: {}, courseId: {}, experimentId: {}",
+                    classCode, courseId, experimentId, e);
         }
         return false;
     }
