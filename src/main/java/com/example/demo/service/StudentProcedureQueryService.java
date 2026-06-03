@@ -102,7 +102,7 @@ public class StudentProcedureQueryService {
                                         .eq(ClassExperimentClassRelation::getClassCode, studentClassRelation.getClassCode()))
                         .stream()
                         .map(ClassExperimentClassRelation::getClassExperimentId);
-                classExperimentWrapper.in(ClassExperiment::getId, longStream);
+                classExperimentWrapper.in(ClassExperiment::getId, longStream.toList());
                 classExperimentWrapper.eq(ClassExperiment::getCourseId, courseId);
                 classExperimentWrapper.eq(ClassExperiment::getExperimentId, experimentId);
                 classExperimentWrapper.orderByDesc(ClassExperiment::getStartTime);
