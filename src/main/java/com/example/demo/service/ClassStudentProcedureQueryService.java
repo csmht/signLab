@@ -320,6 +320,17 @@ public class ClassStudentProcedureQueryService {
     }
 
     /**
+     * 判断已提交步骤是否允许返回答案信息
+     *
+     * @param procedure 步骤信息
+     * @param isAfterEndTime 当前是否已过步骤结束时间
+     * @return true-允许返回答案，false-不允许返回答案
+     */
+    private boolean canShowAnswerAfterSubmission(ExperimentalProcedure procedure, boolean isAfterEndTime) {
+        return !Boolean.TRUE.equals(procedure.getAnswerAfterEnd()) || isAfterEndTime;
+    }
+
+    /**
      * 计算是否已过答题时间
      */
     private boolean calculateIsAfterEndTime(String courseId, Long experimentId, ExperimentalProcedure procedure) {
@@ -482,8 +493,9 @@ public class ClassStudentProcedureQueryService {
                         detail.setTableCellAnswers(TableCellAnswer.fromMap(tableCellAnswers));
                     }
 
-                    // 如果已过答题时间，返回正确答案
-                    if (isAfterEndTime && dataCollection.getCorrectAnswer() != null) {
+                    // 根据答案展示时机配置决定是否返回正确答案
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)
+                            && dataCollection.getCorrectAnswer() != null) {
                         detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
                     }
                 }
@@ -556,11 +568,13 @@ public class ClassStudentProcedureQueryService {
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
-                    // 返回正确答案和是否正确
-                    item.setCorrectAnswer(
-                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
-                    item.setIsCorrect(
-                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    // 根据答案展示时机配置决定是否返回正确答案和判题结果
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)) {
+                        item.setCorrectAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                        item.setIsCorrect(
+                            TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    }
 
                     topicItems.add(item);
                 }
@@ -648,11 +662,13 @@ public class ClassStudentProcedureQueryService {
                     String studentAnswer = studentAnswers.get(topic.getId());
                     item.setStudentAnswer(TopicAnswerContractUtil.normalizeForApi(topic.getType(), studentAnswer));
 
-                    // 返回正确答案和是否正确
-                    item.setCorrectAnswer(
-                        TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
-                    item.setIsCorrect(
-                        TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    // 根据答案展示时机配置决定是否返回正确答案和判题结果
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)) {
+                        item.setCorrectAnswer(
+                            TopicAnswerContractUtil.normalizeForApi(topic.getType(), topic.getCorrectAnswer()));
+                        item.setIsCorrect(
+                            TopicAnswerContractUtil.answersEqual(topic.getType(), studentAnswer, topic.getCorrectAnswer()));
+                    }
 
                     topicItems.add(item);
                 }
