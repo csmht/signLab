@@ -165,6 +165,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null ? request.getAnswerAfterEnd() : false);
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -258,6 +259,7 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null ? request.getAnswerAfterEnd() : false);
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -405,6 +407,10 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : procedure.getIsSkip());
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
+        // 答案展示时机配置：仅在前端传值时覆盖原有设置
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null
+                ? request.getAnswerAfterEnd()
+                : procedure.getAnswerAfterEnd());
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -493,6 +499,10 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : procedure.getIsSkip());
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : procedure.getProportion());
         procedure.setRemark(request.getRemark());
+        // 答案展示时机配置：仅在前端传值时覆盖原有设置
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null
+                ? request.getAnswerAfterEnd()
+                : procedure.getAnswerAfterEnd());
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -674,6 +684,8 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
+        // 答案展示时机配置：未传时默认允许立即查看答案
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null ? request.getAnswerAfterEnd() : false);
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -782,6 +794,8 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
+        // 答案展示时机配置：未传时默认允许立即查看答案
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null ? request.getAnswerAfterEnd() : false);
 
         // 设置时��字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -966,6 +980,8 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
+        // 答案展示时机配置：未传时默认允许立即查看答案
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null ? request.getAnswerAfterEnd() : false);
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());
@@ -1059,6 +1075,10 @@ public class TeacherProcedureCreationService {
         }
         if (request.getRemark() != null) {
             procedure.setRemark(request.getRemark());
+        }
+        // 答案展示时机配置：仅在前端传值时覆盖原有设置
+        if (request.getAnswerAfterEnd() != null) {
+            procedure.setAnswerAfterEnd(request.getAnswerAfterEnd());
         }
 
         // 设置时间字段
@@ -1178,6 +1198,8 @@ public class TeacherProcedureCreationService {
         procedure.setIsSkip(request.getIsSkip() != null ? request.getIsSkip() : false);
         procedure.setProportion(request.getProportion() != null ? request.getProportion() : 0);
         procedure.setRemark(request.getRemark());
+        // 答案展示时机配置：未传时默认允许立即查看答案
+        procedure.setAnswerAfterEnd(request.getAnswerAfterEnd() != null ? request.getAnswerAfterEnd() : false);
 
         // 设置时间字段
         validateAndSetTimeFields(procedure, request.getOffsetMinutes(), request.getDurationMinutes());

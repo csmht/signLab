@@ -65,4 +65,9 @@ public class CreateTopicProcedureRequest {
      * 步骤持续时间(分钟)
      */
     private Integer durationMinutes;
+
+    /**
+     * 答案是否在结束后才可见
+     */
+    private Boolean answerAfterEnd;
 }

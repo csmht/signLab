@@ -71,6 +71,11 @@ public class InsertTopicProcedureRequest {
      */
     private Integer durationMinutes;
 
+    /**
+     * 答案是否在结束后才可见
+     */
+    private Boolean answerAfterEnd;
+
 
     /**
      * 转为String

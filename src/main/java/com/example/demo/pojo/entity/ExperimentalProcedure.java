@@ -74,4 +74,8 @@ public class ExperimentalProcedure {
     @Column(comment = "是否删除",type = "bit", notNull = true,defaultValue = "0")
     private Boolean isDeleted;
 
+    /** 答案是否在结束后才可见 */
+    @Column(comment = "答案是否在结束后才可见",type = "bit", notNull = true,defaultValue = "0")
+    private Boolean answerAfterEnd;
+
 }
