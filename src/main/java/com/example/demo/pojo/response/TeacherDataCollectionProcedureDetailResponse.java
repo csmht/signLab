@@ -2,7 +2,6 @@ package com.example.demo.pojo.response;
 
 import com.example.demo.pojo.dto.remark.FillBlankRemarkDTO;
 import com.example.demo.pojo.dto.remark.TableRemarkDTO;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -89,7 +88,8 @@ public class TeacherDataCollectionProcedureDetailResponse {
      */
     private Boolean dataNeedDoc;
 
-    /** 表格类型步骤级误差百分比，填空类型不返回 */
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    /**
+     * 步骤级误差百分比（可选，用于数值类答案的判分），单位：%
+     */
     private Double tolerance;
 }

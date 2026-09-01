@@ -466,12 +466,10 @@ public class ClassStudentProcedureQueryService {
                     new StudentProcedureDetailWithAnswerResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                boolean canShowCorrectAnswer = canShowAnswerAfterSubmission(procedure, isAfterEndTime);
-                fillDataCollectionRemark(detail, dataCollection, canShowCorrectAnswer);
+                fillDataCollectionRemark(detail, dataCollection);
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
-                detail.setTolerance(Long.valueOf(2L).equals(dataCollection.getType())
-                        ? dataCollection.getTolerance() : null);
+                detail.setTolerance(dataCollection.getTolerance());
 
                 // 查询附件信息
                 LambdaQueryWrapper<StudentProcedureAttachment> attachmentWrapper = new LambdaQueryWrapper<>();
@@ -530,12 +528,9 @@ public class ClassStudentProcedureQueryService {
                     }
 
                     // 根据答案展示时机配置决定是否返回正确答案
-                    if (canShowCorrectAnswer) {
-                        Map<String, com.example.demo.pojo.dto.mapvo.AnswerRange> correctAnswer =
-                                dataCollection.resolveCorrectAnswerRanges();
-                        if (!correctAnswer.isEmpty()) {
-                            detail.setCorrectAnswer(correctAnswer);
-                        }
+                    if (canShowAnswerAfterSubmission(procedure, isAfterEndTime)
+                            && dataCollection.getCorrectAnswer() != null) {
+                        detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
                     }
                 }
 
@@ -558,7 +553,7 @@ public class ClassStudentProcedureQueryService {
                     new StudentProcedureDetailWithAnswerResponse.DataCollectionDetail();
                 detail.setId(dataCollection.getId());
                 detail.setType(dataCollection.getType() != null ? dataCollection.getType().intValue() : null);
-                fillDataCollectionRemark(detail, dataCollection, false);
+                fillDataCollectionRemark(detail, dataCollection);
                 detail.setNeedPhoto(dataCollection.getNeedPhoto());
                 detail.setNeedDoc(dataCollection.getNeedDoc());
                 return detail;
@@ -916,11 +911,10 @@ public class ClassStudentProcedureQueryService {
 
     private void fillDataCollectionRemark(
             StudentProcedureDetailWithAnswerResponse.DataCollectionDetail detail,
-            DataCollection dataCollection,
-            boolean includeCorrectAnswer) {
+            DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(dataCollection.resolveFillBlankRemark(includeCorrectAnswer));
+            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
             detail.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             detail.setFillBlankRemark(null);

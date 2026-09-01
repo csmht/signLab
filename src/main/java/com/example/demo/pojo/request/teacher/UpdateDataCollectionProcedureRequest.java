@@ -28,7 +28,7 @@ public class UpdateDataCollectionProcedureRequest {
     /** 数据类型：1-填空类型（关键数据），2-表格类型 */
     private Integer dataType;
 
-    /** 收集数据字段列表，当dataType=1时使用，每个字段通过min和max定义正确范围 */
+    /** 收集数据字段列表，当dataType=1时使用，只对数字类型数据进行自动判分。每个字段可单独配置tolerance属性（百分比，单位：%），优先级高于步骤级tolerance */
     private List<DataField> dataFields;
 
     /** 表格行表头（第一列的标识），类型：List<String>，示例：["实验1", "实验2", "实验3"]，当dataType=2时使用 */
@@ -43,7 +43,7 @@ public class UpdateDataCollectionProcedureRequest {
     /** 表格列级误差列表（可选），同一列所有单元格共享该误差配置，优先级低于单元格级误差，高于步骤级误差 */
     private List<ColumnTolerance> tableColumnTolerances;
 
-    /** 表格类型步骤级误差百分比（可选，dataType=2时使用） */
+    /** 步骤级误差百分比（可选，用于数值类答案的判分），类型：Double，用途：数值类答案的允许相对误差，示例：5 (表示±5%的误差)，可以为null，表示精确匹配 */
     private Double tolerance;
 
     /** 是否需要提交照片 */
