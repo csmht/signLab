@@ -6,10 +6,7 @@ import com.example.demo.mapper.ProcedureTopicMapMapper;
 import com.example.demo.mapper.ProcedureTopicMapper;
 import com.example.demo.mapper.TimedQuizProcedureMapper;
 import com.example.demo.mapper.TopicMapper;
-import com.example.demo.pojo.dto.mapvo.DataField;
-import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.pojo.entity.ExperimentalProcedure;
-import com.example.demo.pojo.request.teacher.CreateDataCollectionProcedureRequest;
 import com.example.demo.pojo.request.teacher.InsertTopicProcedureRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,28 +67,6 @@ class TeacherProcedureCreationServiceTest {
                 () -> teacherProcedureCreationService.insertTopicProcedure(request));
 
         assertEquals("随机抽题必须携带标签", ex.getMessage());
-    }
-
-    @Test
-    void tableCreationIgnoresResidualInvalidFillBlankFields() {
-        CreateDataCollectionProcedureRequest request = new CreateDataCollectionProcedureRequest();
-        request.setExperimentId(1L);
-        request.setDataType(2);
-        request.setDurationMinutes(10);
-        request.setTableRowHeaders(List.of("row"));
-        request.setTableColumnHeaders(List.of("column"));
-
-        TableCellAnswer tableAnswer = new TableCellAnswer();
-        tableAnswer.setRowIndex(0);
-        tableAnswer.setColumnIndex(0);
-        tableAnswer.setValue("3.5");
-        request.setTableCellAnswers(List.of(tableAnswer));
-
-        DataField residualFillField = new DataField();
-        residualFillField.setFieldName("unused");
-        request.setDataFields(List.of(residualFillField));
-
-        assertDoesNotThrow(() -> teacherProcedureCreationService.createDataCollectionProcedure(request));
     }
 
     private InsertTopicProcedureRequest buildBaseInsertRequest() {

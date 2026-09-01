@@ -176,16 +176,17 @@ public class TeacherProcedureCreationService {
         experimentalProcedureService.save(procedure);
         log.info("数据收集步骤创建成功，步骤ID: {}", procedure.getId());
 
-        // 2. 按数据类型构建数据描述和正确答案 JSON
+        // 2. 构建数据描述和正确答案JSON（包含误差配置）
+        Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
+        Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
+
         String remark;
         String correctAnswer;
         if (request.getDataType() == 1) {
-            Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
             remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
                     request.getDataFields());
             correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
         } else if (request.getDataType() == 2) {
-            Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
             remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
                     request.getTableRowHeaders(), request.getTableColumnHeaders(), request.getTableCellAnswers(),
                     request.getTableColumnTolerances());
@@ -202,7 +203,7 @@ public class TeacherProcedureCreationService {
         dataCollection.setType(request.getDataType().longValue());
         dataCollection.setRemark(remark);
         dataCollection.setCorrectAnswer(correctAnswer);
-        dataCollection.setTolerance(request.getDataType() == 2 ? request.getTolerance() : null);
+        dataCollection.setTolerance(request.getTolerance());
         dataCollection.setNeedPhoto(request.getNeedPhoto() != null ? request.getNeedPhoto() : false);
         dataCollection.setNeedDoc(request.getNeedDoc() != null ? request.getNeedDoc() : false);
 
@@ -423,16 +424,17 @@ public class TeacherProcedureCreationService {
             if (dataCollection != null) {
                 dataCollection.setType(request.getDataType().longValue());
 
-                // 按数据类型构建数据描述和正确答案 JSON
+                // 构建数据描述和正确答案JSON（包含误差配置）
+                Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
+                Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
+
                 String remark;
                 String correctAnswer;
                 if (request.getDataType() == 1) {
-                    Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
                     remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
                             request.getDataFields());
                     correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
                 } else if (request.getDataType() == 2) {
-                    Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
                     remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
                             request.getTableRowHeaders(), request.getTableColumnHeaders(), request.getTableCellAnswers(),
                             request.getTableColumnTolerances());
@@ -445,7 +447,7 @@ public class TeacherProcedureCreationService {
 
                 dataCollection.setRemark(remark);
                 dataCollection.setCorrectAnswer(correctAnswer);
-                dataCollection.setTolerance(request.getDataType() == 2 ? request.getTolerance() : null);
+                dataCollection.setTolerance(request.getTolerance());
                 dataCollection.setNeedPhoto(request.getNeedPhoto() != null ? request.getNeedPhoto() : dataCollection.getNeedPhoto());
                 dataCollection.setNeedDoc(request.getNeedDoc() != null ? request.getNeedDoc() : dataCollection.getNeedDoc());
                 dataCollectionMapper.updateById(dataCollection);
@@ -693,16 +695,17 @@ public class TeacherProcedureCreationService {
         experimentalProcedureService.save(procedure);
         log.info("数据收集步骤插入成功，步骤ID: {}", procedure.getId());
 
-        // 按数据类型构建数据描述和正确答案 JSON
+        // 构建数据描述和正确答案JSON（包含误差配置）
+        Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
+        Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
+
         String remark;
         String correctAnswer;
         if (request.getDataType() == 1) {
-            Map<String, String> dataFieldsMap = DataField.toMap(request.getDataFields());
             remark = com.example.demo.util.DataCollectionDataUtil.convertFillBlanksToJson(
                     request.getDataFields());
             correctAnswer = com.example.demo.util.DataCollectionDataUtil.convertCorrectAnswerToJson(dataFieldsMap);
         } else if (request.getDataType() == 2) {
-            Map<String, String> tableCellAnswersMap = TableCellAnswer.toMap(request.getTableCellAnswers());
             remark = com.example.demo.util.DataCollectionDataUtil.convertTableToJson(
                     request.getTableRowHeaders(), request.getTableColumnHeaders(), request.getTableCellAnswers(),
                     request.getTableColumnTolerances());
@@ -719,7 +722,7 @@ public class TeacherProcedureCreationService {
         dataCollection.setType(request.getDataType().longValue());
         dataCollection.setRemark(remark);
         dataCollection.setCorrectAnswer(correctAnswer);
-        dataCollection.setTolerance(request.getDataType() == 2 ? request.getTolerance() : null);
+        dataCollection.setTolerance(request.getTolerance());
         dataCollection.setNeedPhoto(request.getNeedPhoto() != null ? request.getNeedPhoto() : false);
         dataCollection.setNeedDoc(request.getNeedDoc() != null ? request.getNeedDoc() : false);
 

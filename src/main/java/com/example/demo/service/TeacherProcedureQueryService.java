@@ -195,8 +195,7 @@ public class TeacherProcedureQueryService {
             fillDataCollectionRemark(response, dataCollection);
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
-            response.setTolerance(Long.valueOf(2L).equals(dataCollection.getType())
-                    ? dataCollection.getTolerance() : null);
+            response.setTolerance(dataCollection.getTolerance());
         }
     }
 
@@ -556,15 +555,14 @@ public class TeacherProcedureQueryService {
             fillDataCollectionRemark(response, dataCollection);
             response.setDataNeedPhoto(dataCollection.getNeedPhoto());
             response.setDataNeedDoc(dataCollection.getNeedDoc());
-            response.setTolerance(Long.valueOf(2L).equals(dataCollection.getType())
-                    ? dataCollection.getTolerance() : null);
+            response.setTolerance(dataCollection.getTolerance());
         }
     }
 
     private void fillDataCollectionRemark(TeacherProcedureDetailResponse response, DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            response.setFillBlankRemark(dataCollection.resolveFillBlankRemark(true));
+            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
             response.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             response.setFillBlankRemark(null);
@@ -578,7 +576,7 @@ public class TeacherProcedureQueryService {
     private void fillDataCollectionRemark(TeacherDataCollectionProcedureDetailResponse response, DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            response.setFillBlankRemark(dataCollection.resolveFillBlankRemark(true));
+            response.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
             response.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             response.setFillBlankRemark(null);

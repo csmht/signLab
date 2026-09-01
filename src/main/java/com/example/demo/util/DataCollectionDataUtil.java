@@ -6,6 +6,7 @@ import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
 import com.example.demo.pojo.dto.remark.FillBlankRemarkDTO;
 import com.example.demo.pojo.dto.remark.TableRemarkDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +18,7 @@ import java.util.Map;
  * 用于将结构化的填空和表格数据转换为JSON格式存储到 remark 字段
  *
  * remark JSON 格式（按数据类型区分）：
- * - 填空类型（type=1）：{"fillBlanks":[{"fieldName":"Uab"}]}
+ * - 填空类型（type=1）：{"fillBlanks":[{"fieldName":"Uab","value":"","tolerance":5.0}]}
  * - 表格类型（type=2）：{"tableRowHeaders":["A","B"],"tableColumnHeaders":["1","2"],
  *   "tableCellAnswers":[{"rowIndex":0,"columnIndex":0,"value":"3.5","tolerance":5.0}],
  *   "columnTolerances":[{"columnIndex":0,"tolerance":3.0}]}
@@ -33,20 +34,13 @@ public class DataCollectionDataUtil {
     /**
      * 将填空类型数据转换为JSON
      *
-     * @param dataFields 填空数据列表（fieldName + min + max）
+     * @param dataFields 填空数据列表（fieldName + value + tolerance）
      * @return JSON字符串
      */
     public static String convertFillBlanksToJson(List<DataField> dataFields) {
         try {
-            List<DataField> structureFields = dataFields == null ? null : dataFields.stream()
-                    .map(field -> {
-                        DataField structureField = new DataField();
-                        structureField.setFieldName(field.getFieldName());
-                        return structureField;
-                    })
-                    .toList();
             FillBlankRemarkDTO dto = FillBlankRemarkDTO.builder()
-                    .fillBlanks(structureFields)
+                    .fillBlanks(dataFields)
                     .build();
             return objectMapper.writeValueAsString(dto);
         } catch (JsonProcessingException e) {
@@ -113,32 +107,25 @@ public class DataCollectionDataUtil {
     }
 
     /**
-     * 从 remark JSON 和已统一解析的正确答案 Map 中生成填空类型 DTO。
-     * remark 提供字段结构，正确答案是否合并由调用方的展示策略决定。
+     * 从 remark JSON 和 correctAnswer JSON 中解析填空类型 DTO
+     * remark 提供字段结构与误差，correctAnswer 提供字段值
      *
      * @param remarkJson remark JSON字符串
-     * @param correctAnswerMap 已由 DataCollection 统一解析的正确答案
-     * @param includeCorrectAnswer 是否返回正确答案范围
+     * @param correctAnswerJson correctAnswer JSON字符串
      * @return 填空类型 DTO，解析失败时尽量返回可用结构
      */
-    public static FillBlankRemarkDTO parseFillBlankRemark(
-            String remarkJson,
-            Map<String, String> correctAnswerMap,
-            boolean includeCorrectAnswer) {
+    public static FillBlankRemarkDTO parseFillBlankRemark(String remarkJson, String correctAnswerJson) {
         FillBlankRemarkDTO dto = parseFillBlankRemark(remarkJson);
+        Map<String, String> correctAnswerMap = parseCorrectAnswer(correctAnswerJson);
 
         if (dto != null && dto.getFillBlanks() != null && !dto.getFillBlanks().isEmpty()) {
-            dto.getFillBlanks().forEach(field -> {
-                if (!includeCorrectAnswer) {
-                    field.applyCorrectAnswerValue(null);
-                } else if (correctAnswerMap.containsKey(field.getFieldName())) {
-                    field.applyCorrectAnswerValue(correctAnswerMap.get(field.getFieldName()));
-                }
-            });
+            if (!correctAnswerMap.isEmpty()) {
+                dto.getFillBlanks().forEach(field -> field.setValue(correctAnswerMap.get(field.getFieldName())));
+            }
             return dto;
         }
 
-        if (!includeCorrectAnswer || correctAnswerMap.isEmpty()) {
+        if (correctAnswerMap.isEmpty()) {
             return dto;
         }
 
@@ -160,6 +147,20 @@ public class DataCollectionDataUtil {
             log.error("解析表格类型 remark 失败", e);
             return null;
         }
+    }
+
+    /**
+     * 从JSON中解析字段级误差映射
+     *
+     * @param json 数据收集JSON字符串
+     * @return 字段级误差映射
+     */
+    public static Map<String, Double> parseFieldTolerancesFromJson(String json) {
+        FillBlankRemarkDTO dto = parseFillBlankRemark(json);
+        if (dto == null || dto.getFillBlanks() == null) {
+            return Map.of();
+        }
+        return DataField.toToleranceMap(dto.getFillBlanks());
     }
 
     /**
@@ -190,4 +191,16 @@ public class DataCollectionDataUtil {
         return ColumnTolerance.toMap(dto.getColumnTolerances());
     }
 
+    private static Map<String, String> parseCorrectAnswer(String correctAnswerJson) {
+        if (correctAnswerJson == null || correctAnswerJson.trim().isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            return objectMapper.readValue(correctAnswerJson, new TypeReference<Map<String, String>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("解析填空类型 correctAnswer 失败", e);
+            return Map.of();
+        }
+    }
 }

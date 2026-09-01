@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.demo.exception.BusinessException;
 import com.example.demo.mapper.*;
-import com.example.demo.pojo.dto.mapvo.DataField;
 import com.example.demo.pojo.entity.*;
 import com.example.demo.pojo.request.student.CompleteTimedQuizProcedureRequest;
 import com.example.demo.util.AnswerMapJSONUntil;
@@ -391,18 +390,28 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                 return AutoGradeExecutionResult.skipped("当前步骤不支持机器批改");
             }
 
-            // 2. 解析正确答案和误差配置
-            java.util.Map<String, String> correctAnswers = dataCollection.parseCorrectAnswerMap();
-
-            if (correctAnswers == null || correctAnswers.isEmpty()) {
-                return AutoGradeExecutionResult.skipped("未配置正确答案或正确答案为空");
+            if (dataCollection.getCorrectAnswer() == null || dataCollection.getCorrectAnswer().trim().isEmpty()) {
+                return AutoGradeExecutionResult.skipped("未配置正确答案");
             }
 
-            // 解析表格单元格级/列级误差配置
+            // 2. 解析正确答案和误差配置
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, String> correctAnswers = objectMapper.readValue(
+                    dataCollection.getCorrectAnswer(),
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, String>>() {}
+            );
+
+            if (correctAnswers == null || correctAnswers.isEmpty()) {
+                return AutoGradeExecutionResult.skipped("正确答案为空");
+            }
+
+            // 解析字段级/单元格级/列级误差配置
+            Map<String, Double> fieldTolerances = Map.of();
             Map<String, Double> cellTolerances = Map.of();
             Map<String, Double> columnTolerances = Map.of();
             if (dataCollection.getRemark() != null && !dataCollection.getRemark().isEmpty()) {
                 // 从remark字段的JSON中解析误差配置
+                fieldTolerances = DataCollectionDataUtil.parseFieldTolerancesFromJson(dataCollection.getRemark());
                 cellTolerances = DataCollectionDataUtil.parseCellTolerancesFromJson(dataCollection.getRemark());
                 columnTolerances = DataCollectionDataUtil.parseColumnTolerancesFromJson(dataCollection.getRemark());
             }
@@ -412,23 +421,21 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
             int correctCount = 0;
             Double stepTolerance = dataCollection.getTolerance();
 
-            // 仅填空类型解释填空答案和 RANGE| 内部编码
-            if (Long.valueOf(1L).equals(dataCollection.getType())
-                    && fillBlankAnswers != null
-                    && !fillBlankAnswers.isEmpty()) {
+            // 判断填空类型答案
+            if (fillBlankAnswers != null && !fillBlankAnswers.isEmpty()) {
                 for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
                     String fieldName = entry.getKey();
                     String studentAnswer = fillBlankAnswers.get(fieldName);
-                    if (isAnswerCorrect(studentAnswer, entry.getValue(), null, true)) {
+                    // 优先使用字段级误差，没有则使用步骤级误差
+                    Double fieldTolerance = fieldTolerances.getOrDefault(fieldName, stepTolerance);
+                    if (isAnswerCorrect(studentAnswer, entry.getValue(), fieldTolerance)) {
                         correctCount++;
                     }
                 }
             }
 
-            // 仅表格类型使用表格答案和原有误差逻辑
-            if (Long.valueOf(2L).equals(dataCollection.getType())
-                    && tableCellAnswers != null
-                    && !tableCellAnswers.isEmpty()) {
+            // 判断表格类型答案
+            if (tableCellAnswers != null && !tableCellAnswers.isEmpty()) {
                 for (java.util.Map.Entry<String, String> entry : correctAnswers.entrySet()) {
                     String positionKey = entry.getKey(); // 格式: "rowIndex-columnIndex"，如 "0-0"
                     String studentAnswer = tableCellAnswers.get(positionKey);
@@ -444,7 +451,7 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
                         }
                     }
 
-                    if (isAnswerCorrect(studentAnswer, entry.getValue(), finalTolerance, false)) {
+                    if (isAnswerCorrect(studentAnswer, entry.getValue(), finalTolerance)) {
                         correctCount++;
                     }
                 }
@@ -484,20 +491,11 @@ public class StudentProcedureCompletionService extends ServiceImpl<StudentProced
      * @param studentAnswer 学生答案
      * @param correctAnswer 正确答案
      * @param tolerance     误差百分比（单位：%）
-     * @param allowRangeEncoding 是否按填空范围解释内部编码
      * @return 是否正确
      */
-    private boolean isAnswerCorrect(
-            String studentAnswer,
-            String correctAnswer,
-            Double tolerance,
-            boolean allowRangeEncoding) {
+    private boolean isAnswerCorrect(String studentAnswer, String correctAnswer, Double tolerance) {
         if (studentAnswer == null || correctAnswer == null) {
             return false;
-        }
-
-        if (allowRangeEncoding) {
-            return DataField.isFillBlankAnswerCorrect(studentAnswer, correctAnswer);
         }
 
         // 尝试按数值比较
