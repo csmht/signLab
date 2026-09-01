@@ -1,11 +1,14 @@
 package com.example.demo.pojo.response;
 
 import com.example.demo.pojo.dto.mapvo.FillBlankAnswer;
+import com.example.demo.pojo.dto.mapvo.AnswerRange;
 import com.example.demo.pojo.dto.mapvo.TableCellAnswer;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 带作答结果的数据收集详情基础响应
@@ -36,11 +39,10 @@ public class BaseSubmittedDataCollectionDetailResponse extends BaseDataCollectio
     /**
      * 正确答案
      */
-    private String correctAnswer;
+    private Map<String, AnswerRange> correctAnswer;
 
-    /**
-     * 误差范围（用于数值类答案的判分）
-     */
+    /** 表格类型步骤级误差，填空类型不返回 */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Double tolerance;
 
     /**
