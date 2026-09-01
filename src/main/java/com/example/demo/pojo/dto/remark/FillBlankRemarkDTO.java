@@ -14,8 +14,11 @@ import java.util.List;
  * 填空类型 remark DTO
  * 用于序列化/反序列化 data_collection.remark 中的填空类型 JSON
  *
- * JSON 格式：
- * {"fillBlanks":[{"fieldName":"Uab","value":"","tolerance":5.0}]}
+ * 范围答案 JSON 格式：
+ * {"fillBlanks":[{"fieldName":"Uab","min":"210","max":"230"}]}
+ *
+ * 旧的精确答案在生成 DTO 时转换为 min 与 max 相同的范围：
+ * {"fillBlanks":[{"fieldName":"Uab","min":"220","max":"220"}]}
  */
 @Data
 @Builder
@@ -25,6 +28,6 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FillBlankRemarkDTO {
 
-    /** 填空数据列表（字段名 + 值 + 误差） */
+    /** 填空数据列表（字段名 + 最小值 + 最大值） */
     private List<DataField> fillBlanks;
 }

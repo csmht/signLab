@@ -1019,8 +1019,10 @@ public class TeacherStudentProcedureQueryService {
                 }
 
                 // 教师始终可以查看正确答案
-                if (dataCollection.getCorrectAnswer() != null) {
-                    detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
+                Map<String, com.example.demo.pojo.dto.mapvo.AnswerRange> correctAnswer =
+                        dataCollection.resolveCorrectAnswerRanges();
+                if (!correctAnswer.isEmpty()) {
+                    detail.setCorrectAnswer(correctAnswer);
                 }
 
                 response.setDataCollectionDetail(detail);
@@ -1233,7 +1235,7 @@ public class TeacherStudentProcedureQueryService {
             DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
+            detail.setFillBlankRemark(dataCollection.resolveFillBlankRemark(true));
             detail.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             detail.setFillBlankRemark(null);
@@ -1249,7 +1251,7 @@ public class TeacherStudentProcedureQueryService {
             DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
+            detail.setFillBlankRemark(dataCollection.resolveFillBlankRemark(true));
             detail.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             detail.setFillBlankRemark(null);
@@ -1265,7 +1267,7 @@ public class TeacherStudentProcedureQueryService {
             DataCollection dataCollection) {
         Integer type = dataCollection.getType() != null ? dataCollection.getType().intValue() : null;
         if (Integer.valueOf(1).equals(type)) {
-            detail.setFillBlankRemark(DataCollectionDataUtil.parseFillBlankRemark(dataCollection.getRemark(), dataCollection.getCorrectAnswer()));
+            detail.setFillBlankRemark(dataCollection.resolveFillBlankRemark(true));
             detail.setTableRemark(null);
         } else if (Integer.valueOf(2).equals(type)) {
             detail.setFillBlankRemark(null);
@@ -1488,8 +1490,10 @@ public class TeacherStudentProcedureQueryService {
                 }
 
                 // 正确答案
-                if (dataCollection.getCorrectAnswer() != null) {
-                    detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
+                Map<String, com.example.demo.pojo.dto.mapvo.AnswerRange> correctAnswer =
+                        dataCollection.resolveCorrectAnswerRanges();
+                if (!correctAnswer.isEmpty()) {
+                    detail.setCorrectAnswer(correctAnswer);
                 }
 
                 response.setDataCollectionDetail(detail);
@@ -1538,8 +1542,10 @@ public class TeacherStudentProcedureQueryService {
                 detail.setNeedDoc(dataCollection.getNeedDoc());
 
                 // 正确答案
-                if (dataCollection.getCorrectAnswer() != null) {
-                    detail.setCorrectAnswer(dataCollection.getCorrectAnswer());
+                Map<String, com.example.demo.pojo.dto.mapvo.AnswerRange> correctAnswer =
+                        dataCollection.resolveCorrectAnswerRanges();
+                if (!correctAnswer.isEmpty()) {
+                    detail.setCorrectAnswer(correctAnswer);
                 }
 
                 response.setDataCollectionDetail(detail);
